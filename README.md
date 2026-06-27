@@ -55,6 +55,9 @@ See `docs/ios-ci-distribution.md` for the required Apple signing assets,
 GitHub Secrets, first workflow run, GitHub Release publishing, GitHub Pages
 install page, and Feather/AltStore-style update source.
 
+The published install page and source feed are available at
+https://blato58.github.io/MaskApp/.
+
 ## Migration Notes
 
 Microsoft support for legacy Xamarin SDKs ended on May 1, 2024. This repo now targets `.NET MAUI`, with iOS as the primary product target and Android maintained as a secondary target.
