@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:connect="clr-namespace:MaskApp.Core.Features.Connect;assembly=MaskApp.Core"
     xmlns:mask="clr-namespace:MaskApp.Core.Features.MaskControl;assembly=MaskApp.Core"
+    x:DataType="connect:ConnectViewModel"
     Title="Connect"
     BackgroundColor="{StaticResource PageBackgroundColor}">
     <ScrollView>
@@ -71,7 +72,10 @@
                 </Grid>
             </Border>
 
-            <VerticalStackLayout x:Name="MaskControls" Spacing="14">
+            <VerticalStackLayout
+                x:Name="MaskControls"
+                x:DataType="mask:MaskControlViewModel"
+                Spacing="14">
                 <Border Style="{StaticResource PanelBorderStyle}">
                     <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="14">
                         <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="10">

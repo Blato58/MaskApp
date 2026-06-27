@@ -27,7 +27,7 @@
                         <Picker
                             Title="Animation"
                             ItemsSource="{Binding AnimationModes}"
-                            ItemDisplayBinding="{Binding Name}"
+                            ItemDisplayBinding="{Binding Name, x:DataType=text:TextAnimationModeOption}"
                             SelectedItem="{Binding SelectedAnimationMode, Mode=TwoWay}" />
                         <Grid Grid.Column="1" ColumnDefinitions="*,Auto" ColumnSpacing="10">
                             <Slider

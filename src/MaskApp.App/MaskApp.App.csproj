@@ -12,7 +12,6 @@
     <ApplicationId>app.turquoise6409.green2444</ApplicationId>
     <ApplicationDisplayVersion>1.2.6</ApplicationDisplayVersion>
     <ApplicationVersion>126</ApplicationVersion>
-    <MauiXamlInflator>SourceGen</MauiXamlInflator>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">23.0</SupportedOSPlatformVersion>
   </PropertyGroup>
