@@ -68,6 +68,10 @@ Use `.github/workflows/ios-ipa.yml` for CI-based signed iOS IPA distribution. Se
 
 ## Agent Notes
 
+- Before selecting or implementing a slice, read `docs/product-vision.md`, `docs/modernization-execplan.md`, and `docs/progress.md`.
 - Start from `docs/android-source-map.md` and the relevant Java files before porting a feature.
 - Check `docs/progress.md` before starting a slice and update it when the slice, platform adapter, or validation status changes.
+- Every slice should state how it moves MaskApp toward the wearable face controller vision, which product pillar it serves, and what physical validation status applies.
+- Do not overclaim mask capability. Treat Drop Detector, Voice Mouth, Bass Face, GIF-ish playback, fast DIY sequencing, and real-time effects as Labs/Experimental until physically verified on a real mask.
+- Firmware and custom firmware work are out of scope unless the user explicitly requests it.
 - Prefer `.NET MAUI` over legacy Xamarin project formats because Xamarin support ended on May 1, 2024.

@@ -1,8 +1,16 @@
-# Migration Progress
+# Product And Migration Progress
 
-Use this file as the source of truth for migration status. Update it in the same change that moves a slice, adapter, or validation gate forward.
+Use this file as the source of truth for product and migration status. Update it
+in the same change that moves a slice, adapter, or validation gate forward.
 
-Migration goal: improve UI/UX and functionality while preserving required behavior from the old Android app. A slice should not be considered complete just because code was moved; it should also make the user flow clearer, more reliable, easier to validate, or better aligned with iOS/MAUI platform conventions.
+Product goal: MaskApp should become a wearable face controller. The user should
+be able to open the app, pick a mood, reaction, caption, image, beat mode, or
+prepared pack, preview it, and make the mask become an expressive face within
+seconds.
+
+Migration remains the implementation path, not the product goal. A slice should
+not be considered complete just because code was moved; it should also move the
+app toward the product vision in `docs/product-vision.md`.
 
 Status key:
 
@@ -10,6 +18,9 @@ Status key:
 - `[~]` started, partially implemented, or compile-only validated
 - `[ ]` not started
 - `[!]` blocked or needs a product/platform decision
+
+Capability confidence and physical validation status are defined in
+`docs/product-vision.md` and `docs/modernization-slice-template.md`.
 
 ## Foundation
 
@@ -23,6 +34,23 @@ Status key:
 - [x] Install and document `maui-mobile` workload.
 - [x] Add GitHub Actions macOS IPA distribution workflow, signing-secret setup docs, and Feather/AltStore-style Pages output generation.
 - [x] Add modernization execution plan, readiness checklist, slice template, and per-slice record folder.
+- [x] Add wearable face controller product vision, capability-confidence model, RAVE MVP definition, and overclaim guardrails.
+
+## Product Milestones
+
+| Milestone | Status | Capability confidence | Physical validation status | Next step |
+| --- | --- | --- | --- | --- |
+| Text validation/fix | [~] | Implemented | Needs real-mask test | Validate ACK-required and write-only text upload on physical iOS first, then Android. |
+| Control Room | [ ] | Vision | Docs-only | Replace roadmap-style Home with connection, brightness, blackout, recent reactions, random reaction, last look, and recovery actions. |
+| Reaction Deck MVP | [ ] | Vision | Docs-only | Build one-tap short captions and proven built-in looks after Text validation. |
+| RAVE MVP entry point | [ ] | Vision | Docs-only | Add manual-first, offline-first festival controls after Control Room + Reaction Deck MVP. |
+| Built-in Gallery Scanner | [ ] | Protocol-documented | Needs real-mask test | Scan, label, favorite, and save built-in image/animation IDs. |
+| Preset Library and Mask Packs | [ ] | Vision | Docs-only | Add JSON-backed saved looks, favorites, history, import, and export after core send flows are reliable. |
+| Image Studio and DIY slots | [ ] | Protocol-documented | Needs real-mask test | Map image upload and DIY playback before relying on slot sequencing. |
+| Rhythm and RAVE Labs | [ ] | Experimental | Needs real-mask test | Test visualizer protocol, audio behavior, Drop Detector, Voice Mouth, Bass Face, GIF-ish playback, and real-time effects before product claims. |
+| AI Composer | [ ] | Vision | Docs-only | Add offline templates first; use typed OpenAI Responses API later without ChatGPT web UI automation. |
+| Device reliability | [~] | Implemented | Needs real-mask test | Add reconnect, known device memory, command queue visibility, diagnostics, and device checklist. |
+| Apple Watch Quick Deck + Mode Switcher | [ ] | Vision | Docs-only | Lowest-priority companion remote; iPhone remains the BLE controller and reliability layer. |
 
 ## Feature Slices
 
@@ -85,3 +113,5 @@ Status key:
 - [!] Confirm minimum supported iOS version.
 - [!] Confirm minimum supported Android API level beyond the current compile baseline.
 - [!] Choose persistence strategy for migrated GreenDAO data.
+- [!] Move Experimental features to product capability only after physical validation, especially Drop Detector, Voice Mouth, Bass Face, GIF-ish playback, fast DIY sequencing, and real-time effects.
+- [!] Choose a stable app-layer quick-action and mode intent ID model before any future Apple Watch companion work.
