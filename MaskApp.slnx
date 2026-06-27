@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MaskApp.App/MaskApp.App.csproj" />
+    <Project Path="src/MaskApp.Core/MaskApp.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MaskApp.Core.Tests/MaskApp.Core.Tests.csproj" />
+  </Folder>
+</Solution>

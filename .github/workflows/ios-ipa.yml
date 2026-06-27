@@ -1,0 +1,346 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_path:
+        description: "MAUI project path"
+        required: false
+        default: "src/MaskApp.App/MaskApp.App.csproj"
+      display_version:
+        description: "Optional ApplicationDisplayVersion override"
+        required: false
+        default: ""
+      build_number:
+        description: "Optional ApplicationVersion override"
+        required: false
+        default: ""
+      release_notes:
+        description: "Release notes shown in the source feed and install page"
+        required: false
+        default: "Internal iOS build."
+      publish_release:
+        description: "Create or update a GitHub Release with the IPA"
+        required: false
+        type: boolean
+        default: false
+      publish_pages:
+        description: "Publish apps.json and the install page to GitHub Pages"
+        required: false
+        type: boolean
+        default: false
+  push:
+    tags:
+      - "ios-v*"
+      - "v*"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: ios-ipa-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-ios-ipa:
+    name: Build signed iOS IPA
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Resolve build settings
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          project_path="${{ github.event_name == 'workflow_dispatch' && inputs.project_path || 'src/MaskApp.App/MaskApp.App.csproj' }}"
+          display_version="${{ github.event_name == 'workflow_dispatch' && inputs.display_version || '' }}"
+          build_number="${{ github.event_name == 'workflow_dispatch' && inputs.build_number || '' }}"
+          release_notes="${{ github.event_name == 'workflow_dispatch' && inputs.release_notes || 'Internal iOS build.' }}"
+          publish_release="${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || (github.event_name == 'workflow_dispatch' && inputs.publish_release) || (github.event_name == 'workflow_dispatch' && inputs.publish_pages) }}"
+          publish_pages="${{ github.event_name == 'workflow_dispatch' && inputs.publish_pages || false }}"
+
+          if [ -z "$build_number" ]; then
+            build_number="${GITHUB_RUN_NUMBER}"
+          fi
+
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          project_path = Path(os.environ["PROJECT_PATH"])
+          if not project_path.exists():
+              raise SystemExit(f"Project file not found: {project_path}")
+
+          root = ET.parse(project_path).getroot()
+
+          def property_value(name: str) -> str:
+              node = root.find(f".//{name}")
+              return (node.text or "").strip() if node is not None else ""
+
+          frameworks = []
+          target_framework = property_value("TargetFramework")
+          if target_framework:
+              frameworks.append(target_framework)
+          target_frameworks = property_value("TargetFrameworks")
+          if target_frameworks:
+              frameworks.extend(item.strip() for item in target_frameworks.split(";") if item.strip())
+
+          ios_frameworks = [item for item in frameworks if "-ios" in item]
+          if not ios_frameworks:
+              raise SystemExit(f"No iOS target framework found in {project_path}")
+
+          app_title = property_value("ApplicationTitle") or project_path.stem
+          display_version = os.environ["DISPLAY_VERSION"] or property_value("ApplicationDisplayVersion") or "1.0.0"
+          build_number = os.environ["BUILD_NUMBER"]
+          bundle_id = property_value("ApplicationId")
+
+          sdk_version = ""
+          global_json = Path("global.json")
+          if global_json.exists():
+              sdk_version = json.loads(global_json.read_text(encoding="utf-8")).get("sdk", {}).get("version", "")
+          if not sdk_version:
+              match = re.match(r"net(\d+)\.", ios_frameworks[0])
+              sdk_version = f"{match.group(1)}.0.x" if match else "10.0.x"
+
+          metadata = {}
+          config_path = Path("build/ios-distribution.json")
+          if config_path.exists():
+              metadata = json.loads(config_path.read_text(encoding="utf-8"))
+
+          repo_owner = os.environ["GITHUB_REPOSITORY"].split("/", 1)[0]
+          repo_name = os.environ["GITHUB_REPOSITORY"].split("/", 1)[1]
+          source_name = metadata.get("sourceName") or f"{app_title} Internal Builds"
+          developer_name = metadata.get("developerName") or repo_owner
+          subtitle = metadata.get("subtitle") or "Internal iOS builds"
+          localized_description = metadata.get("localizedDescription") or f"Internal signed builds for {app_title}."
+          category = metadata.get("category") or "utilities"
+          tint_color = metadata.get("tintColor") or "#0A84FF"
+          min_ios_version = metadata.get("minOSVersion") or ""
+          icon_url = metadata.get("iconURL") or ""
+          website = metadata.get("website") or f"https://github.com/{os.environ['GITHUB_REPOSITORY']}"
+
+          values = {
+              "PROJECT_PATH": project_path.as_posix(),
+              "IOS_TARGET_FRAMEWORK": ios_frameworks[0],
+              "DOTNET_VERSION": sdk_version,
+              "APP_TITLE": app_title,
+              "APP_BUNDLE_ID": bundle_id,
+              "DISPLAY_VERSION": display_version,
+              "BUILD_NUMBER": build_number,
+              "SOURCE_NAME": source_name,
+              "DEVELOPER_NAME": developer_name,
+              "SOURCE_SUBTITLE": subtitle,
+              "LOCALIZED_DESCRIPTION": localized_description,
+              "APP_CATEGORY": category,
+              "TINT_COLOR": tint_color,
+              "MIN_IOS_VERSION": min_ios_version,
+              "ICON_URL": icon_url,
+              "WEBSITE_URL": website,
+              "REPO_NAME": repo_name,
+          }
+
+          env_path = Path(os.environ["GITHUB_ENV"])
+          with env_path.open("a", encoding="utf-8") as env:
+              for key, value in values.items():
+                  env.write(f"{key}={value}\n")
+
+          print(f"Project: {project_path.as_posix()}")
+          print(f"iOS target framework: {ios_frameworks[0]}")
+          print(f".NET SDK: {sdk_version}")
+          print(f"App title: {app_title}")
+          print(f"Bundle id: {bundle_id}")
+          PY
+        env:
+          PROJECT_PATH: ${{ github.event_name == 'workflow_dispatch' && inputs.project_path || 'src/MaskApp.App/MaskApp.App.csproj' }}
+          DISPLAY_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.display_version || '' }}
+          BUILD_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.build_number || github.run_number }}
+
+      - name: Set release settings
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          release_notes="${{ github.event_name == 'workflow_dispatch' && inputs.release_notes || 'Internal iOS build.' }}"
+          publish_release="${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || (github.event_name == 'workflow_dispatch' && inputs.publish_release) || (github.event_name == 'workflow_dispatch' && inputs.publish_pages) }}"
+          publish_pages="${{ github.event_name == 'workflow_dispatch' && inputs.publish_pages || false }}"
+
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            release_tag="${GITHUB_REF_NAME}"
+          else
+            release_tag="ios-v${DISPLAY_VERSION}-${BUILD_NUMBER}"
+          fi
+
+          safe_app_name="$(printf '%s' "$APP_TITLE" | tr -cs '[:alnum:]._' '-' | sed 's/^-//; s/-$//')"
+          ipa_file_name="${safe_app_name}-${DISPLAY_VERSION}-${BUILD_NUMBER}.ipa"
+          owner_lower="$(printf '%s' "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          source_json_url="https://${owner_lower}.github.io/${REPO_NAME}/apps.json"
+
+          {
+            echo "RELEASE_NOTES<<EOF"
+            echo "$release_notes"
+            echo "EOF"
+            echo "PUBLISH_RELEASE=$publish_release"
+            echo "PUBLISH_PAGES=$publish_pages"
+            echo "RELEASE_TAG=$release_tag"
+            echo "IPA_FILE_NAME=$ipa_file_name"
+            echo "SOURCE_JSON_URL=$source_json_url"
+          } >> "$GITHUB_ENV"
+
+          echo "Release tag: $release_tag"
+          echo "Publish release: $publish_release"
+          echo "Publish Pages: $publish_pages"
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Install MAUI iOS workload
+        shell: bash
+        run: dotnet workload install maui-ios
+
+      - name: Restore iOS target
+        shell: bash
+        run: dotnet restore "$PROJECT_PATH" -p:TargetFramework="$IOS_TARGET_FRAMEWORK"
+
+      - name: Install Apple signing assets
+        shell: bash
+        env:
+          IOS_BUILD_CERTIFICATE_BASE64: ${{ secrets.IOS_BUILD_CERTIFICATE_BASE64 }}
+          IOS_P12_PASSWORD: ${{ secrets.IOS_P12_PASSWORD }}
+          IOS_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
+          IOS_KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
+        run: bash build/scripts/install-ios-signing.sh
+
+      - name: List signing identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          security find-identity -v -p codesigning "$IOS_KEYCHAIN_PATH" || true
+
+      - name: Publish signed IPA
+        shell: bash
+        env:
+          IOS_CODESIGN_KEY: ${{ secrets.IOS_CODESIGN_KEY }}
+        run: |
+          set -euo pipefail
+
+          publish_args=(
+            "$PROJECT_PATH"
+            -f "$IOS_TARGET_FRAMEWORK"
+            -c Release
+            -p:ArchiveOnBuild=true
+            -p:RuntimeIdentifier=ios-arm64
+            "-p:CodesignKey=$IOS_CODESIGN_KEY"
+            "-p:CodesignProvision=$IOS_PROFILE_NAME"
+            "-p:ApplicationDisplayVersion=$DISPLAY_VERSION"
+            "-p:ApplicationVersion=$BUILD_NUMBER"
+          )
+
+          dotnet publish "${publish_args[@]}"
+
+          mkdir -p dist/ipa
+          ipa_path="$(find "$(dirname "$PROJECT_PATH")/bin/Release" -type f -name '*.ipa' | sort | tail -n 1)"
+          if [ -z "$ipa_path" ] || [ ! -f "$ipa_path" ]; then
+            echo "::error::No .ipa file was produced by dotnet publish."
+            find "$(dirname "$PROJECT_PATH")/bin/Release" -type f | sort || true
+            exit 1
+          fi
+
+          cp "$ipa_path" "dist/ipa/$IPA_FILE_NAME"
+          echo "IPA_PATH=dist/ipa/$IPA_FILE_NAME" >> "$GITHUB_ENV"
+          echo "Created dist/ipa/$IPA_FILE_NAME"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: dist/ipa/*.ipa
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: env.PUBLISH_RELEASE == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          notes_file="$RUNNER_TEMP/ios-release-notes.md"
+          printf '%s\n' "$RELEASE_NOTES" > "$notes_file"
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$IPA_PATH" --clobber
+            gh release edit "$RELEASE_TAG" --notes-file "$notes_file" --title "$RELEASE_TAG"
+          else
+            gh release create "$RELEASE_TAG" "$IPA_PATH" --target "$GITHUB_SHA" --title "$RELEASE_TAG" --notes-file "$notes_file"
+          fi
+
+          ipa_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/${IPA_FILE_NAME}"
+          echo "IPA_DOWNLOAD_URL=$ipa_url" >> "$GITHUB_ENV"
+          echo "Release IPA URL: $ipa_url"
+
+      - name: Generate Pages source and install page
+        if: env.PUBLISH_PAGES == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "${IPA_DOWNLOAD_URL:-}" ]; then
+            echo "::error::Pages publishing requires a release-backed IPA download URL."
+            exit 1
+          fi
+
+          python3 build/scripts/generate-altstore-source.py \
+            --ipa-path "$IPA_PATH" \
+            --ipa-url "$IPA_DOWNLOAD_URL" \
+            --existing-source-url "$SOURCE_JSON_URL" \
+            --output-dir dist/pages \
+            --source-name "$SOURCE_NAME" \
+            --developer-name "$DEVELOPER_NAME" \
+            --release-notes "$RELEASE_NOTES" \
+            --subtitle "$SOURCE_SUBTITLE" \
+            --localized-description "$LOCALIZED_DESCRIPTION" \
+            --category "$APP_CATEGORY" \
+            --tint-color "$TINT_COLOR" \
+            --min-ios-version "$MIN_IOS_VERSION" \
+            --icon-url "$ICON_URL" \
+            --website "$WEBSITE_URL"
+
+          python3 build/scripts/generate-ios-install-page.py \
+            --source-json-path dist/pages/apps.json \
+            --source-json-url "$SOURCE_JSON_URL" \
+            --ipa-url "$IPA_DOWNLOAD_URL" \
+            --output-dir dist/pages \
+            --release-notes "$RELEASE_NOTES"
+
+      - name: Configure Pages
+        if: env.PUBLISH_PAGES == 'true'
+        uses: actions/configure-pages@v6
+
+      - name: Upload Pages artifact
+        if: env.PUBLISH_PAGES == 'true'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist/pages
+
+      - name: Deploy Pages
+        if: env.PUBLISH_PAGES == 'true'
+        uses: actions/deploy-pages@v5
+
+      - name: Clean up signing keychain
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${IOS_KEYCHAIN_PATH:-}" ] && [ -f "$IOS_KEYCHAIN_PATH" ]; then
+            security delete-keychain "$IOS_KEYCHAIN_PATH" || true
+          fi

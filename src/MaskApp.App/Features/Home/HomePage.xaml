@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="MaskApp.App.Features.Home.HomePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:home="clr-namespace:MaskApp.Core.Features.Home;assembly=MaskApp.Core"
+    x:DataType="home:HomeViewModel"
+    Title="Home"
+    BackgroundColor="{StaticResource PageBackgroundColor}">
+    <ScrollView>
+        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="18">
+            <VerticalStackLayout Spacing="6">
+                <Label Text="{Binding AppTitle}" Style="{StaticResource PageTitleLabelStyle}" />
+                <Label Text="{Binding Summary}" Style="{StaticResource MutedLabelStyle}" />
+            </VerticalStackLayout>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                    <Label Text="Current workbench" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label
+                        Grid.Row="1"
+                        Text="Connect to the mask, test encrypted commands, and inspect diagnostics from one validated control surface."
+                        Style="{StaticResource MutedLabelStyle}" />
+                    <Button
+                        Grid.Row="2"
+                        HorizontalOptions="Start"
+                        Text="Open Connect"
+                        Clicked="OnOpenConnectClicked" />
+                </Grid>
+            </Border>
+
+            <VerticalStackLayout Spacing="10">
+                <Label Text="Migration roadmap" Style="{StaticResource SectionTitleLabelStyle}" />
+                <VerticalStackLayout
+                    BindableLayout.ItemsSource="{Binding FeatureCards}"
+                    Spacing="10">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="home:HomeFeatureCard">
+                            <Border Style="{StaticResource PanelBorderStyle}">
+                                <Border.Triggers>
+                                    <DataTrigger
+                                        Binding="{Binding IsAvailable}"
+                                        TargetType="Border"
+                                        Value="False">
+                                        <Setter Property="Opacity" Value="0.72" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+                                <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="8" ColumnSpacing="12">
+                                    <Label Text="{Binding Name}" Style="{StaticResource SectionTitleLabelStyle}" />
+                                    <Border
+                                        Grid.Column="1"
+                                        Padding="8,3"
+                                        BackgroundColor="{StaticResource ChipBackgroundColor}"
+                                        StrokeThickness="0">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="8" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding Status}" Style="{StaticResource ChipLabelStyle}" />
+                                    </Border>
+
+                                    <Label
+                                        Grid.Row="1"
+                                        Grid.ColumnSpan="2"
+                                        Text="{Binding Description}"
+                                        Style="{StaticResource MutedLabelStyle}" />
+
+                                    <Button
+                                        Grid.Row="2"
+                                        HorizontalOptions="Start"
+                                        IsEnabled="{Binding IsAvailable}"
+                                        Text="{Binding ActionText}"
+                                        Clicked="OnFeatureActionClicked" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

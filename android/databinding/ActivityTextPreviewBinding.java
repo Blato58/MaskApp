@@ -1,0 +1,46 @@
+package cn.com.heaton.shiningmask.databinding;
+
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import androidx.viewbinding.ViewBinding;
+import androidx.viewbinding.ViewBindings;
+import cn.com.heaton.shiningmask.R;
+
+/* JADX INFO: loaded from: classes.dex */
+public final class ActivityTextPreviewBinding implements ViewBinding {
+    private final LinearLayout rootView;
+    public final LayoutTitlebar1Binding top;
+
+    private ActivityTextPreviewBinding(LinearLayout linearLayout, LayoutTitlebar1Binding layoutTitlebar1Binding) {
+        this.rootView = linearLayout;
+        this.top = layoutTitlebar1Binding;
+    }
+
+    @Override // androidx.viewbinding.ViewBinding
+    public LinearLayout getRoot() {
+        return this.rootView;
+    }
+
+    public static ActivityTextPreviewBinding inflate(LayoutInflater layoutInflater) {
+        return inflate(layoutInflater, null, false);
+    }
+
+    public static ActivityTextPreviewBinding inflate(LayoutInflater layoutInflater, ViewGroup viewGroup, boolean z) {
+        View viewInflate = layoutInflater.inflate(R.layout.activity_text_preview, viewGroup, false);
+        if (z) {
+            viewGroup.addView(viewInflate);
+        }
+        return bind(viewInflate);
+    }
+
+    public static ActivityTextPreviewBinding bind(View view) {
+        int i = R.id.top;
+        View viewFindChildViewById = ViewBindings.findChildViewById(view, i);
+        if (viewFindChildViewById != null) {
+            return new ActivityTextPreviewBinding((LinearLayout) view, LayoutTitlebar1Binding.bind(viewFindChildViewById));
+        }
+        throw new NullPointerException("Missing required view with ID: ".concat(view.getResources().getResourceName(i)));
+    }
+}

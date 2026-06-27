@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="MaskApp.App.Features.Text.TextPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:text="clr-namespace:MaskApp.Core.Features.Text;assembly=MaskApp.Core"
+    x:DataType="text:TextUploadViewModel"
+    Title="Text"
+    BackgroundColor="{StaticResource PageBackgroundColor}">
+    <ScrollView>
+        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="18">
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Text" Style="{StaticResource PageTitleLabelStyle}" />
+                <Label Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
+            </VerticalStackLayout>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
+                    <Label Text="Composer" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Entry
+                        Grid.Row="1"
+                        ClearButtonVisibility="WhileEditing"
+                        MaxLength="24"
+                        Placeholder="Mask text"
+                        Text="{Binding Text, Mode=TwoWay}" />
+                    <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <Picker
+                            Title="Animation"
+                            ItemsSource="{Binding AnimationModes}"
+                            ItemDisplayBinding="{Binding Name}"
+                            SelectedItem="{Binding SelectedAnimationMode, Mode=TwoWay}" />
+                        <Grid Grid.Column="1" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Slider
+                                Minimum="1"
+                                Maximum="100"
+                                Value="{Binding Speed, Mode=TwoWay}" />
+                            <Label
+                                Grid.Column="1"
+                                Text="{Binding Speed, StringFormat='{}{0}%'}"
+                                Style="{StaticResource MutedLabelStyle}"
+                                VerticalTextAlignment="Center" />
+                        </Grid>
+                    </Grid>
+                    <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+                        <Button BackgroundColor="#52E3FF" Clicked="OnColorClicked" CommandParameter="Cyan" HeightRequest="38" Text="" WidthRequest="44" />
+                        <Button Grid.Column="1" BackgroundColor="#FFFFFF" BorderColor="#D1D5DB" BorderWidth="1" Clicked="OnColorClicked" CommandParameter="White" HeightRequest="38" Text="" WidthRequest="44" />
+                        <Button Grid.Column="2" BackgroundColor="#F472B6" Clicked="OnColorClicked" CommandParameter="Pink" HeightRequest="38" Text="" WidthRequest="44" />
+                        <Button Grid.Column="3" BackgroundColor="#FACC15" Clicked="OnColorClicked" CommandParameter="Amber" HeightRequest="38" Text="" WidthRequest="44" />
+                        <Button Grid.Column="4" BackgroundColor="#22C55E" Clicked="OnColorClicked" CommandParameter="Green" HeightRequest="38" Text="" WidthRequest="44" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <Label Text="Preview" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Label Grid.Column="1" Text="{Binding ColumnCount, StringFormat='{}{0} columns'}" Style="{StaticResource MutedLabelStyle}" />
+                    </Grid>
+                    <Border
+                        Grid.Row="1"
+                        BackgroundColor="#111827"
+                        Padding="8"
+                        StrokeThickness="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="8" />
+                        </Border.StrokeShape>
+                        <CollectionView
+                            HeightRequest="160"
+                            ItemsSource="{Binding PreviewCells}"
+                            SelectionMode="None">
+                            <CollectionView.ItemsLayout>
+                                <GridItemsLayout Orientation="Vertical" Span="48" />
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="text:TextPreviewCell">
+                                    <BoxView
+                                        Color="{Binding FillColor}"
+                                        HeightRequest="8"
+                                        HorizontalOptions="Center"
+                                        WidthRequest="8" />
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </Border>
+                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <Label Text="{Binding ActiveTransportText}" Style="{StaticResource MutedLabelStyle}" VerticalTextAlignment="Center" />
+                        <Button Grid.Column="1" Text="Send" Command="{Binding SendCommand}" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+                    <Label Text="Diagnostics" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Grid
+                        Grid.Row="1"
+                        ColumnDefinitions="Auto,*"
+                        ColumnSpacing="10"
+                        RowDefinitions="Auto,Auto,Auto"
+                        RowSpacing="4">
+                        <Label Text="Command" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Grid.Column="1" Text="{Binding LastCommandText}" />
+
+                        <Label Grid.Row="1" Text="Frames" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding FrameCount}" />
+
+                        <Label Grid.Row="2" Text="Payload" Style="{StaticResource MutedLabelStyle}" />
+                        <Label
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            FontSize="12"
+                            LineBreakMode="CharacterWrap"
+                            Text="{Binding LastPayloadHex}" />
+                    </Grid>
+                </Grid>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
