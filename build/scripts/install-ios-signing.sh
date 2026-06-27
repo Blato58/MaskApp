@@ -20,6 +20,64 @@ decode_base64_to_file() {
   printf '%s' "$value" | base64 -D > "$output"
 }
 
+file_size_bytes() {
+  local path="$1"
+
+  if stat -f '%z' "$path" >/dev/null 2>&1; then
+    stat -f '%z' "$path"
+    return 0
+  fi
+
+  stat -c '%s' "$path"
+}
+
+import_certificate() {
+  local path="$1"
+
+  security import "$path" -P "$IOS_P12_PASSWORD" -A -t cert -f pkcs12 -k "$keychain_path"
+}
+
+import_certificate_with_fallback() {
+  if import_certificate "$certificate_path"; then
+    return 0
+  fi
+
+  echo "::warning::macOS security could not import the p12 directly. Retrying with an OpenSSL-repacked p12."
+
+  if ! command -v openssl >/dev/null 2>&1; then
+    echo "::error::OpenSSL is not available to repack the p12 after security import failed." >&2
+    return 1
+  fi
+
+  local pem_path="$RUNNER_TEMP/ios-build-certificate.pem"
+  local compatible_certificate_path="$RUNNER_TEMP/ios-build-certificate-compatible.p12"
+  local pkcs12_export_args=(-export -in "$pem_path" -out "$compatible_certificate_path" -passout "pass:$IOS_P12_PASSWORD")
+
+  if openssl pkcs12 -help 2>&1 | grep -q -- '-legacy'; then
+    pkcs12_export_args=(-export -legacy -in "$pem_path" -out "$compatible_certificate_path" -passout "pass:$IOS_P12_PASSWORD")
+  fi
+
+  if ! openssl pkcs12 -in "$certificate_path" -passin "pass:$IOS_P12_PASSWORD" -nodes -out "$pem_path" >/dev/null 2>&1; then
+    echo "::error::OpenSSL could not read the decoded p12 with IOS_P12_PASSWORD." >&2
+    rm -f "$pem_path" "$compatible_certificate_path"
+    return 1
+  fi
+
+  if ! openssl pkcs12 "${pkcs12_export_args[@]}" >/dev/null 2>&1; then
+    echo "::error::OpenSSL could not repack the p12 for macOS security import." >&2
+    rm -f "$pem_path" "$compatible_certificate_path"
+    return 1
+  fi
+
+  chmod 600 "$pem_path" "$compatible_certificate_path"
+  if ! import_certificate "$compatible_certificate_path"; then
+    rm -f "$pem_path" "$compatible_certificate_path"
+    return 1
+  fi
+
+  rm -f "$pem_path" "$compatible_certificate_path"
+}
+
 require_env IOS_BUILD_CERTIFICATE_BASE64
 require_env IOS_P12_PASSWORD
 require_env IOS_PROVISION_PROFILE_BASE64
@@ -37,11 +95,27 @@ decode_base64_to_file "$IOS_BUILD_CERTIFICATE_BASE64" "$certificate_path"
 decode_base64_to_file "$IOS_PROVISION_PROFILE_BASE64" "$profile_path"
 chmod 600 "$certificate_path" "$profile_path"
 
+certificate_size="$(file_size_bytes "$certificate_path")"
+profile_size="$(file_size_bytes "$profile_path")"
+
+if [ "$certificate_size" -le 0 ]; then
+  echo "::error::Decoded p12 certificate file is empty." >&2
+  exit 1
+fi
+
+if [ "$profile_size" -le 0 ]; then
+  echo "::error::Decoded provisioning profile file is empty." >&2
+  exit 1
+fi
+
+echo "Decoded p12 certificate size: $certificate_size bytes"
+echo "Decoded provisioning profile size: $profile_size bytes"
+
 security create-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$keychain_path"
 security set-keychain-settings -lut 21600 "$keychain_path"
 security unlock-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$keychain_path"
 security list-keychains -d user -s "$keychain_path"
-security import "$certificate_path" -P "$IOS_P12_PASSWORD" -A -t cert -f pkcs12 -k "$keychain_path"
+import_certificate_with_fallback
 security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$IOS_KEYCHAIN_PASSWORD" "$keychain_path"
 
 security cms -D -i "$profile_path" > "$profile_plist_path"
