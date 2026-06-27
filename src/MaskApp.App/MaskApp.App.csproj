@@ -9,7 +9,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <ApplicationTitle>Shining Mask</ApplicationTitle>
-    <ApplicationId>com.blato58.maskapp</ApplicationId>
+    <ApplicationId>app.turquoise6409.green2444</ApplicationId>
     <ApplicationDisplayVersion>1.2.6</ApplicationDisplayVersion>
     <ApplicationVersion>126</ApplicationVersion>
     <MauiXamlInflator>SourceGen</MauiXamlInflator>

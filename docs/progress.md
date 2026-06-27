@@ -13,7 +13,7 @@ Status key:
 
 ## Foundation
 
-- [x] Set MAUI app identity to `com.blato58.maskapp`, display version `1.2.6`, build `126`; keep the original Android app id only in source-map evidence.
+- [x] Set MAUI app identity to `app.turquoise6409.green2444`, display version `1.2.6`, build `126`; keep the original Android app id only in source-map evidence.
 - [x] Keep Java snapshot under `android/` as read-only migration evidence.
 - [x] Create MAUI app project at `src/MaskApp.App`.
 - [x] Target iOS first with Android as a secondary target.
@@ -77,7 +77,8 @@ Status key:
 
 ## Open Decisions
 
-- [!] Confirm Apple provisioning accepts bundle id `com.blato58.maskapp`.
+- [x] Align MAUI app id with the current CI provisioning profile: `app.turquoise6409.green2444`.
+- [!] Decide whether to keep the third-party provisioned app id long term or later move to a Blato58-owned Apple Developer profile.
 - [!] Confirm minimum supported iOS version.
 - [!] Confirm minimum supported Android API level beyond the current compile baseline.
 - [!] Choose persistence strategy for migrated GreenDAO data.

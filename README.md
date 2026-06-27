@@ -6,7 +6,7 @@ The original source snapshot is kept in `android/` and should be treated as migr
 
 ## Projects
 
-- `src/MaskApp.App` - .NET MAUI app, iOS first and Android secondary, using the app id `com.blato58.maskapp`.
+- `src/MaskApp.App` - .NET MAUI app, iOS first and Android secondary, using the app id `app.turquoise6409.green2444`.
 - `src/MaskApp.Core` - platform-neutral migration code for BLE protocol, feature state, parsing, and transformations.
 - `tests/MaskApp.Core.Tests` - xUnit tests for migrated core behavior.
 

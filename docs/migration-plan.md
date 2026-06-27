@@ -39,7 +39,7 @@ For each update, record both the migrated behavior and the UI/UX or functionalit
 
 ## Open Questions
 
-- Whether Apple provisioning is ready for the MAUI app id `com.blato58.maskapp`.
+- Whether the app should keep the current provisioned id `app.turquoise6409.green2444` long term or later move to a Blato58-owned Apple Developer profile.
 - Exact minimum Android API level required by product/support policy.
 - Exact minimum iOS version required by product/support policy.
 - Whether the Java source snapshot has original XML layouts/assets elsewhere or only generated binding/decompiled Java output.
