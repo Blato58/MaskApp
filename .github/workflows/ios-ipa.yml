@@ -203,9 +203,9 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Install MAUI iOS workload
+      - name: Install MAUI workloads
         shell: bash
-        run: dotnet workload install maui-ios
+        run: dotnet workload install maui-ios android
 
       - name: Restore iOS target
         shell: bash
