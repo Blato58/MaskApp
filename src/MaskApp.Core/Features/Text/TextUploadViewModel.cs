@@ -39,14 +39,14 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
         ];
         AnimationModes =
         [
-            new TextAnimationModeOption("Static", 0),
-            new TextAnimationModeOption("Scroll left", 1),
-            new TextAnimationModeOption("Scroll right", 2),
-            new TextAnimationModeOption("Breathe", 3)
+            new TextAnimationModeOption("Off", 1),
+            new TextAnimationModeOption("Blink", 2),
+            new TextAnimationModeOption("Scroll right-to-left", 3),
+            new TextAnimationModeOption("Scroll left-to-right", 4)
         ];
 
         selectedColor = TextColorOptions[0];
-        selectedAnimationMode = AnimationModes[0];
+        selectedAnimationMode = AnimationModes[2];
         supportsAcknowledgements = transport.SupportsAcknowledgements;
         transportState = transport.State;
         useCompatibilityWriteOnly = ShouldDefaultToCompatibilityMode(transport.State, transport.SupportsAcknowledgements);

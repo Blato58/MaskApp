@@ -40,26 +40,29 @@ Capability confidence and physical validation status are defined in
 
 | Milestone | Status | Capability confidence | Physical validation status | Next step |
 | --- | --- | --- | --- | --- |
-| Text validation/fix | [~] | Implemented | Needs real-mask test | Validate ACK-required and write-only text upload on physical iOS first, then Android. |
-| Control Room | [ ] | Vision | Docs-only | Replace roadmap-style Home with connection, brightness, blackout, recent reactions, random reaction, last look, and recovery actions. |
-| Reaction Deck MVP | [ ] | Vision | Docs-only | Build one-tap short captions and proven built-in looks after Text validation. |
-| RAVE MVP entry point | [ ] | Vision | Docs-only | Add manual-first, offline-first festival controls after Control Room + Reaction Deck MVP. |
+| Text validation/fix | [~] | Implemented | Needs real-mask test | Protocol constants, text `MODE`, ACK parsing, and upload-characteristic routing are corrected for real-mask testing; validate ACK-required and write-only upload on physical iOS first, then Android. |
+| Control Room | [~] | Implemented | Needs real-mask test | Validate Control Room connect recovery, blackout, brightness, random reaction, and recent/favorite reaction sends on a real mask. |
+| Reaction Deck MVP | [~] | Implemented | Needs real-mask test | Validate one-tap short captions, BLACKOUT, Random Reaction, and write-only fallback on a real mask. |
+| RAVE MVP entry point | [~] | Implemented | Needs real-mask test | Validate manual RAVE buttons, brightness cap, BLACKOUT, Festival Lock, and reconnect affordance on physical iOS. |
 | Built-in Gallery Scanner | [ ] | Protocol-documented | Needs real-mask test | Scan, label, favorite, and save built-in image/animation IDs. |
 | Preset Library and Mask Packs | [ ] | Vision | Docs-only | Add JSON-backed saved looks, favorites, history, import, and export after core send flows are reliable. |
 | Image Studio and DIY slots | [ ] | Protocol-documented | Needs real-mask test | Map image upload and DIY playback before relying on slot sequencing. |
 | Rhythm and RAVE Labs | [ ] | Experimental | Needs real-mask test | Test visualizer protocol, audio behavior, Drop Detector, Voice Mouth, Bass Face, GIF-ish playback, and real-time effects before product claims. |
 | AI Composer | [ ] | Vision | Docs-only | Add offline templates first; use typed OpenAI Responses API later without ChatGPT web UI automation. |
 | Device reliability | [~] | Implemented | Needs real-mask test | Add reconnect, known device memory, command queue visibility, diagnostics, and device checklist. |
-| Apple Watch Quick Deck + Mode Switcher | [ ] | Vision | Docs-only | Lowest-priority companion remote; iPhone remains the BLE controller and reliability layer. |
+| Apple Watch Quick Deck + Mode Switcher | [ ] | Vision | Docs-only | Backlog only; phone-side quick-action and mode IDs now exist, but no watchOS code is implemented. |
 
 ## Feature Slices
 
 | Slice | Status | Current scope | UI/UX or functionality goal | Next step |
 | --- | --- | --- | --- | --- |
-| Connect | [~] | MAUI page, view model, contracts, iOS CoreBluetooth adapter, Android Bluetooth LE adapter, unit tests, workbench navigation, iOS/Android compile validation. | Make discovery and connection state visible, predictable, and recoverable inside a modern operational workbench instead of hiding behavior inside a large activity. | Validate scanning and connection on real iOS and Android devices. |
-| Mask control MVP | [~] | Power-as-dim/restore, brightness, image preset, animation preset, encrypted command builders, simulator transport for unsupported targets, diagnostics UI, iOS write characteristic discovery/debug logging, and Android BLE command writes. | Let the user interact with the mask from the first screen while keeping command readiness, command payloads, active transport, and failures visible. | Validate encrypted writes on physical iOS and Android devices and confirm preset IDs against real hardware. |
+| Connect | [~] | MAUI page, view model, contracts, iOS CoreBluetooth adapter, Android Bluetooth LE adapter, unit tests, Control Room recovery entry point, iOS/Android compile validation. | Make discovery and connection state visible, predictable, and recoverable from Control Room and RAVE instead of hiding behavior in a utility tab. | Validate scanning and connection on real iOS and Android devices. |
+| Mask control MVP | [~] | Power-as-dim/restore, brightness, image preset, animation preset, encrypted command builders, simulator transport for unsupported targets, diagnostics UI, exact command characteristic routing, iOS write characteristic discovery/debug logging, and Android BLE command writes. | Let the user interact with the mask from Control Room/RAVE while keeping command readiness, active transport, and failures visible. | Validate encrypted writes on physical iOS and Android devices and confirm preset IDs against real hardware. |
+| Control Room | [~] | Home page/view model now shows control/text transport status, recovery hints, brightness, BLACKOUT, restore, random reaction, favorite reactions, and recent reactions through shared quick-action intents. | Make the first screen useful for live mask operation instead of showing a migration roadmap. | Validate open-connect, blackout, brightness cap, and short reactions on a real mask. |
+| Reaction Deck | [~] | React page/view model groups short offline reactions by catalog category and pins BLACKOUT plus Random Reaction. | Give the wearer a one-tap deck for social/meme/welfare reactions. | Validate short caption sends and write-only/ACK status on a real mask. |
+| RAVE MVP | [~] | RAVE page/view model provides large manual DnB/festival buttons, BLACKOUT, brightness cap, Festival Lock, connect action, offline/manual status, and shared intent dispatch. | Make the mask useful in a loud/dark festival setting without internet, AI, microphone, or automation. | Validate physical text timing, blackout, brightness cap, and reconnect in iOS real-mask testing. |
 | Settings | [ ] | Java source mapped only. | Rebuild settings as clear, grouped controls with explicit saved state and platform-appropriate permission paths. | Define settings model and iOS-first page behavior. |
-| Text | [~] | Deterministic ASCII glyph rasterizer, text upload payload/framing, encrypted `DATS`/`DATCP`/mode/speed commands, ACK parsing, simulator transport, MAUI composer, LED preview, diagnostics, transport state events, ACK capability reporting, ACK-required upload mode, write-only compatibility upload mode, tests, iOS upload transport, Android BLE upload transport, and compile validation. | Improve text creation/editing flow with immediate preview feedback, visible transport readiness, explicit ACK/write-only mode, send progress, and actionable diagnostics before claiming real hardware parity. | Validate ACK-required and write-only text upload on physical iOS first, then Android; expand glyph parity beyond the MVP set. |
+| Text | [~] | Deterministic ASCII glyph rasterizer, text upload payload/framing, encrypted `DATS`/`DATCP`/`MODE`/speed commands, documented text modes, broader ACK parsing, simulator transport, MAUI composer, LED preview, diagnostics, transport state events, ACK capability reporting, ACK-required upload mode, write-only compatibility upload mode, tests, iOS upload transport, Android BLE upload transport, and compile validation. | Improve text creation/editing flow with immediate preview feedback, visible transport readiness, explicit ACK/write-only mode, send progress, and actionable diagnostics before claiming real hardware parity. | Validate ACK-required and write-only text upload on physical iOS first, then Android; expand glyph parity beyond the MVP set. |
 | Image | [ ] | Java source mapped only. | Make image import/crop/preview understandable and enforce mask limits before sending data. | Map image storage, picker, crop, and LED transform behavior. |
 | Rhythm | [ ] | Java source mapped only. | Provide clear audio/rhythm state, permission handling, and stop/recovery behavior. | Decide audio capture/visualizer approach for iOS. |
 | Microphone | [ ] | Java source mapped only. | Separate microphone capture state from rhythm playback and make permission failures actionable. | Define iOS microphone permission and capture slice. |
@@ -69,7 +72,7 @@ Capability confidence and physical validation status are defined in
 | Adapter | iOS | Android | Notes |
 | --- | --- | --- | --- |
 | BLE scan/connect | [~] | [~] | iOS CoreBluetooth adapter compiles; Android Bluetooth LE adapter scans by advertisement data, requests runtime permissions, and connects through GATT. Physical-device validation is still open. |
-| BLE mask commands | [~] | [~] | iOS discovers service `0000fff0-0000-1000-8000-00805f9b34fb`, writes encrypted commands to characteristic `d44bc439-abfd-45a2-b575-925416129600`, reports text upload readiness separately from control readiness, supports ACK-required text upload when notify/indicate characteristics are found, supports write-only compatibility upload when ACK notifications are missing, and logs discovery/write details in debug builds; Android uses the same service/characteristic and mirrored text upload readiness/options. |
+| BLE mask commands | [~] | [~] | iOS and Android discover service `0000fff0-0000-1000-8000-00805f9b34fb`; encrypted commands use `d44bc439-abfd-45a2-b575-925416129600`; ACK notifications prefer `d44bc439-abfd-45a2-b575-925416129601`; text/image frames prefer `d44bc439-abfd-45a2-b575-92541612960a` with command-characteristic compatibility fallback; audio visualization UUID `d44bc439-abfd-45a2-b575-92541612960b` is documented only. Physical validation remains open. |
 | Permissions | [~] | [~] | iOS Info.plist and Android manifest include current permission baseline. Runtime request UX still belongs to slices. |
 | Storage | [ ] | [ ] | GreenDAO replacement not selected yet. |
 | Camera/media picker | [ ] | [ ] | iOS usage strings added; implementation not started. |
@@ -95,6 +98,7 @@ Capability confidence and physical validation status are defined in
 - [x] Text MVP validated with core tests plus iOS and Android target builds.
 - [x] Text repair slice core tests cover transport readiness events, ACK-required upload options, write-only compatibility upload options, unavailable transport, empty text, and diagnostics.
 - [x] Text repair slice validated with `dotnet test`, `dotnet build -f net10.0-ios`, and `dotnet build -f net10.0-android`.
+- [x] RAVE FAST MVP validated with `dotnet test tests\MaskApp.Core.Tests\MaskApp.Core.Tests.csproj`, Roslyn diagnostics, `dotnet build src\MaskApp.App\MaskApp.App.csproj -f net10.0-ios`, and `dotnet build src\MaskApp.App\MaskApp.App.csproj -f net10.0-android`.
 - [x] Android BLE adapter compile validation for scan/connect, command writes, and text upload transport wiring.
 - [~] iOS CI distribution scripts validated locally; signed IPA build awaits GitHub Actions secrets and macOS runner execution.
 - [ ] iOS simulator launch smoke test.
@@ -114,4 +118,4 @@ Capability confidence and physical validation status are defined in
 - [!] Confirm minimum supported Android API level beyond the current compile baseline.
 - [!] Choose persistence strategy for migrated GreenDAO data.
 - [!] Move Experimental features to product capability only after physical validation, especially Drop Detector, Voice Mouth, Bass Face, GIF-ish playback, fast DIY sequencing, and real-time effects.
-- [!] Choose a stable app-layer quick-action and mode intent ID model before any future Apple Watch companion work.
+- [x] Choose a stable app-layer quick-action and mode intent ID model before any future Apple Watch companion work.

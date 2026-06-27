@@ -24,8 +24,8 @@ public static class MaskCommandBuilder
 
     public static MaskCommand TextMode(int mode)
     {
-        var clampedMode = Math.Clamp(mode, 0, 3);
-        return Build(MaskCommandKind.TextMode, $"Text mode {clampedMode}", "DONE", (byte)clampedMode);
+        var clampedMode = Math.Clamp(mode, 1, 4);
+        return Build(MaskCommandKind.TextMode, $"Text mode {clampedMode}", "MODE", (byte)clampedMode);
     }
 
     public static MaskCommand TextSpeed(int speed)

@@ -24,7 +24,7 @@ public sealed class TextUploadViewModelTests
         {
             Text = "A",
             Speed = 25,
-            SelectedAnimationMode = new TextAnimationModeOption("Scroll right", 2)
+            SelectedAnimationMode = new TextAnimationModeOption("Scroll right-to-left", 3)
         };
 
         await viewModel.SendCommand.ExecuteAsync();

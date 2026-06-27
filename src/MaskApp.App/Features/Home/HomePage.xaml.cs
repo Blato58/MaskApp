@@ -19,15 +19,8 @@ public partial class HomePage : ContentPage
         await OpenConnectAsync();
     }
 
-    private async void OnFeatureActionClicked(object? sender, EventArgs e)
+    private async void OnOpenTextClicked(object? sender, EventArgs e)
     {
-        if (sender is Button { BindingContext: HomeFeatureCard { IsAvailable: true, Name: "Connect" } })
-        {
-            await OpenConnectAsync();
-        }
-        else if (sender is Button { BindingContext: HomeFeatureCard { IsAvailable: true, Name: "Text" } })
-        {
-            await OpenTextAsync();
-        }
+        await OpenTextAsync();
     }
 }

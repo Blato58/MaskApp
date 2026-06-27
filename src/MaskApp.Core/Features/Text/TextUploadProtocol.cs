@@ -126,25 +126,28 @@ public static class TextUploadProtocol
     {
         if (encrypted.Length != MaskBleProtocol.CommandLength)
         {
-            return TextUploadAcknowledgement.Unknown;
+            return ParsePlaintextAcknowledgement(encrypted);
         }
 
-        return ParsePlaintextAcknowledgement(MaskProtocolCrypto.DecryptBlock(encrypted));
+        var decrypted = ParsePlaintextAcknowledgement(MaskProtocolCrypto.DecryptBlock(encrypted));
+        return decrypted == TextUploadAcknowledgement.Unknown
+            ? ParsePlaintextAcknowledgement(encrypted)
+            : decrypted;
     }
 
     public static TextUploadAcknowledgement ParsePlaintextAcknowledgement(ReadOnlySpan<byte> plaintext)
     {
-        if (plaintext.Length < MaskBleProtocol.CommandLength)
+        if (plaintext.IsEmpty)
         {
             return TextUploadAcknowledgement.Unknown;
         }
 
-        if (Matches(plaintext, "DATSOK"))
+        if (Matches(plaintext, "DATOK") || Matches(plaintext, "DATSOK"))
         {
             return TextUploadAcknowledgement.StartAccepted;
         }
 
-        if (Matches(plaintext, "REOK"))
+        if (Matches(plaintext, "REOK") || Matches(plaintext, "REOKOK"))
         {
             return TextUploadAcknowledgement.FrameAccepted;
         }
@@ -164,14 +167,19 @@ public static class TextUploadProtocol
 
     private static bool Matches(ReadOnlySpan<byte> plaintext, string command)
     {
-        if (plaintext.Length < command.Length + 1)
+        return MatchesAt(plaintext, command, 1) || MatchesAt(plaintext, command, 0);
+    }
+
+    private static bool MatchesAt(ReadOnlySpan<byte> plaintext, string command, int offset)
+    {
+        if (plaintext.Length < command.Length + offset)
         {
             return false;
         }
 
         for (var i = 0; i < command.Length; i++)
         {
-            if (plaintext[i + 1] != (byte)command[i])
+            if (plaintext[i + offset] != (byte)command[i])
             {
                 return false;
             }

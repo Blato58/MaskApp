@@ -1,5 +1,7 @@
 using MaskApp.App.Features.Connect;
 using MaskApp.App.Features.Home;
+using MaskApp.App.Features.React;
+using MaskApp.App.Features.Rave;
 using MaskApp.App.Features.Text;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -15,9 +17,11 @@ public partial class AppShell : Shell
         {
             Items =
             {
-                CreateShellContent<HomePage>("Home", "home", services),
-                CreateShellContent<ConnectPage>("Connect", "connect", services),
-                CreateShellContent<TextPage>("Text", "text", services)
+                CreateShellContent<HomePage>("Control", "control", services),
+                CreateShellContent<ReactPage>("React", "react", services),
+                CreateShellContent<TextPage>("Text", "text", services),
+                CreateShellContent<RavePage>("RAVE", "rave", services),
+                CreateShellContent<ConnectPage>("Connect", "connect", services)
             }
         });
     }

@@ -1,8 +1,9 @@
+using MaskApp.Core.Features.Connect;
+
 namespace MaskApp.Core.Features.Home;
 
-public sealed record HomeFeatureCard(
-    string Name,
-    string Status,
+public sealed record HomeQuickActionCard(
+    string Label,
     string Description,
-    bool IsAvailable,
-    string ActionText);
+    string Status,
+    AsyncRelayCommand TriggerCommand);
