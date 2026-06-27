@@ -3,6 +3,7 @@
     x:Class="MaskApp.App.Features.Rave.RavePage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:builtins="clr-namespace:MaskApp.Core.Features.BuiltIns;assembly=MaskApp.Core"
     xmlns:rave="clr-namespace:MaskApp.Core.Features.Rave;assembly=MaskApp.Core"
     x:DataType="rave:RaveViewModel"
     Title="RAVE"
@@ -75,6 +76,32 @@
                             Grid.Row="3"
                             Text="Apply brightness cap"
                             Command="{Binding ApplyBrightnessCapCommand}" />
+                    </Grid>
+                </Border>
+
+                <Border IsVisible="{Binding ShowSecondaryControls}" Style="{StaticResource PanelBorderStyle}">
+                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                        <Label Text="Favorite Built-ins" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Label
+                            Grid.Row="1"
+                            Text="{Binding FavoriteBuiltInsHintText}"
+                            Style="{StaticResource MutedLabelStyle}" />
+                        <FlexLayout
+                            Grid.Row="2"
+                            AlignItems="Start"
+                            BindableLayout.ItemsSource="{Binding FavoriteBuiltIns}"
+                            Direction="Row"
+                            Wrap="Wrap">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="builtins:BuiltInAssetAction">
+                                    <Button
+                                        Margin="0,0,10,10"
+                                        MinimumWidthRequest="148"
+                                        Text="{Binding Label}"
+                                        Command="{Binding SendCommand}" />
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </FlexLayout>
                     </Grid>
                 </Border>
 

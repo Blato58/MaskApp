@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using MaskApp.Core.Features.BuiltIns;
 using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.QuickActions;
@@ -12,7 +13,9 @@ public sealed class ReactViewModel : INotifyPropertyChanged
     private readonly IQuickActionDispatcher dispatcher;
     private readonly IMaskCommandTransport commandTransport;
     private readonly ITextUploadTransport textTransport;
+    private readonly IBuiltInAssetArchiveStore archiveStore;
     private readonly List<ReactReactionCard> allCards;
+    private IReadOnlyList<BuiltInAssetAction> favoriteBuiltIns = [];
     private string statusText;
     private string lastActionText = "None";
     private bool isSending;
@@ -21,11 +24,13 @@ public sealed class ReactViewModel : INotifyPropertyChanged
         QuickActionCatalog catalog,
         IQuickActionDispatcher dispatcher,
         IMaskCommandTransport commandTransport,
-        ITextUploadTransport textTransport)
+        ITextUploadTransport textTransport,
+        IBuiltInAssetArchiveStore? archiveStore = null)
     {
         this.dispatcher = dispatcher;
         this.commandTransport = commandTransport;
         this.textTransport = textTransport;
+        this.archiveStore = archiveStore ?? new InMemoryBuiltInAssetArchiveStore();
 
         var deck = new ReactDeckCatalog(catalog).Build();
         PinnedCards = deck.PinnedCards.Select(CreateCard).ToArray();
@@ -44,6 +49,25 @@ public sealed class ReactViewModel : INotifyPropertyChanged
     public IReadOnlyList<ReactReactionCard> PinnedCards { get; }
 
     public IReadOnlyList<ReactReactionGroup> Groups { get; }
+
+    public IReadOnlyList<BuiltInAssetAction> FavoriteBuiltIns
+    {
+        get => favoriteBuiltIns;
+        private set
+        {
+            if (SetField(ref favoriteBuiltIns, value))
+            {
+                OnPropertyChanged(nameof(HasFavoriteBuiltIns));
+                OnPropertyChanged(nameof(FavoriteBuiltInsHintText));
+            }
+        }
+    }
+
+    public bool HasFavoriteBuiltIns => FavoriteBuiltIns.Count > 0;
+
+    public string FavoriteBuiltInsHintText => HasFavoriteBuiltIns
+        ? "Saved built-ins send IMAG/ANIM command IDs only."
+        : "Scan built-ins first.";
 
     public string StatusText
     {
@@ -78,6 +102,14 @@ public sealed class ReactViewModel : INotifyPropertyChanged
     public string TextReadinessText => textTransport.IsReady
         ? BuildTextReadyText()
         : $"Text reactions unavailable: {textTransport.StatusText}";
+
+    public async Task InitializeArchiveAsync(CancellationToken cancellationToken = default)
+    {
+        var archive = await archiveStore.LoadAsync(cancellationToken).ConfigureAwait(false);
+        FavoriteBuiltIns = archive.FavoriteRecords()
+            .Select(CreateBuiltInAction)
+            .ToArray();
+    }
 
     public async Task SendAsync(ReactReactionCard card, CancellationToken cancellationToken = default)
     {
@@ -115,6 +147,20 @@ public sealed class ReactViewModel : INotifyPropertyChanged
         return reactionCard;
     }
 
+    private BuiltInAssetAction CreateBuiltInAction(BuiltInAssetRecord record)
+    {
+        BuiltInAssetAction? action = null;
+        action = new BuiltInAssetAction(
+            record,
+            record.DisplayName,
+            $"{record.Type} {record.HexId}",
+            $"{record.Status}; command-only built-in.",
+            new AsyncRelayCommand(
+                cancellationToken => SendBuiltInAsync(record, cancellationToken),
+                () => action is not null && CanSendBuiltIn()));
+        return action;
+    }
+
     private bool CanSend(ReactReactionCard card)
     {
         if (IsSending)
@@ -131,6 +177,9 @@ public sealed class ReactViewModel : INotifyPropertyChanged
         };
     }
 
+    private bool CanSendBuiltIn() =>
+        !IsSending && commandTransport.TransportState == MaskCommandTransportState.Ready;
+
     private string GetUnavailableStatus(ReactReactionCard card) =>
         card.Kind switch
         {
@@ -139,6 +188,31 @@ public sealed class ReactViewModel : INotifyPropertyChanged
             QuickActionKind.Text or QuickActionKind.Random => textTransport.StatusText,
             _ => "This reaction is not available."
         };
+
+    private async Task SendBuiltInAsync(BuiltInAssetRecord record, CancellationToken cancellationToken)
+    {
+        if (!CanSendBuiltIn())
+        {
+            StatusText = commandTransport.TransportStatusText;
+            return;
+        }
+
+        try
+        {
+            IsSending = true;
+            LastActionText = record.DisplayName;
+            StatusText = $"Sending {record.DisplayName} ({record.HexId}). Needs real-mask test.";
+            var result = await commandTransport.SendAsync(BuiltInAssetCommandFactory.CreateCommand(record), cancellationToken)
+                .ConfigureAwait(false);
+            StatusText = result.Succeeded
+                ? $"{result.Message} Command-only built-in; confirm on mask."
+                : $"{record.DisplayName} failed: {result.Message}";
+        }
+        finally
+        {
+            IsSending = false;
+        }
+    }
 
     private string BuildReadinessText()
     {
@@ -193,6 +267,11 @@ public sealed class ReactViewModel : INotifyPropertyChanged
         foreach (var card in allCards)
         {
             card.SendCommand.RaiseCanExecuteChanged();
+        }
+
+        foreach (var action in FavoriteBuiltIns)
+        {
+            action.SendCommand.RaiseCanExecuteChanged();
         }
     }
 

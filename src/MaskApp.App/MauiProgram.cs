@@ -5,6 +5,7 @@ using MaskApp.App.Features.React;
 using MaskApp.App.Features.Rave;
 using MaskApp.App.Features.Text;
 using MaskApp.App.Infrastructure.Bluetooth;
+using MaskApp.App.Infrastructure.Storage;
 using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.BuiltIns;
 using MaskApp.Core.Features.Home;
@@ -41,6 +42,7 @@ public static class MauiProgram
         builder.Services.AddTransient<RaveViewModel>();
         builder.Services.AddSingleton<QuickActionCatalog>();
         builder.Services.AddTransient<IQuickActionDispatcher, QuickActionDispatcher>();
+        builder.Services.AddSingleton<IBuiltInAssetArchiveStore, JsonBuiltInAssetArchiveStore>();
 
 #if IOS
         builder.Services.AddSingleton<IosBleAdapter>();

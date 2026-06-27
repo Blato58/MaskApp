@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using MaskApp.Core.Features.BuiltIns;
 using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.QuickActions;
@@ -13,10 +14,12 @@ public sealed class RaveViewModel : INotifyPropertyChanged
     private readonly ITextUploadTransport textTransport;
     private readonly QuickActionCatalog catalog;
     private readonly IQuickActionDispatcher dispatcher;
+    private readonly IBuiltInAssetArchiveStore archiveStore;
     private int brightnessCap = 65;
     private int restoreBrightness = 65;
     private bool festivalLock;
     private bool isSending;
+    private IReadOnlyList<BuiltInAssetAction> favoriteBuiltIns = [];
     private string sendStatusText = "Ready for manual offline captions.";
     private string maskStatusText;
     private string textStatusText;
@@ -27,12 +30,14 @@ public sealed class RaveViewModel : INotifyPropertyChanged
         QuickActionCatalog catalog,
         IQuickActionDispatcher dispatcher,
         IMaskCommandTransport maskTransport,
-        ITextUploadTransport textTransport)
+        ITextUploadTransport textTransport,
+        IBuiltInAssetArchiveStore? archiveStore = null)
     {
         this.catalog = catalog;
         this.dispatcher = dispatcher;
         this.maskTransport = maskTransport;
         this.textTransport = textTransport;
+        this.archiveStore = archiveStore ?? new InMemoryBuiltInAssetArchiveStore();
         maskStatusText = maskTransport.TransportStatusText;
         textStatusText = textTransport.StatusText;
 
@@ -77,6 +82,25 @@ public sealed class RaveViewModel : INotifyPropertyChanged
     public IReadOnlyList<RaveAction> Actions { get; }
 
     public IReadOnlyList<RaveAction> CommandFallbackActions { get; }
+
+    public IReadOnlyList<BuiltInAssetAction> FavoriteBuiltIns
+    {
+        get => favoriteBuiltIns;
+        private set
+        {
+            if (SetField(ref favoriteBuiltIns, value))
+            {
+                OnPropertyChanged(nameof(HasFavoriteBuiltIns));
+                OnPropertyChanged(nameof(FavoriteBuiltInsHintText));
+            }
+        }
+    }
+
+    public bool HasFavoriteBuiltIns => FavoriteBuiltIns.Count > 0;
+
+    public string FavoriteBuiltInsHintText => HasFavoriteBuiltIns
+        ? "Favorite built-ins are command-only and low-bandwidth."
+        : "Scan built-ins first.";
 
     public AsyncRelayCommand BlackoutCommand { get; }
 
@@ -157,6 +181,14 @@ public sealed class RaveViewModel : INotifyPropertyChanged
         private set => SetField(ref lastPayloadText, value);
     }
 
+    public async Task InitializeArchiveAsync(CancellationToken cancellationToken = default)
+    {
+        var archive = await archiveStore.LoadAsync(cancellationToken).ConfigureAwait(false);
+        FavoriteBuiltIns = archive.FavoriteRecords()
+            .Select(CreateBuiltInAction)
+            .ToArray();
+    }
+
     private RaveAction CreateAction(QuickActionId actionId, string group)
     {
         var action = catalog.Get(actionId);
@@ -177,6 +209,20 @@ public sealed class RaveViewModel : INotifyPropertyChanged
             $"Command-only built-in ID {action.BuiltInId}",
             "Fallback",
             new AsyncRelayCommand(cancellationToken => SendCommandFallbackAsync(action.Id, action.Label, cancellationToken), CanSendBrightnessCommand));
+    }
+
+    private BuiltInAssetAction CreateBuiltInAction(BuiltInAssetRecord record)
+    {
+        BuiltInAssetAction? action = null;
+        action = new BuiltInAssetAction(
+            record,
+            record.DisplayName,
+            $"{record.Type} {record.HexId}",
+            $"{record.Status}; command-only/low-bandwidth.",
+            new AsyncRelayCommand(
+                cancellationToken => SendBuiltInAsync(record, cancellationToken),
+                () => action is not null && CanSendBrightnessCommand()));
+        return action;
     }
 
     private async Task SendActionAsync(QuickActionId actionId, string label, CancellationToken cancellationToken)
@@ -260,6 +306,34 @@ public sealed class RaveViewModel : INotifyPropertyChanged
         }
     }
 
+    private async Task SendBuiltInAsync(BuiltInAssetRecord record, CancellationToken cancellationToken)
+    {
+        if (!CanSendBrightnessCommand())
+        {
+            SendStatusText = maskTransport.TransportStatusText;
+            return;
+        }
+
+        LastActionText = record.DisplayName;
+        LastPayloadText = $"{record.Type} {record.HexId}";
+
+        try
+        {
+            IsSending = true;
+            SendStatusText = $"Sending favorite built-in {record.DisplayName}. Needs real-mask test.";
+            var result = await maskTransport.SendAsync(BuiltInAssetCommandFactory.CreateCommand(record), cancellationToken)
+                .ConfigureAwait(false);
+            SendStatusText = result.Succeeded
+                ? $"{result.Message} Command-only/low-bandwidth; confirm on mask."
+                : result.Message;
+            LastPayloadText = result.Succeeded ? "sent" : "failed";
+        }
+        finally
+        {
+            IsSending = false;
+        }
+    }
+
     private async Task SendBrightnessAsync(QuickActionId actionId, string label, int brightness, CancellationToken cancellationToken)
     {
         if (!CanSendBrightnessCommand())
@@ -332,6 +406,11 @@ public sealed class RaveViewModel : INotifyPropertyChanged
         }
 
         foreach (var action in CommandFallbackActions)
+        {
+            action.SendCommand.RaiseCanExecuteChanged();
+        }
+
+        foreach (var action in FavoriteBuiltIns)
         {
             action.SendCommand.RaiseCanExecuteChanged();
         }

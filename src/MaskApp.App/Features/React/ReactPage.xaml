@@ -3,6 +3,7 @@
     x:Class="MaskApp.App.Features.React.ReactPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:builtins="clr-namespace:MaskApp.Core.Features.BuiltIns;assembly=MaskApp.Core"
     xmlns:react="clr-namespace:MaskApp.Core.Features.React;assembly=MaskApp.Core"
     x:DataType="react:ReactViewModel"
     Title="React"
@@ -100,6 +101,42 @@
                     </DataTemplate>
                 </BindableLayout.ItemTemplate>
             </VerticalStackLayout>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                    <Label Text="Favorite Built-ins" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Grid.Row="1" Text="{Binding FavoriteBuiltInsHintText}" Style="{StaticResource MutedLabelStyle}" />
+                    <FlexLayout
+                        Grid.Row="2"
+                        AlignItems="Stretch"
+                        BindableLayout.ItemsSource="{Binding FavoriteBuiltIns}"
+                        Direction="Row"
+                        Wrap="Wrap">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="builtins:BuiltInAssetAction">
+                                <Border
+                                    Margin="0,0,10,10"
+                                    Padding="12"
+                                    MinimumWidthRequest="148"
+                                    StrokeThickness="1">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="8" />
+                                    </Border.StrokeShape>
+                                    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="5">
+                                        <Label Text="{Binding Label}" FontAttributes="Bold" />
+                                        <Label Grid.Row="1" Text="{Binding Caption}" FontSize="12" TextColor="{StaticResource AccentColor}" />
+                                        <Label Grid.Row="2" Text="{Binding Description}" FontSize="12" TextColor="{StaticResource SecondaryTextColor}" />
+                                        <Button
+                                            Grid.Row="3"
+                                            Text="Send"
+                                            Command="{Binding SendCommand}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </FlexLayout>
+                </Grid>
+            </Border>
 
             <Border Style="{StaticResource PanelBorderStyle}">
                 <Grid RowDefinitions="Auto,Auto" RowSpacing="8">

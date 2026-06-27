@@ -12,7 +12,7 @@
             <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="18">
                 <VerticalStackLayout Spacing="6">
                     <Label Text="Built-ins" Style="{StaticResource PageTitleLabelStyle}" />
-                    <Label Text="Real-mask scanner for stock IMAG and ANIM command IDs." Style="{StaticResource MutedLabelStyle}" />
+                    <Label Text="Real-mask scanner and metadata archive for stock IMAG and ANIM IDs. Metadata only; no raw frames are extracted." Style="{StaticResource MutedLabelStyle}" />
                 </VerticalStackLayout>
 
                 <Border Style="{StaticResource PanelBorderStyle}">
@@ -73,6 +73,81 @@
                             Grid.Row="4"
                             Text="{Binding SendButtonText}"
                             Command="{Binding SendCommand}" />
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource PanelBorderStyle}">
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
+                        <Label Text="Archive metadata" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Entry
+                            Grid.Row="1"
+                            Placeholder="Display name"
+                            Text="{Binding DisplayName, Mode=TwoWay}" />
+                        <Entry
+                            Grid.Row="2"
+                            Placeholder="Tags, comma separated"
+                            Text="{Binding TagsText, Mode=TwoWay}" />
+                        <Editor
+                            Grid.Row="3"
+                            AutoSize="TextChanges"
+                            HeightRequest="92"
+                            Placeholder="Notes"
+                            Text="{Binding Notes, Mode=TwoWay}" />
+                        <Grid Grid.Row="4" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <Picker
+                                Title="Status"
+                                ItemsSource="{Binding StatusValues}"
+                                SelectedItem="{Binding AssetStatus, Mode=TwoWay}" />
+                            <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
+                                <Label Text="Favorite" Style="{StaticResource MutedLabelStyle}" VerticalTextAlignment="Center" />
+                                <Switch IsToggled="{Binding IsFavorite, Mode=TwoWay}" />
+                            </HorizontalStackLayout>
+                        </Grid>
+                        <Grid Grid.Row="5" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="4">
+                            <Label Text="Tested" Style="{StaticResource MutedLabelStyle}" />
+                            <Label Grid.Column="1" Text="{Binding LastTestedText}" />
+                            <Label Grid.Row="1" Text="Send" Style="{StaticResource MutedLabelStyle}" />
+                            <Label Grid.Row="1" Grid.Column="1" Text="{Binding LastSendStatus}" />
+                        </Grid>
+                        <Button
+                            Grid.Row="6"
+                            Text="Save metadata"
+                            Command="{Binding SaveCommand}" />
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource PanelBorderStyle}">
+                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                        <Label Text="Favorites and tested IDs" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Label Grid.Row="1" Text="{Binding ArchiveHintText}" Style="{StaticResource MutedLabelStyle}" />
+                        <FlexLayout
+                            Grid.Row="2"
+                            AlignItems="Stretch"
+                            BindableLayout.ItemsSource="{Binding SavedItems}"
+                            Direction="Row"
+                            Wrap="Wrap">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="builtins:BuiltInAssetListItem">
+                                    <Border
+                                        Margin="0,0,10,10"
+                                        Padding="12"
+                                        MinimumWidthRequest="180"
+                                        StrokeThickness="1">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="8" />
+                                        </Border.StrokeShape>
+                                        <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="5">
+                                            <Label Text="{Binding Title}" FontAttributes="Bold" />
+                                            <Label Grid.Row="1" Text="{Binding Subtitle}" FontSize="12" TextColor="{StaticResource SecondaryTextColor}" />
+                                            <Button
+                                                Grid.Row="2"
+                                                Text="Load"
+                                                Command="{Binding LoadCommand}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </FlexLayout>
                     </Grid>
                 </Border>
 
