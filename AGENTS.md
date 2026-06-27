@@ -35,7 +35,7 @@ Use `.github/workflows/ios-ipa.yml` for CI-based signed iOS IPA distribution. Se
 - Keep migrated protocol and byte-level behavior in `MaskApp.Core` with focused tests.
 - Use vertical feature slices in `src/MaskApp.App`, such as `Features/Connect`, `Features/Settings`, `Features/Text`, `Features/Image`, `Features/Rhythm`, and `Features/Microphone`.
 - Keep platform APIs, permissions, app lifecycle, BLE adapters, camera/media picker, audio capture, and resources in `src/MaskApp.App` platform folders or app infrastructure.
-- Preserve original package/app identity unless the user asks to change it: `cn.com.heaton.shiningmask`, version `1.2.6`, code `126`.
+- The MAUI app uses `com.blato58.maskapp`, version `1.2.6`, code `126`. The original Android snapshot still records `cn.com.heaton.shiningmask` as migration evidence only.
 
 ## Testing Guidelines
 

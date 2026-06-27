@@ -9,7 +9,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <ApplicationTitle>Shining Mask</ApplicationTitle>
-    <ApplicationId>cn.com.heaton.shiningmask</ApplicationId>
+    <ApplicationId>com.blato58.maskapp</ApplicationId>
     <ApplicationDisplayVersion>1.2.6</ApplicationDisplayVersion>
     <ApplicationVersion>126</ApplicationVersion>
     <MauiXamlInflator>SourceGen</MauiXamlInflator>

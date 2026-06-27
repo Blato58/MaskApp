@@ -13,7 +13,7 @@ Status key:
 
 ## Foundation
 
-- [x] Preserve app identity: `cn.com.heaton.shiningmask`, display version `1.2.6`, build `126`.
+- [x] Set MAUI app identity to `com.blato58.maskapp`, display version `1.2.6`, build `126`; keep the original Android app id only in source-map evidence.
 - [x] Keep Java snapshot under `android/` as read-only migration evidence.
 - [x] Create MAUI app project at `src/MaskApp.App`.
 - [x] Target iOS first with Android as a secondary target.
@@ -77,7 +77,7 @@ Status key:
 
 ## Open Decisions
 
-- [!] Confirm Apple provisioning accepts bundle id `cn.com.heaton.shiningmask`.
+- [!] Confirm Apple provisioning accepts bundle id `com.blato58.maskapp`.
 - [!] Confirm minimum supported iOS version.
 - [!] Confirm minimum supported Android API level beyond the current compile baseline.
 - [!] Choose persistence strategy for migrated GreenDAO data.

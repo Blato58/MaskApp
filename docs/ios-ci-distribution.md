@@ -13,7 +13,7 @@ Feather/AltStore-style update source to GitHub Pages.
 
 - Paid Apple Developer account.
 - App ID / bundle identifier matching the MAUI app `ApplicationId`:
-  `cn.com.heaton.shiningmask`.
+  `com.blato58.maskapp`.
 - iPhone UDID registered in the Apple Developer portal.
 - Ad Hoc provisioning profile for this app and device, or another profile that
   fits the chosen distribution method.
@@ -21,7 +21,8 @@ Feather/AltStore-style update source to GitHub Pages.
 - `.mobileprovision` file downloaded from Apple Developer.
 
 Use an Ad Hoc provisioning profile for the first physical iPhone install path.
-That profile must include the iPhone UDID.
+That profile must include the iPhone UDID and must be issued for
+`com.blato58.maskapp`.
 
 ## GitHub Secrets
 
