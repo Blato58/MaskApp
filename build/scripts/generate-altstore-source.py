@@ -114,6 +114,32 @@ def existing_app(source: dict, bundle_id: str) -> dict:
     return {}
 
 
+def source_sibling_url(source_url: str, file_name: str) -> str:
+    if not source_url:
+        return ""
+
+    return source_url.rsplit("/", 1)[0].rstrip("/") + "/" + file_name
+
+
+def resolve_icon_url(args: argparse.Namespace, prior_app: dict, output_dir: Path) -> str:
+    configured_icon_url = (args.icon_url or "").strip()
+    if configured_icon_url:
+        return configured_icon_url
+
+    prior_icon_url = (prior_app.get("iconURL") or "").strip()
+    if prior_icon_url:
+        return prior_icon_url
+
+    default_icon_path = Path("src/MaskApp.App/Resources/AppIcon/appicon.svg")
+    default_icon_url = source_sibling_url(args.existing_source_url, "appicon.svg")
+    if default_icon_path.exists() and default_icon_url:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(default_icon_path, output_dir / "appicon.svg")
+        return default_icon_url
+
+    fail("An app icon URL is required for Feather-compatible source feeds.")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate an AltStore-compatible source JSON.")
     parser.add_argument("--ipa-path", required=True)
@@ -161,6 +187,8 @@ def main() -> int:
     existing_source = load_existing_source(args.existing_source_url)
     prior_app = existing_app(existing_source, bundle_id)
     prior_versions = prior_app.get("versions", [])
+    output_dir = Path(args.output_dir)
+    icon_url = resolve_icon_url(args, prior_app, output_dir)
 
     new_version = {
         "version": str(version),
@@ -188,7 +216,7 @@ def main() -> int:
         "developerName": args.developer_name,
         "subtitle": args.subtitle,
         "localizedDescription": localized_description,
-        "iconURL": args.icon_url or prior_app.get("iconURL", ""),
+        "iconURL": icon_url,
         "tintColor": args.tint_color,
         "category": args.category,
         "downloadURL": args.ipa_url,
@@ -208,7 +236,6 @@ def main() -> int:
         "news": existing_source.get("news", []),
     }
 
-    output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / "apps.json"
     output_path.write_text(json.dumps(source, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
