@@ -48,10 +48,23 @@ public sealed class BuiltInAssetArchive
             .ThenBy(record => record.Id)
             .ToArray();
 
+    public IReadOnlyList<BuiltInAssetRecord> FavoriteDeckRecords() =>
+        records
+            .Where(record => IsFavorite(record) || record.Status == BuiltInAssetStatus.Working)
+            .OrderByDescending(IsFavorite)
+            .ThenByDescending(record => record.Status == BuiltInAssetStatus.Working)
+            .ThenByDescending(record => record.LastTestedAt ?? record.LastUpdatedAt ?? DateTimeOffset.MinValue)
+            .ThenBy(record => record.Type)
+            .ThenBy(record => record.Id)
+            .ToArray();
+
     public IReadOnlyList<BuiltInAssetRecord> FavoriteRecords() =>
         records
-            .Where(record => record.IsFavorite || record.Status == BuiltInAssetStatus.Favorite)
+            .Where(IsFavorite)
             .OrderBy(record => record.Type)
             .ThenBy(record => record.Id)
             .ToArray();
+
+    private static bool IsFavorite(BuiltInAssetRecord record) =>
+        record.IsFavorite || record.Status == BuiltInAssetStatus.Favorite;
 }

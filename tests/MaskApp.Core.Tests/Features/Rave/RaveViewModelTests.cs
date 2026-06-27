@@ -1,3 +1,4 @@
+using MaskApp.Core.Features.BuiltIns;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.QuickActions;
 using MaskApp.Core.Features.Rave;
@@ -132,16 +133,35 @@ public sealed class RaveViewModelTests
         Assert.Equal("Text disconnected.", viewModel.SendStatusText);
     }
 
+    [Fact]
+    public async Task InitializeArchiveAsync_LoadsFavoriteFacesAsLowBandwidthActions()
+    {
+        var archive = new BuiltInAssetArchive(
+        [
+            new BuiltInAssetRecord(BuiltInAssetType.StaticImage, 8) { Status = BuiltInAssetStatus.Working },
+            new BuiltInAssetRecord(BuiltInAssetType.Animation, 9) { IsFavorite = true },
+            new BuiltInAssetRecord(BuiltInAssetType.StaticImage, 10) { Status = BuiltInAssetStatus.Bad }
+        ]);
+        var viewModel = CreateViewModel(archiveStore: new InMemoryBuiltInAssetArchiveStore(archive));
+
+        await viewModel.InitializeArchiveAsync();
+
+        Assert.Equal([9, 8], viewModel.FavoriteBuiltIns.Select(action => action.Record.Id));
+        Assert.Contains("low-bandwidth", viewModel.FavoriteBuiltInsHintText);
+    }
+
     private static RaveViewModel CreateViewModel(
         RecordingQuickActionDispatcher? dispatcher = null,
         IMaskCommandTransport? maskTransport = null,
-        ITextUploadTransport? textTransport = null)
+        ITextUploadTransport? textTransport = null,
+        IBuiltInAssetArchiveStore? archiveStore = null)
     {
         return new RaveViewModel(
             new QuickActionCatalog(),
             dispatcher ?? new RecordingQuickActionDispatcher(),
             maskTransport ?? new SimulatedMaskCommandTransport(),
-            textTransport ?? new SimulatedTextUploadTransport());
+            textTransport ?? new SimulatedTextUploadTransport(),
+            archiveStore);
     }
 
     private sealed class RecordingQuickActionDispatcher : IQuickActionDispatcher

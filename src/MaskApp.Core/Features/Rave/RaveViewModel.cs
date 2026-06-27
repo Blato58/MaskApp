@@ -100,7 +100,7 @@ public sealed class RaveViewModel : INotifyPropertyChanged
 
     public string FavoriteBuiltInsHintText => HasFavoriteBuiltIns
         ? "Favorite built-ins are command-only and low-bandwidth."
-        : "Scan built-ins first.";
+        : "Use Faces scanner to favorite fast command-only looks.";
 
     public AsyncRelayCommand BlackoutCommand { get; }
 
@@ -184,7 +184,7 @@ public sealed class RaveViewModel : INotifyPropertyChanged
     public async Task InitializeArchiveAsync(CancellationToken cancellationToken = default)
     {
         var archive = await archiveStore.LoadAsync(cancellationToken).ConfigureAwait(false);
-        FavoriteBuiltIns = archive.FavoriteRecords()
+        FavoriteBuiltIns = archive.FavoriteDeckRecords()
             .Select(CreateBuiltInAction)
             .ToArray();
     }

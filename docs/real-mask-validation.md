@@ -36,9 +36,17 @@ slice record.
 
 Start with the safe IDs before exploring wider ranges:
 
-- Test `IMAG 0`, `IMAG 1`, `IMAG 2`, `IMAG 3`, `IMAG 4`, `IMAG 5`.
+- Scan `IMAG 0` through `IMAG 10`.
 - Test `ANIM 0`, `ANIM 1`, `ANIM 2`, `ANIM 3`, `ANIM 4`, `ANIM 5`.
 - Record useful IDs manually for now.
+- Mark one `IMAG` ID as Works with one tap.
+- Mark one `IMAG` ID as Favorite with one tap.
+- Confirm the saved `IMAG` appears in Favorite Faces.
+- Tap the deck card once and confirm it sends to the mask.
+- Restart the app and confirm the favorite remains.
+- Repeat the Works/Favorite/deck-send sequence for `ANIM`.
+- Confirm RAVE shows Favorite Faces when Festival Lock is off.
+- Confirm BLACKOUT remains visible on Faces and RAVE.
 
 Protocol evidence suggests `IMAG` may be useful up to about `0x69` and `ANIM`
 up to about `0x45`. Higher IDs should stay experimental until tested.

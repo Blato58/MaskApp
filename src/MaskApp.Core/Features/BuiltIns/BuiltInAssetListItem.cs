@@ -6,4 +6,10 @@ public sealed record BuiltInAssetListItem(
     BuiltInAssetRecord Record,
     string Title,
     string Subtitle,
-    AsyncRelayCommand LoadCommand);
+    string TypeLabel,
+    string IdLabel,
+    string TagsLabel,
+    string StatusLabel,
+    string FavoriteLabel,
+    AsyncRelayCommand SendCommand,
+    AsyncRelayCommand EditCommand);

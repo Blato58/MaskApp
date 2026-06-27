@@ -102,8 +102,8 @@ public sealed class ReactViewModel : INotifyPropertyChanged
     public bool HasFavoriteBuiltIns => FavoriteBuiltIns.Count > 0;
 
     public string FavoriteBuiltInsHintText => HasFavoriteBuiltIns
-        ? "Saved built-ins send IMAG/ANIM command IDs only."
-        : "Scan built-ins first.";
+        ? "Favorite Faces send IMAG/ANIM command IDs only."
+        : "Use Faces scanner to favorite fast command-only looks.";
 
     public string StatusText
     {
@@ -142,7 +142,7 @@ public sealed class ReactViewModel : INotifyPropertyChanged
     public async Task InitializeArchiveAsync(CancellationToken cancellationToken = default)
     {
         var archive = await archiveStore.LoadAsync(cancellationToken).ConfigureAwait(false);
-        FavoriteBuiltIns = archive.FavoriteRecords()
+        FavoriteBuiltIns = archive.FavoriteDeckRecords()
             .Select(CreateBuiltInAction)
             .ToArray();
     }

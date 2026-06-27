@@ -1,3 +1,4 @@
+using MaskApp.Core.Features.BuiltIns;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.QuickActions;
 using MaskApp.Core.Features.React;
@@ -89,15 +90,34 @@ public sealed class ReactViewModelTests
         Assert.Contains("Needs real-mask test", card.Description);
     }
 
+    [Fact]
+    public async Task InitializeArchiveAsync_LoadsFavoriteAndWorkingBuiltIns()
+    {
+        var archive = new BuiltInAssetArchive(
+        [
+            new BuiltInAssetRecord(BuiltInAssetType.StaticImage, 2) { Status = BuiltInAssetStatus.Working },
+            new BuiltInAssetRecord(BuiltInAssetType.Animation, 3) { IsFavorite = true },
+            new BuiltInAssetRecord(BuiltInAssetType.Animation, 4) { Status = BuiltInAssetStatus.Bad }
+        ]);
+        var viewModel = CreateViewModel(archiveStore: new InMemoryBuiltInAssetArchiveStore(archive));
+
+        await viewModel.InitializeArchiveAsync();
+
+        Assert.Equal([3, 2], viewModel.FavoriteBuiltIns.Select(action => action.Record.Id));
+        Assert.Contains("Favorite Faces", viewModel.FavoriteBuiltInsHintText);
+    }
+
     private static ReactViewModel CreateViewModel(
         FakeQuickActionDispatcher? dispatcher = null,
         FakeCommandTransport? commandTransport = null,
-        FakeTextUploadTransport? textTransport = null) =>
+        FakeTextUploadTransport? textTransport = null,
+        IBuiltInAssetArchiveStore? archiveStore = null) =>
         new(
             new QuickActionCatalog(),
             dispatcher ?? new FakeQuickActionDispatcher(QuickActionResult.Sent(QuickActionId.Lol, "Uploaded.")),
             commandTransport ?? new FakeCommandTransport(),
-            textTransport ?? new FakeTextUploadTransport());
+            textTransport ?? new FakeTextUploadTransport(),
+            archiveStore);
 
     private sealed class FakeQuickActionDispatcher : IQuickActionDispatcher
     {

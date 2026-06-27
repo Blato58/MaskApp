@@ -71,4 +71,45 @@ public sealed class BuiltInAssetArchiveTests
 
         Assert.Equal([2, 3, 4], records.Select(record => record.Id));
     }
+
+    [Fact]
+    public void FavoriteDeckRecords_IncludesFavoritesAndWorkingOnly()
+    {
+        var archive = new BuiltInAssetArchive(
+        [
+            new BuiltInAssetRecord(BuiltInAssetType.StaticImage, 1),
+            new BuiltInAssetRecord(BuiltInAssetType.StaticImage, 2) { Status = BuiltInAssetStatus.Working },
+            new BuiltInAssetRecord(BuiltInAssetType.StaticImage, 3) { Status = BuiltInAssetStatus.Bad },
+            new BuiltInAssetRecord(BuiltInAssetType.Animation, 4) { Status = BuiltInAssetStatus.Untested, IsFavorite = true },
+            new BuiltInAssetRecord(BuiltInAssetType.Animation, 5) { Status = BuiltInAssetStatus.Weird }
+        ]);
+
+        var records = archive.FavoriteDeckRecords();
+
+        Assert.Equal([4, 2], records.Select(record => record.Id));
+    }
+
+    [Fact]
+    public void FavoriteDeckRecords_SortsFavoritesThenWorkingThenRecent()
+    {
+        var older = DateTimeOffset.Parse("2026-06-27T10:00:00+00:00");
+        var newer = DateTimeOffset.Parse("2026-06-27T12:00:00+00:00");
+        var archive = new BuiltInAssetArchive(
+        [
+            new BuiltInAssetRecord(BuiltInAssetType.StaticImage, 1) { Status = BuiltInAssetStatus.Working, LastTestedAt = older },
+            new BuiltInAssetRecord(BuiltInAssetType.StaticImage, 2) { Status = BuiltInAssetStatus.Working, LastTestedAt = newer },
+            new BuiltInAssetRecord(BuiltInAssetType.Animation, 3) { IsFavorite = true, LastUpdatedAt = older },
+            new BuiltInAssetRecord(BuiltInAssetType.Animation, 4) { IsFavorite = true, LastUpdatedAt = newer }
+        ]);
+
+        var records = archive.FavoriteDeckRecords();
+
+        Assert.Equal([4, 3, 2, 1], records.Select(record => record.Id));
+    }
+
+    [Fact]
+    public void FavoriteDeckRecords_EmptyArchive_ReturnsEmpty()
+    {
+        Assert.Empty(BuiltInAssetArchive.Empty.FavoriteDeckRecords());
+    }
 }

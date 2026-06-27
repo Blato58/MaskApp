@@ -22,7 +22,9 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
     private BuiltInAssetStatus assetStatus = BuiltInAssetStatus.Untested;
     private bool isFavorite;
     private DateTimeOffset? lastTestedAt;
+    private DateTimeOffset? lastUpdatedAt;
     private string lastSendStatus = "Never sent";
+    private IReadOnlyList<BuiltInAssetListItem> favoriteFaces = [];
     private IReadOnlyList<BuiltInAssetListItem> savedItems = [];
 
     public BuiltInsViewModel(IMaskCommandTransport transport, IBuiltInAssetArchiveStore? archiveStore = null)
@@ -38,6 +40,10 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         SendCommand = new AsyncRelayCommand(SendAsync, CanSend);
         BlackoutCommand = new AsyncRelayCommand(BlackoutAsync, CanSend);
         SaveCommand = new AsyncRelayCommand(SaveAsync);
+        ToggleFavoriteCommand = new AsyncRelayCommand(ToggleFavoriteAsync);
+        MarkWorkingCommand = new AsyncRelayCommand(cancellationToken => MarkStatusAsync(BuiltInAssetStatus.Working, cancellationToken));
+        MarkBadCommand = new AsyncRelayCommand(cancellationToken => MarkStatusAsync(BuiltInAssetStatus.Bad, cancellationToken));
+        MarkWeirdCommand = new AsyncRelayCommand(cancellationToken => MarkStatusAsync(BuiltInAssetStatus.Weird, cancellationToken));
         LoadArchiveCommand = new AsyncRelayCommand(InitializeAsync);
         StatusValues = Enum.GetValues<BuiltInAssetStatus>();
     }
@@ -57,6 +63,14 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
     public AsyncRelayCommand BlackoutCommand { get; }
 
     public AsyncRelayCommand SaveCommand { get; }
+
+    public AsyncRelayCommand ToggleFavoriteCommand { get; }
+
+    public AsyncRelayCommand MarkWorkingCommand { get; }
+
+    public AsyncRelayCommand MarkBadCommand { get; }
+
+    public AsyncRelayCommand MarkWeirdCommand { get; }
 
     public AsyncRelayCommand LoadArchiveCommand { get; }
 
@@ -124,7 +138,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
 
     public string ValidationLabel => "Metadata only";
 
-    public string SuggestedSequence => "Send an ID, inspect the physical mask, then mark Working, Weird, Bad, or Favorite and save.";
+    public string SuggestedSequence => "Send an ID, inspect the physical mask, then tap Favorite, Works, Bad, or Weird. Common status changes autosave.";
 
     public string TransportReadinessText => transport.TransportState == MaskCommandTransportState.Ready
         ? $"{transport.TransportDisplayName} command transport ready."
@@ -206,6 +220,28 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         private set => SetField(ref lastSendStatus, value);
     }
 
+    public IReadOnlyList<BuiltInAssetListItem> FavoriteFaces
+    {
+        get => favoriteFaces;
+        private set
+        {
+            if (SetField(ref favoriteFaces, value))
+            {
+                OnPropertyChanged(nameof(HasFavoriteFaces));
+                OnPropertyChanged(nameof(HasNoFavoriteFaces));
+                OnPropertyChanged(nameof(FavoriteFacesHintText));
+            }
+        }
+    }
+
+    public bool HasFavoriteFaces => FavoriteFaces.Count > 0;
+
+    public bool HasNoFavoriteFaces => !HasFavoriteFaces;
+
+    public string FavoriteFacesHintText => HasFavoriteFaces
+        ? "Tap a face once to send its stock IMAG/ANIM command."
+        : "Scan built-ins, then tap Star Favorite or Works to build your deck.";
+
     public IReadOnlyList<BuiltInAssetListItem> SavedItems
     {
         get => savedItems;
@@ -222,8 +258,8 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
     public bool HasSavedItems => SavedItems.Count > 0;
 
     public string ArchiveHintText => HasSavedItems
-        ? "Tap a saved ID to load it back into the scanner."
-        : "No favorites or tested built-ins saved yet.";
+        ? "Edit opens a saved ID in the scanner for names, tags, and notes."
+        : "No saved archive records yet.";
 
     public string SendButtonText => $"Send {ModeText} {CurrentId} ({CurrentHexId})";
 
@@ -292,6 +328,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
 
     private async Task SaveAsync(CancellationToken cancellationToken)
     {
+        lastUpdatedAt = DateTimeOffset.Now;
         var record = BuildCurrentRecord();
         archive = archive.Upsert(record);
         var saved = await SaveArchiveAsync(cancellationToken).ConfigureAwait(false);
@@ -299,6 +336,47 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         if (saved)
         {
             StatusText = $"Saved {record.DisplayName} ({record.HexId}). Metadata only; no frames extracted.";
+        }
+    }
+
+    private async Task ToggleFavoriteAsync(CancellationToken cancellationToken)
+    {
+        IsFavorite = !IsFavorite;
+        lastUpdatedAt = DateTimeOffset.Now;
+        var record = BuildCurrentRecord();
+        archive = archive.Upsert(record);
+        var saved = await SaveArchiveAsync(cancellationToken).ConfigureAwait(false);
+        RefreshSavedItems();
+
+        if (saved)
+        {
+            StatusText = IsFavorite
+                ? $"Favorited {GetCommandName(record)} {record.Id}. Added to Favorite Faces."
+                : $"Removed favorite from {GetCommandName(record)} {record.Id}.";
+        }
+    }
+
+    private async Task MarkStatusAsync(BuiltInAssetStatus status, CancellationToken cancellationToken)
+    {
+        AssetStatus = status;
+        lastTestedAt = DateTimeOffset.Now;
+        lastUpdatedAt = lastTestedAt;
+        OnPropertyChanged(nameof(LastTestedText));
+
+        var record = BuildCurrentRecord();
+        archive = archive.Upsert(record);
+        var saved = await SaveArchiveAsync(cancellationToken).ConfigureAwait(false);
+        RefreshSavedItems();
+
+        if (saved)
+        {
+            StatusText = status switch
+            {
+                BuiltInAssetStatus.Working => $"Saved {GetCommandName(record)} {record.Id} as Working.",
+                BuiltInAssetStatus.Bad => $"Marked {GetCommandName(record)} {record.Id} as Bad.",
+                BuiltInAssetStatus.Weird => $"Marked {GetCommandName(record)} {record.Id} as Weird.",
+                _ => $"Saved {GetCommandName(record)} {record.Id} as {status}."
+            };
         }
     }
 
@@ -330,6 +408,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
             if (updateArchive)
             {
                 lastTestedAt = DateTimeOffset.Now;
+                lastUpdatedAt = lastTestedAt;
                 OnPropertyChanged(nameof(LastTestedText));
                 archive = archive.Upsert(BuildCurrentRecord());
                 await SaveArchiveAsync(cancellationToken).ConfigureAwait(false);
@@ -351,6 +430,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
             Status = AssetStatus,
             IsFavorite = IsFavorite,
             LastTestedAt = lastTestedAt,
+            LastUpdatedAt = lastUpdatedAt,
             LastSendStatus = LastSendStatus
         }.Normalize();
 
@@ -363,12 +443,16 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         AssetStatus = record.Status;
         IsFavorite = record.IsFavorite || record.Status == BuiltInAssetStatus.Favorite;
         lastTestedAt = record.LastTestedAt;
+        lastUpdatedAt = record.LastUpdatedAt;
         LastSendStatus = record.LastSendStatus;
         OnPropertyChanged(nameof(LastTestedText));
     }
 
     private void RefreshSavedItems()
     {
+        FavoriteFaces = archive.FavoriteDeckRecords()
+            .Select(CreateSavedItem)
+            .ToArray();
         SavedItems = archive.FavoriteOrTestedRecords()
             .Select(CreateSavedItem)
             .ToArray();
@@ -379,14 +463,57 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         BuiltInAssetListItem? item = null;
         item = new BuiltInAssetListItem(
             record,
-            $"{record.DisplayName} ({record.HexId})",
-            $"{record.Type} - {record.Status} - {record.LastSendStatus}",
+            record.DisplayName,
+            $"{record.Status} - {record.LastSendStatus}",
+            GetTypeLabel(record),
+            $"ID {record.Id} / {record.HexId}",
+            record.Tags.Length == 0 ? "No tags" : string.Join(", ", record.Tags),
+            record.Status.ToString(),
+            record.IsFavorite || record.Status == BuiltInAssetStatus.Favorite ? "Star" : string.Empty,
+            new AsyncRelayCommand(cancellationToken => SendSavedRecordAsync(record, cancellationToken), CanSend),
             new AsyncRelayCommand(_ =>
             {
                 LoadRecord(record);
                 return Task.CompletedTask;
             }));
         return item;
+    }
+
+    private async Task SendSavedRecordAsync(BuiltInAssetRecord record, CancellationToken cancellationToken)
+    {
+        if (!CanSend())
+        {
+            StatusText = transport.TransportStatusText;
+            return;
+        }
+
+        try
+        {
+            IsSending = true;
+            LastCommandText = $"{GetCommandName(record)}: {record.DisplayName} ({record.HexId})";
+            StatusText = $"Sending {record.DisplayName}. Needs real-mask test.";
+
+            var result = await transport.SendAsync(BuiltInAssetCommandFactory.CreateCommand(record), cancellationToken)
+                .ConfigureAwait(false);
+            var sendStatus = result.Succeeded
+                ? $"{result.Message} Needs real-mask test."
+                : result.Message;
+            StatusText = sendStatus;
+
+            var updated = record with
+            {
+                LastTestedAt = DateTimeOffset.Now,
+                LastUpdatedAt = DateTimeOffset.Now,
+                LastSendStatus = sendStatus
+            };
+            archive = archive.Upsert(updated);
+            await SaveArchiveAsync(cancellationToken).ConfigureAwait(false);
+            RefreshSavedItems();
+        }
+        finally
+        {
+            IsSending = false;
+        }
     }
 
     private void LoadRecord(BuiltInAssetRecord record)
@@ -398,6 +525,12 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         LoadMetadataForCurrent();
         StatusText = $"Loaded {record.DisplayName}. Metadata only.";
     }
+
+    private static string GetTypeLabel(BuiltInAssetRecord record) =>
+        record.Type == BuiltInAssetType.Animation ? "Animation" : "Image";
+
+    private static string GetCommandName(BuiltInAssetRecord record) =>
+        record.Type == BuiltInAssetType.Animation ? "ANIM" : "IMAG";
 
     private async Task<bool> SaveArchiveAsync(CancellationToken cancellationToken)
     {
@@ -439,6 +572,14 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         SendCommand.RaiseCanExecuteChanged();
         BlackoutCommand.RaiseCanExecuteChanged();
         SaveCommand.RaiseCanExecuteChanged();
+        ToggleFavoriteCommand.RaiseCanExecuteChanged();
+        MarkWorkingCommand.RaiseCanExecuteChanged();
+        MarkBadCommand.RaiseCanExecuteChanged();
+        MarkWeirdCommand.RaiseCanExecuteChanged();
+        foreach (var item in FavoriteFaces.Concat(SavedItems))
+        {
+            item.SendCommand.RaiseCanExecuteChanged();
+        }
     }
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)

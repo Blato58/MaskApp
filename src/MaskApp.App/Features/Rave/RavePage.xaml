@@ -130,7 +130,7 @@
 
                 <Border IsVisible="{Binding ShowSecondaryControls}" Style="{StaticResource PanelBorderStyle}">
                     <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
-                        <Label Text="Favorite Built-ins" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Label Text="Favorite Faces" Style="{StaticResource SectionTitleLabelStyle}" />
                         <Label Grid.Row="1" Text="{Binding FavoriteBuiltInsHintText}" Style="{StaticResource MutedLabelStyle}" />
                         <FlexLayout
                             Grid.Row="2"

@@ -31,6 +31,8 @@ public sealed record BuiltInAssetRecord
 
     public DateTimeOffset? LastTestedAt { get; init; }
 
+    public DateTimeOffset? LastUpdatedAt { get; init; }
+
     public string LastSendStatus { get; init; } = "Never sent";
 
     public BuiltInAssetRecord Normalize()

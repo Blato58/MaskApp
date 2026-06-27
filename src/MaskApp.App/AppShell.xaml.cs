@@ -22,7 +22,7 @@ public partial class AppShell : Shell
                 CreateShellContent<ReactPage>("React", "react", "icon_react.svg", services),
                 CreateShellContent<TextPage>("Text", "text", "icon_text.svg", services),
                 CreateShellContent<RavePage>("RAVE", "rave", "icon_rave.svg", services),
-                CreateShellContent<BuiltInsPage>("Built-ins", "builtins", "icon_builtins.svg", services),
+                CreateShellContent<BuiltInsPage>("Faces", "builtins", "icon_builtins.svg", services),
                 CreateShellContent<ConnectPage>("Connect", "connect", "icon_connect.svg", services)
             }
         });
