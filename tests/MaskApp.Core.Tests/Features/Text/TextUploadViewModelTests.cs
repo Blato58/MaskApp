@@ -52,6 +52,18 @@ public sealed class TextUploadViewModelTests
     }
 
     [Fact]
+    public void Text_ClampsToMaxLengthAndReportsCharacterCount()
+    {
+        var viewModel = new TextUploadViewModel(new SimulatedTextUploadTransport());
+        var overLimitText = new string('A', TextUploadViewModel.MaxTextLength + 8);
+
+        viewModel.Text = overLimitText;
+
+        Assert.Equal(TextUploadViewModel.MaxTextLength, viewModel.Text.Length);
+        Assert.Equal("64/64", viewModel.CharacterCountText);
+    }
+
+    [Fact]
     public async Task SendCommand_ReportsUnavailableTransport()
     {
         var transport = new FakeTextUploadTransport

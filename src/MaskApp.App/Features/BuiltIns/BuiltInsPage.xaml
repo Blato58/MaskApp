@@ -9,30 +9,40 @@
     BackgroundColor="{StaticResource PageBackgroundColor}">
     <Grid RowDefinitions="*,Auto">
         <ScrollView>
-            <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="18">
-                <VerticalStackLayout Spacing="6">
-                    <Label Text="Built-ins" Style="{StaticResource PageTitleLabelStyle}" />
-                    <Label Text="Real-mask scanner and metadata archive for stock IMAG and ANIM IDs. Metadata only; no raw frames are extracted." Style="{StaticResource MutedLabelStyle}" />
-                </VerticalStackLayout>
+            <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="16">
+                <Border Style="{StaticResource PanelBorderStyle}">
+                    <Grid ColumnDefinitions="86,*" ColumnSpacing="16" RowDefinitions="Auto,Auto,Auto">
+                        <Image
+                            Grid.RowSpan="3"
+                            Aspect="AspectFit"
+                            HeightRequest="82"
+                            Source="mask_neon.svg"
+                            WidthRequest="82" />
+                        <Label Grid.Column="1" Text="Built-in Scanner" Style="{StaticResource PageTitleLabelStyle}" />
+                        <Label
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Text="Find stock IMAG and ANIM IDs, test them, and save useful looks."
+                            Style="{StaticResource MutedLabelStyle}" />
+                        <Label
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            Text="{Binding TransportReadinessText}"
+                            Style="{StaticResource TinyLabelStyle}" />
+                    </Grid>
+                </Border>
 
                 <Border Style="{StaticResource PanelBorderStyle}">
                     <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                             <Label Text="Scanner mode" Style="{StaticResource SectionTitleLabelStyle}" />
-                            <Border
-                                Grid.Column="1"
-                                Padding="8,3"
-                                BackgroundColor="{StaticResource ChipBackgroundColor}"
-                                StrokeThickness="0">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="8" />
-                                </Border.StrokeShape>
+                            <Border Grid.Column="1" Style="{StaticResource StatusPillBorderStyle}">
                                 <Label Text="{Binding ValidationLabel}" Style="{StaticResource ChipLabelStyle}" />
                             </Border>
                         </Grid>
-                        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="12">
-                            <Button Text="Static Image" Command="{Binding SelectStaticImageCommand}" />
-                            <Button Grid.Column="1" Text="Animation" Command="{Binding SelectAnimationCommand}" />
+                        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <Button Text="Images" Command="{Binding SelectStaticImageCommand}" Style="{StaticResource NeonBlueButtonStyle}" />
+                            <Button Grid.Column="1" Text="Animations" Command="{Binding SelectAnimationCommand}" Style="{StaticResource PrimaryButtonStyle}" />
                         </Grid>
                         <Label Grid.Row="2" Text="{Binding RangeNote}" Style="{StaticResource MutedLabelStyle}" />
                     </Grid>
@@ -40,39 +50,64 @@
 
                 <Border Style="{StaticResource PanelBorderStyle}">
                     <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
-                        <Label Text="{Binding ModeText}" Style="{StaticResource SectionTitleLabelStyle}" />
-                        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <Label Text="{Binding ModeText}" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Label Grid.Column="1" Text="{Binding CurrentHexId}" TextColor="{StaticResource AccentYellowColor}" FontAttributes="Bold" />
+                        </Grid>
+
+                        <Border
+                            Grid.Row="1"
+                            BackgroundColor="#03050A"
+                            Padding="14"
+                            Stroke="{StaticResource AccentYellowColor}"
+                            StrokeThickness="1">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <Grid RowDefinitions="Auto,Auto" RowSpacing="10" HeightRequest="142">
+                                <Image
+                                    HeightRequest="86"
+                                    HorizontalOptions="Center"
+                                    Source="mask_neon.svg"
+                                    WidthRequest="86" />
+                                <Label
+                                    Grid.Row="1"
+                                    Text="{Binding CurrentId, StringFormat='ID {0}'}"
+                                    HorizontalTextAlignment="Center"
+                                    TextColor="{StaticResource AccentYellowColor}"
+                                    FontAttributes="Bold"
+                                    FontSize="20" />
+                            </Grid>
+                        </Border>
+
+                        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
                             <Label
                                 Text="{Binding CurrentId, StringFormat='ID {0}'}"
                                 FontAttributes="Bold"
-                                FontSize="24"
+                                FontSize="22"
                                 VerticalTextAlignment="Center" />
                             <Label
                                 Grid.Column="1"
-                                Text="{Binding CurrentHexId}"
-                                Style="{StaticResource MutedLabelStyle}"
-                                VerticalTextAlignment="Center" />
-                            <Label
-                                Grid.Column="2"
                                 Text="{Binding MaxId, StringFormat='max {0}'}"
-                                Style="{StaticResource MutedLabelStyle}"
+                                Style="{StaticResource TinyLabelStyle}"
                                 VerticalTextAlignment="Center" />
+                            <Stepper
+                                Grid.Column="2"
+                                Minimum="0"
+                                Maximum="{Binding MaxId}"
+                                Increment="1"
+                                Value="{Binding CurrentIdValue, Mode=TwoWay}" />
                         </Grid>
-                        <Stepper
-                            Grid.Row="2"
-                            Minimum="0"
-                            Maximum="{Binding MaxId}"
-                            Increment="1"
-                            Value="{Binding CurrentIdValue, Mode=TwoWay}" />
-                        <Grid Grid.Row="3" ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                        <Grid Grid.Row="3" ColumnDefinitions="*,*,*" ColumnSpacing="8">
                             <Button Text="Previous" Command="{Binding PreviousCommand}" />
-                            <Button Grid.Column="1" Text="Send" Command="{Binding SendCommand}" />
+                            <Button Grid.Column="1" Text="Send" Command="{Binding SendCommand}" Style="{StaticResource PrimaryButtonStyle}" />
                             <Button Grid.Column="2" Text="Next" Command="{Binding NextCommand}" />
                         </Grid>
                         <Button
                             Grid.Row="4"
                             Text="{Binding SendButtonText}"
-                            Command="{Binding SendCommand}" />
+                            Command="{Binding SendCommand}"
+                            Style="{StaticResource NeonBlueButtonStyle}" />
                     </Grid>
                 </Border>
 
@@ -99,20 +134,21 @@
                                 ItemsSource="{Binding StatusValues}"
                                 SelectedItem="{Binding AssetStatus, Mode=TwoWay}" />
                             <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
-                                <Label Text="Favorite" Style="{StaticResource MutedLabelStyle}" VerticalTextAlignment="Center" />
+                                <Label Text="Favorite" Style="{StaticResource TinyLabelStyle}" VerticalTextAlignment="Center" />
                                 <Switch IsToggled="{Binding IsFavorite, Mode=TwoWay}" />
                             </HorizontalStackLayout>
                         </Grid>
                         <Grid Grid.Row="5" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="4">
-                            <Label Text="Tested" Style="{StaticResource MutedLabelStyle}" />
+                            <Label Text="Tested" Style="{StaticResource TinyLabelStyle}" />
                             <Label Grid.Column="1" Text="{Binding LastTestedText}" />
-                            <Label Grid.Row="1" Text="Send" Style="{StaticResource MutedLabelStyle}" />
+                            <Label Grid.Row="1" Text="Send" Style="{StaticResource TinyLabelStyle}" />
                             <Label Grid.Row="1" Grid.Column="1" Text="{Binding LastSendStatus}" />
                         </Grid>
                         <Button
                             Grid.Row="6"
                             Text="Save metadata"
-                            Command="{Binding SaveCommand}" />
+                            Command="{Binding SaveCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}" />
                     </Grid>
                 </Border>
 
@@ -130,19 +166,17 @@
                                 <DataTemplate x:DataType="builtins:BuiltInAssetListItem">
                                     <Border
                                         Margin="0,0,10,10"
-                                        Padding="12"
                                         MinimumWidthRequest="180"
-                                        StrokeThickness="1">
-                                        <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="8" />
-                                        </Border.StrokeShape>
+                                        Style="{StaticResource ActionCardBorderStyle}"
+                                        Stroke="{StaticResource AccentBlueColor}">
                                         <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="5">
                                             <Label Text="{Binding Title}" FontAttributes="Bold" />
-                                            <Label Grid.Row="1" Text="{Binding Subtitle}" FontSize="12" TextColor="{StaticResource SecondaryTextColor}" />
+                                            <Label Grid.Row="1" Text="{Binding Subtitle}" Style="{StaticResource TinyLabelStyle}" />
                                             <Button
                                                 Grid.Row="2"
                                                 Text="Load"
-                                                Command="{Binding LoadCommand}" />
+                                                Command="{Binding LoadCommand}"
+                                                Style="{StaticResource NeonBlueButtonStyle}" />
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
@@ -151,17 +185,16 @@
                     </Grid>
                 </Border>
 
-                <Border Style="{StaticResource PanelBorderStyle}">
-                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
+                <Border Style="{StaticResource CompactPanelBorderStyle}">
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
                         <Label Text="Validation notes" Style="{StaticResource SectionTitleLabelStyle}" />
-                        <Label Grid.Row="1" Text="{Binding TransportReadinessText}" Style="{StaticResource MutedLabelStyle}" />
-                        <Label Grid.Row="2" Text="{Binding SuggestedSequence}" Style="{StaticResource MutedLabelStyle}" />
-                        <Label Grid.Row="3" Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Grid.Row="1" Text="{Binding SuggestedSequence}" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Grid.Row="2" Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
                         <Grid
-                            Grid.Row="4"
+                            Grid.Row="3"
                             ColumnDefinitions="Auto,*"
                             ColumnSpacing="10">
-                            <Label Text="Last" Style="{StaticResource MutedLabelStyle}" />
+                            <Label Text="Last" Style="{StaticResource TinyLabelStyle}" />
                             <Label Grid.Column="1" Text="{Binding LastCommandText}" />
                         </Grid>
                     </Grid>
@@ -171,22 +204,20 @@
 
         <Grid
             Grid.Row="1"
-            Padding="16"
-            BackgroundColor="#111827"
+            Padding="14"
+            BackgroundColor="{StaticResource SurfaceColor}"
             ColumnDefinitions="*,Auto"
-            ColumnSpacing="12">
+            ColumnSpacing="10">
             <VerticalStackLayout Spacing="2" VerticalOptions="Center">
-                <Label Text="Use BLACKOUT if an ID looks bad" FontAttributes="Bold" TextColor="#FFFFFF" />
-                <Label Text="{Binding TransportReadinessText}" FontSize="12" TextColor="#CBD5E1" />
+                <Label Text="Use BLACKOUT if an ID looks wrong" FontAttributes="Bold" />
+                <Label Text="{Binding TransportReadinessText}" Style="{StaticResource TinyLabelStyle}" />
             </VerticalStackLayout>
             <Button
                 Grid.Column="1"
-                BackgroundColor="#EF4444"
-                FontAttributes="Bold"
-                HeightRequest="58"
+                HeightRequest="56"
                 Text="BLACKOUT"
-                TextColor="#FFFFFF"
-                Command="{Binding BlackoutCommand}" />
+                Command="{Binding BlackoutCommand}"
+                Style="{StaticResource DangerButtonStyle}" />
         </Grid>
     </Grid>
 </ContentPage>

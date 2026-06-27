@@ -18,4 +18,12 @@ public partial class ReactPage : ContentPage
         base.OnAppearing();
         await viewModel.InitializeArchiveAsync();
     }
+
+    private void OnFilterClicked(object? sender, EventArgs e)
+    {
+        if (sender is Button { CommandParameter: ReactFilterOption filter })
+        {
+            viewModel.SelectedFilter = filter;
+        }
+    }
 }

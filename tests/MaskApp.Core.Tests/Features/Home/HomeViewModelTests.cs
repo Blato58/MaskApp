@@ -73,6 +73,8 @@ public sealed class HomeViewModelTests
         var viewModel = CreateViewModel(dispatcher: dispatcher);
         var favorite = viewModel.FavoriteReactions.Single(action => action.Label == "LOL");
 
+        Assert.Equal(QuickActionId.Lol, favorite.Id);
+
         await favorite.TriggerCommand.ExecuteAsync();
 
         Assert.Equal(QuickActionId.Lol, dispatcher.LastActionId);

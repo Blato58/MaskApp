@@ -18,23 +18,28 @@ public partial class AppShell : Shell
         {
             Items =
             {
-                CreateShellContent<HomePage>("Control", "control", services),
-                CreateShellContent<ReactPage>("React", "react", services),
-                CreateShellContent<TextPage>("Text", "text", services),
-                CreateShellContent<RavePage>("RAVE", "rave", services),
-                CreateShellContent<BuiltInsPage>("Built-ins", "builtins", services),
-                CreateShellContent<ConnectPage>("Connect", "connect", services)
+                CreateShellContent<HomePage>("Control", "control", "icon_control.svg", services),
+                CreateShellContent<ReactPage>("React", "react", "icon_react.svg", services),
+                CreateShellContent<TextPage>("Text", "text", "icon_text.svg", services),
+                CreateShellContent<RavePage>("RAVE", "rave", "icon_rave.svg", services),
+                CreateShellContent<BuiltInsPage>("Built-ins", "builtins", "icon_builtins.svg", services),
+                CreateShellContent<ConnectPage>("Connect", "connect", "icon_connect.svg", services)
             }
         });
     }
 
-    private static ShellContent CreateShellContent<TPage>(string title, string route, IServiceProvider services)
+    private static ShellContent CreateShellContent<TPage>(
+        string title,
+        string route,
+        string icon,
+        IServiceProvider services)
         where TPage : Page
     {
         return new ShellContent
         {
             Title = title,
             Route = route,
+            Icon = ImageSource.FromFile(icon),
             ContentTemplate = new DataTemplate(() => CreatePage<TPage>(title, services))
         };
     }

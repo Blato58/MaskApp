@@ -8,14 +8,38 @@ namespace MaskApp.Core.Tests.Features.React;
 public sealed class ReactViewModelTests
 {
     [Fact]
+    public void Constructor_DefaultsFilterToAllGroups()
+    {
+        var viewModel = CreateViewModel();
+
+        Assert.Equal("All", viewModel.SelectedFilter.Label);
+        Assert.Contains(viewModel.Groups, group => group.Category == QuickActionCategory.Meme);
+        Assert.Contains(viewModel.Groups, group => group.Category == QuickActionCategory.Social);
+        Assert.Contains(viewModel.Groups, group => group.Category == QuickActionCategory.Rave);
+        Assert.Contains(viewModel.Groups, group => group.Category == QuickActionCategory.Welfare);
+        Assert.Contains(viewModel.FilterOptions, option => option.Category == QuickActionCategory.Meme);
+    }
+
+    [Theory]
+    [InlineData(QuickActionCategory.Meme)]
+    [InlineData(QuickActionCategory.Social)]
+    [InlineData(QuickActionCategory.Rave)]
+    [InlineData(QuickActionCategory.Welfare)]
+    public void SelectedFilter_FiltersVisibleGroupsByCategory(QuickActionCategory category)
+    {
+        var viewModel = CreateViewModel();
+
+        viewModel.SelectedFilter = viewModel.FilterOptions.Single(option => option.Category == category);
+
+        var group = Assert.Single(viewModel.Groups);
+        Assert.Equal(category, group.Category);
+    }
+
+    [Fact]
     public async Task SendAsync_Reaction_TriggersDispatcherAndUpdatesStatus()
     {
         var dispatcher = new FakeQuickActionDispatcher(QuickActionResult.Sent(QuickActionId.Lol, "Uploaded."));
-        var viewModel = new ReactViewModel(
-            new QuickActionCatalog(),
-            dispatcher,
-            new FakeCommandTransport(),
-            new FakeTextUploadTransport());
+        var viewModel = CreateViewModel(dispatcher);
         var card = viewModel.Groups.Single(group => group.Category == QuickActionCategory.Meme)
             .Cards.Single(card => card.Id == QuickActionId.Lol);
 
@@ -29,11 +53,8 @@ public sealed class ReactViewModelTests
     [Fact]
     public void TextReactionCommand_IsDisabledWhenTextTransportIsNotReady()
     {
-        var viewModel = new ReactViewModel(
-            new QuickActionCatalog(),
-            new FakeQuickActionDispatcher(QuickActionResult.Sent(QuickActionId.Lol, "Uploaded.")),
-            new FakeCommandTransport(),
-            new FakeTextUploadTransport(IsReady: false, StatusText: "Connect first."));
+        var viewModel = CreateViewModel(
+            textTransport: new FakeTextUploadTransport(IsReady: false, StatusText: "Connect first."));
         var card = viewModel.Groups.Single(group => group.Category == QuickActionCategory.Meme)
             .Cards.Single(card => card.Id == QuickActionId.Lol);
 
@@ -44,11 +65,9 @@ public sealed class ReactViewModelTests
     [Fact]
     public void BlackoutCommand_StaysAvailableWhenTextTransportIsNotReady()
     {
-        var viewModel = new ReactViewModel(
-            new QuickActionCatalog(),
+        var viewModel = CreateViewModel(
             new FakeQuickActionDispatcher(QuickActionResult.Sent(QuickActionId.Blackout, "Sent.")),
-            new FakeCommandTransport(),
-            new FakeTextUploadTransport(IsReady: false, StatusText: "Connect first."));
+            textTransport: new FakeTextUploadTransport(IsReady: false, StatusText: "Connect first."));
         var blackout = viewModel.PinnedCards.Single(card => card.Id == QuickActionId.Blackout);
         var random = viewModel.PinnedCards.Single(card => card.Id == QuickActionId.RandomReaction);
 
@@ -60,17 +79,25 @@ public sealed class ReactViewModelTests
     [Fact]
     public void BuiltInFallbackCommand_StaysAvailableWhenTextTransportIsNotReady()
     {
-        var viewModel = new ReactViewModel(
-            new QuickActionCatalog(),
+        var viewModel = CreateViewModel(
             new FakeQuickActionDispatcher(QuickActionResult.Sent(QuickActionId.TestImage1, "Sent image.")),
-            new FakeCommandTransport(),
-            new FakeTextUploadTransport(IsReady: false, StatusText: "Connect text first."));
+            textTransport: new FakeTextUploadTransport(IsReady: false, StatusText: "Connect text first."));
         var card = viewModel.Groups.Single(group => group.Category == QuickActionCategory.BuiltIn)
             .Cards.Single(card => card.Id == QuickActionId.TestImage1);
 
         Assert.True(card.SendCommand.CanExecute(null));
         Assert.Contains("Needs real-mask test", card.Description);
     }
+
+    private static ReactViewModel CreateViewModel(
+        FakeQuickActionDispatcher? dispatcher = null,
+        FakeCommandTransport? commandTransport = null,
+        FakeTextUploadTransport? textTransport = null) =>
+        new(
+            new QuickActionCatalog(),
+            dispatcher ?? new FakeQuickActionDispatcher(QuickActionResult.Sent(QuickActionId.Lol, "Uploaded.")),
+            commandTransport ?? new FakeCommandTransport(),
+            textTransport ?? new FakeTextUploadTransport());
 
     private sealed class FakeQuickActionDispatcher : IQuickActionDispatcher
     {

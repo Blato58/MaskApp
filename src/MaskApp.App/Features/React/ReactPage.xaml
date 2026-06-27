@@ -9,25 +9,51 @@
     Title="React"
     BackgroundColor="{StaticResource PageBackgroundColor}">
     <ScrollView>
-        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="18">
-            <VerticalStackLayout Spacing="6">
-                <Label Text="React" Style="{StaticResource PageTitleLabelStyle}" />
-                <Label Text="{Binding ReadinessText}" Style="{StaticResource MutedLabelStyle}" />
-            </VerticalStackLayout>
-
+        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="16">
             <Border Style="{StaticResource PanelBorderStyle}">
-                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                        <Label Text="Always ready" Style="{StaticResource SectionTitleLabelStyle}" />
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="3">
+                            <Label Text="Reaction Deck" Style="{StaticResource PageTitleLabelStyle}" />
+                            <Label Text="{Binding ReadinessText}" Style="{StaticResource MutedLabelStyle}" />
+                        </VerticalStackLayout>
                         <ActivityIndicator
                             Grid.Column="1"
                             IsRunning="{Binding IsSending}"
                             IsVisible="{Binding IsSending}"
                             VerticalOptions="Center" />
                     </Grid>
-                    <Label Grid.Row="1" Text="BLACKOUT stays visible for recovery; Random Reaction stays offline." Style="{StaticResource MutedLabelStyle}" />
+
                     <FlexLayout
+                        Grid.Row="1"
+                        AlignItems="Start"
+                        BindableLayout.ItemsSource="{Binding FilterOptions}"
+                        Direction="Row"
+                        Wrap="Wrap">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="react:ReactFilterOption">
+                                <Button
+                                    Margin="0,0,8,8"
+                                    Padding="12,7"
+                                    Text="{Binding Label}"
+                                    Clicked="OnFilterClicked"
+                                    CommandParameter="{Binding .}" />
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </FlexLayout>
+
+                    <Label
                         Grid.Row="2"
+                        Text="{Binding SelectedFilter.Label, StringFormat='Showing {0} reactions'}"
+                        Style="{StaticResource TinyLabelStyle}" />
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
+                    <Label Text="Always ready" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <FlexLayout
+                        Grid.Row="1"
                         AlignItems="Stretch"
                         BindableLayout.ItemsSource="{Binding PinnedCards}"
                         Direction="Row"
@@ -36,25 +62,47 @@
                             <DataTemplate x:DataType="react:ReactReactionCard">
                                 <Border
                                     Margin="0,0,10,10"
-                                    Padding="12"
-                                    MinimumWidthRequest="148"
-                                    Style="{StaticResource PanelBorderStyle}">
+                                    MinimumWidthRequest="146"
+                                    Style="{StaticResource ActionCardBorderStyle}"
+                                    Stroke="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}">
                                     <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
-                                        <Label Text="{Binding Label}" FontAttributes="Bold" />
-                                        <Label Text="{Binding Description}" FontSize="12" TextColor="{StaticResource SecondaryTextColor}" />
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                            <Border
+                                                BackgroundColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}, ConverterParameter=soft}"
+                                                HeightRequest="38"
+                                                Stroke="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                                StrokeThickness="1"
+                                                WidthRequest="48">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="8" />
+                                                </Border.StrokeShape>
+                                                <Label
+                                                    HorizontalTextAlignment="Center"
+                                                    Text="{Binding Id, Converter={StaticResource QuickActionIconConverter}}"
+                                                    TextColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                                    VerticalTextAlignment="Center"
+                                                    FontSize="11"
+                                                    FontAttributes="Bold" />
+                                            </Border>
+                                            <Label Grid.Column="1" Text="{Binding Label}" FontAttributes="Bold" VerticalTextAlignment="Center" />
+                                        </Grid>
+                                        <Label Grid.Row="1" Text="{Binding Description}" Style="{StaticResource TinyLabelStyle}" />
                                         <Button
                                             Grid.Row="2"
                                             Text="Send"
-                                            Command="{Binding SendCommand}" />
+                                            Command="{Binding SendCommand}"
+                                            BorderColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                            TextColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                            BackgroundColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}, ConverterParameter=soft}" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
                         </BindableLayout.ItemTemplate>
                     </FlexLayout>
-                    <Grid Grid.Row="3" RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
-                        <Label Text="{Binding CommandReadinessText}" Style="{StaticResource MutedLabelStyle}" />
-                        <Label Grid.Row="1" Text="{Binding TextReadinessText}" Style="{StaticResource MutedLabelStyle}" />
-                        <Label Grid.Row="2" Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
+                    <Grid Grid.Row="2" RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
+                        <Label Text="{Binding CommandReadinessText}" Style="{StaticResource TinyLabelStyle}" />
+                        <Label Grid.Row="1" Text="{Binding TextReadinessText}" Style="{StaticResource TinyLabelStyle}" />
+                        <Label Grid.Row="2" Text="{Binding StatusText}" Style="{StaticResource TinyLabelStyle}" />
                     </Grid>
                 </Grid>
             </Border>
@@ -64,9 +112,23 @@
                 Spacing="14">
                 <BindableLayout.ItemTemplate>
                     <DataTemplate x:DataType="react:ReactReactionGroup">
-                        <Border Style="{StaticResource PanelBorderStyle}">
+                        <Border
+                            Style="{StaticResource PanelBorderStyle}"
+                            Stroke="{Binding Category, Converter={StaticResource QuickActionAccentColorConverter}}">
                             <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
-                                <Label Text="{Binding Title}" Style="{StaticResource SectionTitleLabelStyle}" />
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Text="{Binding Title}" Style="{StaticResource SectionTitleLabelStyle}" />
+                                    <Border
+                                        Grid.Column="1"
+                                        BackgroundColor="{Binding Category, Converter={StaticResource QuickActionAccentColorConverter}, ConverterParameter=soft}"
+                                        Stroke="{Binding Category, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                        Style="{StaticResource StatusPillBorderStyle}">
+                                        <Label
+                                            Text="{Binding Cards.Count, StringFormat='{}{0} cards'}"
+                                            TextColor="{Binding Category, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                            Style="{StaticResource ChipLabelStyle}" />
+                                    </Border>
+                                </Grid>
                                 <FlexLayout
                                     Grid.Row="1"
                                     AlignItems="Stretch"
@@ -77,20 +139,32 @@
                                         <DataTemplate x:DataType="react:ReactReactionCard">
                                             <Border
                                                 Margin="0,0,10,10"
-                                                Padding="12"
-                                                MinimumWidthRequest="148"
-                                                StrokeThickness="1">
-                                                <Border.StrokeShape>
-                                                    <RoundRectangle CornerRadius="8" />
-                                                </Border.StrokeShape>
+                                                MinimumWidthRequest="138"
+                                                Style="{StaticResource ActionCardBorderStyle}"
+                                                Stroke="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}">
                                                 <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="5">
-                                                    <Label Text="{Binding Label}" FontAttributes="Bold" />
-                                                    <Label Grid.Row="1" Text="{Binding Caption}" FontSize="12" TextColor="{StaticResource AccentColor}" />
-                                                    <Label Grid.Row="2" Text="{Binding Description}" FontSize="12" TextColor="{StaticResource SecondaryTextColor}" />
+                                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                                        <Label
+                                                            Text="{Binding Id, Converter={StaticResource QuickActionIconConverter}}"
+                                                            TextColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                                            FontAttributes="Bold"
+                                                            VerticalTextAlignment="Center" />
+                                                        <Label Grid.Column="1" Text="{Binding Label}" FontAttributes="Bold" />
+                                                    </Grid>
+                                                    <Label
+                                                        Grid.Row="1"
+                                                        Text="{Binding Caption}"
+                                                        TextColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                                        FontAttributes="Bold"
+                                                        FontSize="13" />
+                                                    <Label Grid.Row="2" Text="{Binding Description}" Style="{StaticResource TinyLabelStyle}" />
                                                     <Button
                                                         Grid.Row="3"
                                                         Text="Send"
-                                                        Command="{Binding SendCommand}" />
+                                                        Command="{Binding SendCommand}"
+                                                        BorderColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                                        TextColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                                        BackgroundColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}, ConverterParameter=soft}" />
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
@@ -116,20 +190,17 @@
                             <DataTemplate x:DataType="builtins:BuiltInAssetAction">
                                 <Border
                                     Margin="0,0,10,10"
-                                    Padding="12"
                                     MinimumWidthRequest="148"
-                                    StrokeThickness="1">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="8" />
-                                    </Border.StrokeShape>
-                                    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="5">
-                                        <Label Text="{Binding Label}" FontAttributes="Bold" />
-                                        <Label Grid.Row="1" Text="{Binding Caption}" FontSize="12" TextColor="{StaticResource AccentColor}" />
-                                        <Label Grid.Row="2" Text="{Binding Description}" FontSize="12" TextColor="{StaticResource SecondaryTextColor}" />
+                                    Style="{StaticResource ActionCardBorderStyle}"
+                                    Stroke="{StaticResource AccentBlueColor}">
+                                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="5">
+                                        <Label Text="{Binding Label}" FontAttributes="Bold" TextColor="{StaticResource AccentBlueColor}" />
+                                        <Label Grid.Row="1" Text="{Binding Caption}" Style="{StaticResource TinyLabelStyle}" />
                                         <Button
-                                            Grid.Row="3"
+                                            Grid.Row="2"
                                             Text="Send"
-                                            Command="{Binding SendCommand}" />
+                                            Command="{Binding SendCommand}"
+                                            Style="{StaticResource NeonBlueButtonStyle}" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -138,15 +209,12 @@
                 </Grid>
             </Border>
 
-            <Border Style="{StaticResource PanelBorderStyle}">
-                <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
-                    <Label Text="Last send" Style="{StaticResource SectionTitleLabelStyle}" />
-                    <Grid Grid.Row="1" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="4">
-                        <Label Text="Action" Style="{StaticResource MutedLabelStyle}" />
-                        <Label Grid.Column="1" Text="{Binding LastActionText}" />
-                        <Label Grid.Row="1" Text="Status" Style="{StaticResource MutedLabelStyle}" />
-                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding StatusText}" />
-                    </Grid>
+            <Border Style="{StaticResource CompactPanelBorderStyle}">
+                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="4">
+                    <Label Text="Last" Style="{StaticResource TinyLabelStyle}" />
+                    <Label Grid.Column="1" Text="{Binding LastActionText}" FontAttributes="Bold" />
+                    <Label Grid.Row="1" Text="Status" Style="{StaticResource TinyLabelStyle}" />
+                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
                 </Grid>
             </Border>
         </VerticalStackLayout>

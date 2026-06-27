@@ -8,65 +8,87 @@
     Title="Text"
     BackgroundColor="{StaticResource PageBackgroundColor}">
     <ScrollView>
-        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="18">
-            <VerticalStackLayout Spacing="6">
-                <Label Text="Text" Style="{StaticResource PageTitleLabelStyle}" />
-                <Label Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
-            </VerticalStackLayout>
+        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="16">
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Text Creator" Style="{StaticResource PageTitleLabelStyle}" />
+                            <Label Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="1" Style="{StaticResource StatusPillBorderStyle}">
+                            <Label Text="{Binding CharacterCountText}" Style="{StaticResource ChipLabelStyle}" />
+                        </Border>
+                    </Grid>
+                    <Editor
+                        Grid.Row="1"
+                        AutoSize="TextChanges"
+                        FontSize="26"
+                        HeightRequest="118"
+                        MaxLength="64"
+                        Placeholder="LOL"
+                        Text="{Binding Text, Mode=TwoWay}" />
+                    <Button
+                        Grid.Row="2"
+                        Text="Send Text"
+                        Command="{Binding SendCommand}"
+                        Style="{StaticResource PrimaryButtonStyle}" />
+                </Grid>
+            </Border>
 
             <Border Style="{StaticResource PanelBorderStyle}">
                 <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
-                    <Label Text="Composer" Style="{StaticResource SectionTitleLabelStyle}" />
-                    <Entry
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <Label Text="Mode and speed" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <ActivityIndicator
+                            Grid.Column="1"
+                            IsRunning="{Binding IsSending}"
+                            IsVisible="{Binding IsSending}" />
+                    </Grid>
+                    <Picker
                         Grid.Row="1"
-                        ClearButtonVisibility="WhileEditing"
-                        MaxLength="24"
-                        Placeholder="Mask text"
-                        Text="{Binding Text, Mode=TwoWay}" />
-                    <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
-                        <Picker
-                            Title="Animation"
-                            ItemsSource="{Binding AnimationModes}"
-                            ItemDisplayBinding="{Binding Name, x:DataType=text:TextAnimationModeOption}"
-                            SelectedItem="{Binding SelectedAnimationMode, Mode=TwoWay}" />
-                        <Grid Grid.Column="1" ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                            <Slider
-                                Minimum="1"
-                                Maximum="100"
-                                Value="{Binding Speed, Mode=TwoWay}" />
-                            <Label
-                                Grid.Column="1"
-                                Text="{Binding Speed, StringFormat='{}{0}%'}"
-                                Style="{StaticResource MutedLabelStyle}"
-                                VerticalTextAlignment="Center" />
-                        </Grid>
+                        Title="Animation"
+                        ItemsSource="{Binding AnimationModes}"
+                        ItemDisplayBinding="{Binding Name, x:DataType=text:TextAnimationModeOption}"
+                        SelectedItem="{Binding SelectedAnimationMode, Mode=TwoWay}" />
+                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <Slider
+                            Minimum="1"
+                            Maximum="100"
+                            Value="{Binding Speed, Mode=TwoWay}" />
+                        <Label
+                            Grid.Column="1"
+                            Text="{Binding Speed, StringFormat='{}{0}%'}"
+                            Style="{StaticResource MetricLabelStyle}"
+                            VerticalTextAlignment="Center" />
                     </Grid>
                     <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8">
-                        <Button BackgroundColor="#52E3FF" Clicked="OnColorClicked" CommandParameter="Cyan" HeightRequest="38" Text="" WidthRequest="44" />
-                        <Button Grid.Column="1" BackgroundColor="#FFFFFF" BorderColor="#D1D5DB" BorderWidth="1" Clicked="OnColorClicked" CommandParameter="White" HeightRequest="38" Text="" WidthRequest="44" />
-                        <Button Grid.Column="2" BackgroundColor="#F472B6" Clicked="OnColorClicked" CommandParameter="Pink" HeightRequest="38" Text="" WidthRequest="44" />
-                        <Button Grid.Column="3" BackgroundColor="#FACC15" Clicked="OnColorClicked" CommandParameter="Amber" HeightRequest="38" Text="" WidthRequest="44" />
-                        <Button Grid.Column="4" BackgroundColor="#22C55E" Clicked="OnColorClicked" CommandParameter="Green" HeightRequest="38" Text="" WidthRequest="44" />
+                        <Button BackgroundColor="#52E3FF" BorderColor="#52E3FF" Clicked="OnColorClicked" CommandParameter="Cyan" HeightRequest="42" Text="" WidthRequest="46" />
+                        <Button Grid.Column="1" BackgroundColor="#FFFFFF" BorderColor="#D1D5DB" BorderWidth="1" Clicked="OnColorClicked" CommandParameter="White" HeightRequest="42" Text="" WidthRequest="46" />
+                        <Button Grid.Column="2" BackgroundColor="#F472B6" BorderColor="#F472B6" Clicked="OnColorClicked" CommandParameter="Pink" HeightRequest="42" Text="" WidthRequest="46" />
+                        <Button Grid.Column="3" BackgroundColor="#FACC15" BorderColor="#FACC15" Clicked="OnColorClicked" CommandParameter="Amber" HeightRequest="42" Text="" WidthRequest="46" />
+                        <Button Grid.Column="4" BackgroundColor="#22C55E" BorderColor="#22C55E" Clicked="OnColorClicked" CommandParameter="Green" HeightRequest="42" Text="" WidthRequest="46" />
                     </Grid>
                 </Grid>
             </Border>
 
             <Border Style="{StaticResource PanelBorderStyle}">
-                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                        <Label Text="Preview" Style="{StaticResource SectionTitleLabelStyle}" />
-                        <Label Grid.Column="1" Text="{Binding ColumnCount, StringFormat='{}{0} columns'}" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Text="LED preview" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Label Grid.Column="1" Text="{Binding ColumnCount, StringFormat='{}{0} columns'}" Style="{StaticResource TinyLabelStyle}" />
                     </Grid>
                     <Border
                         Grid.Row="1"
-                        BackgroundColor="#111827"
+                        BackgroundColor="#03050A"
                         Padding="8"
-                        StrokeThickness="0">
+                        Stroke="{StaticResource AccentBlueColor}"
+                        StrokeThickness="1">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="8" />
                         </Border.StrokeShape>
                         <CollectionView
-                            HeightRequest="160"
+                            HeightRequest="168"
                             ItemsSource="{Binding PreviewCells}"
                             SelectionMode="None">
                             <CollectionView.ItemsLayout>
@@ -84,26 +106,18 @@
                         </CollectionView>
                     </Border>
                     <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                        <VerticalStackLayout Spacing="2">
+                        <VerticalStackLayout Spacing="3">
                             <Label Text="{Binding ActiveTransportText}" Style="{StaticResource MutedLabelStyle}" />
-                            <Label Text="{Binding AcknowledgementModeText}" FontSize="12" TextColor="#6B7280" />
+                            <Label Text="{Binding AcknowledgementModeText}" Style="{StaticResource TinyLabelStyle}" />
                         </VerticalStackLayout>
                         <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
-                            <Label Text="Write-only" FontSize="12" TextColor="#6B7280" VerticalTextAlignment="Center" />
+                            <Label Text="Write-only" Style="{StaticResource TinyLabelStyle}" VerticalTextAlignment="Center" />
                             <Switch
                                 IsEnabled="{Binding CanUseCompatibilityWriteOnly}"
                                 IsToggled="{Binding UseCompatibilityWriteOnly, Mode=TwoWay}" />
                         </HorizontalStackLayout>
                     </Grid>
-                    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
-                        <Label Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" VerticalTextAlignment="Center" />
-                        <ActivityIndicator
-                            Grid.Column="1"
-                            IsRunning="{Binding IsSending}"
-                            IsVisible="{Binding IsSending}"
-                            VerticalOptions="Center" />
-                        <Button Grid.Column="2" Text="Send" Command="{Binding SendCommand}" />
-                    </Grid>
+                    <Label Grid.Row="3" Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
                 </Grid>
             </Border>
 
@@ -116,19 +130,20 @@
                         ColumnSpacing="10"
                         RowDefinitions="Auto,Auto,Auto"
                         RowSpacing="4">
-                        <Label Text="Command" Style="{StaticResource MutedLabelStyle}" />
-                        <Label Grid.Column="1" Text="{Binding LastCommandText}" />
+                        <Label Text="Command" Style="{StaticResource TinyLabelStyle}" />
+                        <Label Grid.Column="1" Text="{Binding LastCommandText}" Style="{StaticResource MutedLabelStyle}" />
 
-                        <Label Grid.Row="1" Text="Frames" Style="{StaticResource MutedLabelStyle}" />
-                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding FrameCount}" />
+                        <Label Grid.Row="1" Text="Frames" Style="{StaticResource TinyLabelStyle}" />
+                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding FrameCount}" Style="{StaticResource MutedLabelStyle}" />
 
-                        <Label Grid.Row="2" Text="Payload" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Grid.Row="2" Text="Payload" Style="{StaticResource TinyLabelStyle}" />
                         <Label
                             Grid.Row="2"
                             Grid.Column="1"
                             FontSize="12"
                             LineBreakMode="CharacterWrap"
-                            Text="{Binding LastPayloadHex}" />
+                            Text="{Binding LastPayloadHex}"
+                            TextColor="{StaticResource SecondaryTextColor}" />
                     </Grid>
                 </Grid>
             </Border>

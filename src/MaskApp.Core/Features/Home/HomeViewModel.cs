@@ -245,6 +245,7 @@ public sealed class HomeViewModel : INotifyPropertyChanged
     {
         var action = catalog.Get(actionId);
         return new HomeQuickActionCard(
+            action.Id,
             action.Label,
             action.Caption ?? action.Label,
             status,

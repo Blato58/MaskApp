@@ -10,39 +10,71 @@
     BackgroundColor="{StaticResource PageBackgroundColor}">
     <Grid RowDefinitions="*,Auto">
         <ScrollView>
-            <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="18">
-                <VerticalStackLayout Spacing="6">
-                    <Label Text="Party / RAVE" Style="{StaticResource PageTitleLabelStyle}" />
-                    <Label Text="{Binding ModeStatusText}" Style="{StaticResource MutedLabelStyle}" />
-                </VerticalStackLayout>
-
+            <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="16">
                 <Border Style="{StaticResource PanelBorderStyle}">
                     <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                            <Label Text="Festival deck" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="RAVE Mode" Style="{StaticResource PageTitleLabelStyle}" />
+                                <Label Text="{Binding ModeStatusText}" Style="{StaticResource MutedLabelStyle}" />
+                            </VerticalStackLayout>
                             <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
-                                <Label Text="Lock" Style="{StaticResource MutedLabelStyle}" VerticalTextAlignment="Center" />
+                                <Label Text="Lock" Style="{StaticResource TinyLabelStyle}" VerticalTextAlignment="Center" />
                                 <Switch IsToggled="{Binding FestivalLock, Mode=TwoWay}" />
                             </HorizontalStackLayout>
                         </Grid>
-                        <Label Grid.Row="1" Text="{Binding FestivalLockStatusText}" Style="{StaticResource MutedLabelStyle}" />
-                        <FlexLayout
+                        <Label Grid.Row="1" Text="{Binding FestivalLockStatusText}" Style="{StaticResource TinyLabelStyle}" />
+                        <Button
                             Grid.Row="2"
-                            AlignItems="Start"
+                            HeightRequest="66"
+                            Text="BLACKOUT"
+                            Command="{Binding BlackoutCommand}"
+                            Style="{StaticResource DangerButtonStyle}" />
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource PanelBorderStyle}">
+                    <Grid RowDefinitions="Auto,Auto" RowSpacing="12">
+                        <Label Text="Festival essentials" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <FlexLayout
+                            Grid.Row="1"
+                            AlignItems="Stretch"
                             BindableLayout.ItemsSource="{Binding Actions}"
                             Direction="Row"
                             JustifyContent="SpaceBetween"
                             Wrap="Wrap">
                             <BindableLayout.ItemTemplate>
                                 <DataTemplate x:DataType="rave:RaveAction">
-                                    <Button
+                                    <Border
                                         Margin="0,0,10,10"
-                                        FontAttributes="Bold"
-                                        FontSize="18"
-                                        HeightRequest="78"
-                                        MinimumWidthRequest="148"
-                                        Text="{Binding Label}"
-                                        Command="{Binding SendCommand}" />
+                                        MinimumWidthRequest="138"
+                                        Style="{StaticResource ActionCardBorderStyle}"
+                                        Stroke="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}">
+                                        <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
+                                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                                <Label
+                                                    Text="{Binding Id, Converter={StaticResource QuickActionIconConverter}}"
+                                                    TextColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                                    FontAttributes="Bold"
+                                                    VerticalTextAlignment="Center" />
+                                                <Label
+                                                    Grid.Column="1"
+                                                    Text="{Binding Label}"
+                                                    FontAttributes="Bold"
+                                                    FontSize="17"
+                                                    VerticalTextAlignment="Center" />
+                                            </Grid>
+                                            <Label Grid.Row="1" Text="{Binding Group}" Style="{StaticResource TinyLabelStyle}" />
+                                            <Button
+                                                Grid.Row="2"
+                                                HeightRequest="48"
+                                                Text="{Binding Caption}"
+                                                Command="{Binding SendCommand}"
+                                                BorderColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                                TextColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                                BackgroundColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}, ConverterParameter=soft}" />
+                                        </Grid>
+                                    </Border>
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>
                         </FlexLayout>
@@ -50,11 +82,29 @@
                 </Border>
 
                 <Border IsVisible="{Binding ShowSecondaryControls}" Style="{StaticResource PanelBorderStyle}">
-                    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
+                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <Label Text="Brightness cap" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Label Grid.Column="1" Text="{Binding BrightnessCap, StringFormat='{}{0}%'}" Style="{StaticResource MetricLabelStyle}" />
+                        </Grid>
+                        <Slider
+                            Grid.Row="1"
+                            Minimum="1"
+                            Maximum="100"
+                            Value="{Binding BrightnessCap, Mode=TwoWay}" />
+                        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <Button Text="Apply cap" Command="{Binding ApplyBrightnessCapCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                            <Button Grid.Column="1" Text="Restore cap" Command="{Binding RestoreCommand}" />
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Border IsVisible="{Binding ShowSecondaryControls}" Style="{StaticResource PanelBorderStyle}">
+                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
                         <Label Text="Command fallbacks" Style="{StaticResource SectionTitleLabelStyle}" />
                         <Label
                             Grid.Row="1"
-                            Text="Test/fallback built-ins use command transport only. Needs real-mask test."
+                            Text="Command-only built-ins are low-bandwidth and still need real-mask confirmation."
                             Style="{StaticResource MutedLabelStyle}" />
                         <FlexLayout
                             Grid.Row="2"
@@ -66,26 +116,22 @@
                                 <DataTemplate x:DataType="rave:RaveAction">
                                     <Button
                                         Margin="0,0,10,10"
-                                        MinimumWidthRequest="148"
+                                        MinimumWidthRequest="132"
                                         Text="{Binding Label}"
-                                        Command="{Binding SendCommand}" />
+                                        Command="{Binding SendCommand}"
+                                        BorderColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                        TextColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                        BackgroundColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}, ConverterParameter=soft}" />
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>
                         </FlexLayout>
-                        <Button
-                            Grid.Row="3"
-                            Text="Apply brightness cap"
-                            Command="{Binding ApplyBrightnessCapCommand}" />
                     </Grid>
                 </Border>
 
                 <Border IsVisible="{Binding ShowSecondaryControls}" Style="{StaticResource PanelBorderStyle}">
                     <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
                         <Label Text="Favorite Built-ins" Style="{StaticResource SectionTitleLabelStyle}" />
-                        <Label
-                            Grid.Row="1"
-                            Text="{Binding FavoriteBuiltInsHintText}"
-                            Style="{StaticResource MutedLabelStyle}" />
+                        <Label Grid.Row="1" Text="{Binding FavoriteBuiltInsHintText}" Style="{StaticResource MutedLabelStyle}" />
                         <FlexLayout
                             Grid.Row="2"
                             AlignItems="Start"
@@ -96,33 +142,13 @@
                                 <DataTemplate x:DataType="builtins:BuiltInAssetAction">
                                     <Button
                                         Margin="0,0,10,10"
-                                        MinimumWidthRequest="148"
+                                        MinimumWidthRequest="132"
                                         Text="{Binding Label}"
-                                        Command="{Binding SendCommand}" />
+                                        Command="{Binding SendCommand}"
+                                        Style="{StaticResource NeonBlueButtonStyle}" />
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>
                         </FlexLayout>
-                    </Grid>
-                </Border>
-
-                <Border IsVisible="{Binding ShowSecondaryControls}" Style="{StaticResource PanelBorderStyle}">
-                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
-                        <Label Text="Brightness cap" Style="{StaticResource SectionTitleLabelStyle}" />
-                        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                            <Slider
-                                Minimum="1"
-                                Maximum="100"
-                                Value="{Binding BrightnessCap, Mode=TwoWay}" />
-                            <Label
-                                Grid.Column="1"
-                                Text="{Binding BrightnessCap, StringFormat='{}{0}%'}"
-                                Style="{StaticResource MutedLabelStyle}"
-                                VerticalTextAlignment="Center" />
-                        </Grid>
-                        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
-                            <Button Text="Apply cap" Command="{Binding ApplyBrightnessCapCommand}" />
-                            <Button Grid.Column="1" Text="Restore cap" Command="{Binding RestoreCommand}" />
-                        </Grid>
                     </Grid>
                 </Border>
 
@@ -133,29 +159,27 @@
                         <Label Grid.Row="2" Text="{Binding ConnectionStatusText}" Style="{StaticResource MutedLabelStyle}" />
                         <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="12">
                             <Label Text="{Binding SendStatusText}" Style="{StaticResource MutedLabelStyle}" VerticalTextAlignment="Center" />
-                            <Button Grid.Column="1" Text="Connect" Clicked="OnConnectClicked" />
+                            <Button Grid.Column="1" Text="Connect" Clicked="OnConnectClicked" Style="{StaticResource PrimaryButtonStyle}" />
                         </Grid>
                     </Grid>
                 </Border>
 
-                <Border IsVisible="{Binding ShowSecondaryControls}" Style="{StaticResource PanelBorderStyle}">
-                    <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
-                        <Label Text="Diagnostics" Style="{StaticResource SectionTitleLabelStyle}" />
-                        <Grid
+                <Border IsVisible="{Binding ShowSecondaryControls}" Style="{StaticResource CompactPanelBorderStyle}">
+                    <Grid
+                        ColumnDefinitions="Auto,*"
+                        ColumnSpacing="10"
+                        RowDefinitions="Auto,Auto"
+                        RowSpacing="4">
+                        <Label Text="Action" Style="{StaticResource TinyLabelStyle}" />
+                        <Label Grid.Column="1" Text="{Binding LastActionText}" />
+                        <Label Grid.Row="1" Text="Payload" Style="{StaticResource TinyLabelStyle}" />
+                        <Label
                             Grid.Row="1"
-                            ColumnDefinitions="Auto,*"
-                            ColumnSpacing="10"
-                            RowDefinitions="Auto,Auto">
-                            <Label Text="Action" Style="{StaticResource MutedLabelStyle}" />
-                            <Label Grid.Column="1" Text="{Binding LastActionText}" />
-                            <Label Grid.Row="1" Text="Payload" Style="{StaticResource MutedLabelStyle}" />
-                            <Label
-                                Grid.Row="1"
-                                Grid.Column="1"
-                                FontSize="12"
-                                LineBreakMode="CharacterWrap"
-                                Text="{Binding LastPayloadText}" />
-                        </Grid>
+                            Grid.Column="1"
+                            FontSize="12"
+                            LineBreakMode="CharacterWrap"
+                            Text="{Binding LastPayloadText}"
+                            TextColor="{StaticResource SecondaryTextColor}" />
                     </Grid>
                 </Border>
             </VerticalStackLayout>
@@ -163,29 +187,26 @@
 
         <Grid
             Grid.Row="1"
-            Padding="16"
-            BackgroundColor="#111827"
+            Padding="14"
+            BackgroundColor="{StaticResource SurfaceColor}"
             ColumnDefinitions="*,Auto,Auto"
-            ColumnSpacing="12">
+            ColumnSpacing="10">
             <VerticalStackLayout Spacing="2" VerticalOptions="Center">
-                <Label Text="BLACKOUT stays available" FontAttributes="Bold" TextColor="#FFFFFF" />
-                <Label Text="{Binding SendStatusText}" FontSize="12" TextColor="#CBD5E1" />
+                <Label Text="Festival Lock keeps BLACKOUT available" FontAttributes="Bold" />
+                <Label Text="{Binding SendStatusText}" Style="{StaticResource TinyLabelStyle}" />
             </VerticalStackLayout>
             <Button
                 Grid.Column="1"
-                BackgroundColor="#334155"
-                HeightRequest="58"
+                HeightRequest="56"
                 Text="Connect"
-                TextColor="#FFFFFF"
-                Clicked="OnConnectClicked" />
+                Clicked="OnConnectClicked"
+                Style="{StaticResource PrimaryButtonStyle}" />
             <Button
                 Grid.Column="2"
-                BackgroundColor="#EF4444"
-                FontAttributes="Bold"
-                HeightRequest="58"
+                HeightRequest="56"
                 Text="BLACKOUT"
-                TextColor="#FFFFFF"
-                Command="{Binding BlackoutCommand}" />
+                Command="{Binding BlackoutCommand}"
+                Style="{StaticResource DangerButtonStyle}" />
         </Grid>
     </Grid>
 </ContentPage>

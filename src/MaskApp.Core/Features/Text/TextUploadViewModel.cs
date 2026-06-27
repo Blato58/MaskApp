@@ -7,6 +7,8 @@ namespace MaskApp.Core.Features.Text;
 
 public sealed class TextUploadViewModel : INotifyPropertyChanged
 {
+    public const int MaxTextLength = 64;
+
     private const int PreviewColumns = 48;
     private const int PreviewRows = 16;
     private const string PreviewOffColor = "#111827";
@@ -71,13 +73,21 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
         get => text;
         set
         {
-            if (SetField(ref text, value))
+            var incomingValue = value ?? string.Empty;
+            var clampedValue = incomingValue.Length > MaxTextLength
+                ? incomingValue[..MaxTextLength]
+                : incomingValue;
+
+            if (SetField(ref text, clampedValue))
             {
                 RefreshPreview();
+                OnPropertyChanged(nameof(CharacterCountText));
                 SendCommand.RaiseCanExecuteChanged();
             }
         }
     }
+
+    public string CharacterCountText => $"{Text.Length}/{MaxTextLength}";
 
     public TextColorOption SelectedColor
     {

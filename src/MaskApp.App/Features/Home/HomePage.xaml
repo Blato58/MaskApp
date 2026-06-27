@@ -8,66 +8,102 @@
     Title="Control"
     BackgroundColor="{StaticResource PageBackgroundColor}">
     <ScrollView>
-        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="18">
-            <VerticalStackLayout Spacing="6">
-                <Label Text="{Binding AppTitle}" Style="{StaticResource PageTitleLabelStyle}" />
-                <Label Text="{Binding Summary}" Style="{StaticResource MutedLabelStyle}" />
-            </VerticalStackLayout>
+        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="16">
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid ColumnDefinitions="86,*" ColumnSpacing="16" RowDefinitions="Auto,Auto,Auto">
+                    <Image
+                        Grid.RowSpan="3"
+                        Aspect="AspectFit"
+                        HeightRequest="82"
+                        Source="mask_neon.svg"
+                        WidthRequest="82" />
+                    <Label Grid.Column="1" Text="MaskApp" Style="{StaticResource PageTitleLabelStyle}" />
+                    <Label
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        Text="Control. Express. Rave."
+                        Style="{StaticResource MutedLabelStyle}" />
+                    <Label
+                        Grid.Row="2"
+                        Grid.Column="1"
+                        Text="{Binding Summary}"
+                        Style="{StaticResource TinyLabelStyle}" />
+                </Grid>
+            </Border>
 
             <Border Style="{StaticResource PanelBorderStyle}">
-                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                        <Label Text="Mask status" Style="{StaticResource SectionTitleLabelStyle}" />
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="14">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Mask status" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Label Text="{Binding RecoveryHint}" Style="{StaticResource MutedLabelStyle}" />
+                        </VerticalStackLayout>
                         <Border
                             Grid.Column="1"
-                            Padding="8,3"
-                            BackgroundColor="{StaticResource ChipBackgroundColor}"
-                            StrokeThickness="0">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="8" />
-                            </Border.StrokeShape>
-                            <Label Text="{Binding CommandTransportState}" Style="{StaticResource ChipLabelStyle}" />
+                            Style="{StaticResource StatusPillBorderStyle}"
+                            Stroke="{Binding CommandTransportState, Converter={StaticResource TransportStateColorConverter}}">
+                            <Label
+                                Text="{Binding CommandTransportState}"
+                                TextColor="{Binding CommandTransportState, Converter={StaticResource TransportStateColorConverter}}"
+                                Style="{StaticResource ChipLabelStyle}" />
                         </Border>
                     </Grid>
 
                     <Grid
                         Grid.Row="1"
-                        ColumnDefinitions="Auto,*"
+                        ColumnDefinitions="*,*"
                         ColumnSpacing="10"
-                        RowDefinitions="Auto,Auto,Auto,Auto"
-                        RowSpacing="4">
-                        <Label Text="Control" Style="{StaticResource MutedLabelStyle}" />
-                        <Label Grid.Column="1" Text="{Binding ControlTransportText}" />
-
-                        <Label Grid.Row="1" Text="Status" Style="{StaticResource MutedLabelStyle}" />
-                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding CommandTransportStatusText}" />
-
-                        <Label Grid.Row="2" Text="Text" Style="{StaticResource MutedLabelStyle}" />
-                        <Label Grid.Row="2" Grid.Column="1" Text="{Binding TextTransportText}" />
-
-                        <Label Grid.Row="3" Text="Upload" Style="{StaticResource MutedLabelStyle}" />
-                        <Label Grid.Row="3" Grid.Column="1" Text="{Binding TextTransportStatusText}" />
+                        RowDefinitions="Auto,Auto"
+                        RowSpacing="10">
+                        <Border
+                            BackgroundColor="{Binding CommandTransportState, Converter={StaticResource TransportStateColorConverter}, ConverterParameter=soft}"
+                            Stroke="{Binding CommandTransportState, Converter={StaticResource TransportStateColorConverter}}"
+                            Style="{StaticResource CompactPanelBorderStyle}">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Control" Style="{StaticResource TinyLabelStyle}" />
+                                <Label Text="{Binding ControlTransportText}" FontAttributes="Bold" />
+                                <Label Text="{Binding CommandTransportStatusText}" Style="{StaticResource TinyLabelStyle}" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border
+                            Grid.Column="1"
+                            BackgroundColor="{Binding TextTransportState, Converter={StaticResource TransportStateColorConverter}, ConverterParameter=soft}"
+                            Stroke="{Binding TextTransportState, Converter={StaticResource TransportStateColorConverter}}"
+                            Style="{StaticResource CompactPanelBorderStyle}">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Text" Style="{StaticResource TinyLabelStyle}" />
+                                <Label Text="{Binding TextTransportText}" FontAttributes="Bold" />
+                                <Label Text="{Binding TextTransportStatusText}" Style="{StaticResource TinyLabelStyle}" />
+                            </VerticalStackLayout>
+                        </Border>
                     </Grid>
 
-                    <Label Grid.Row="2" Text="{Binding RecoveryHint}" Style="{StaticResource MutedLabelStyle}" />
-
-                    <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="12">
-                        <Button Text="Open Connect" Clicked="OnOpenConnectClicked" />
-                        <Button Grid.Column="1" Text="Open Text" Clicked="OnOpenTextClicked" />
+                    <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button Text="Connect" Clicked="OnOpenConnectClicked" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Grid.Column="1" Text="Text Creator" Clicked="OnOpenTextClicked" Style="{StaticResource NeonBlueButtonStyle}" />
                     </Grid>
                 </Grid>
             </Border>
 
             <Border Style="{StaticResource PanelBorderStyle}">
                 <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="14">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                        <Label Text="Live controls" Style="{StaticResource SectionTitleLabelStyle}" />
-                        <Label Grid.Column="1" Text="{Binding BrightnessText}" Style="{StaticResource MutedLabelStyle}" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <Label Text="Quick controls" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Label Grid.Column="1" Text="{Binding BrightnessText}" Style="{StaticResource MetricLabelStyle}" />
                     </Grid>
 
-                    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="12">
-                        <Button Text="BLACKOUT" Command="{Binding BlackoutCommand}" />
-                        <Button Grid.Column="1" Text="Restore" Command="{Binding RestoreBrightnessCommand}" />
+                    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button
+                            HeightRequest="58"
+                            Text="BLACKOUT"
+                            Command="{Binding BlackoutCommand}"
+                            Style="{StaticResource DangerButtonStyle}" />
+                        <Button
+                            Grid.Column="1"
+                            HeightRequest="58"
+                            Text="Restore"
+                            Command="{Binding RestoreBrightnessCommand}"
+                            Style="{StaticResource BrightButtonStyle}" />
                     </Grid>
 
                     <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
@@ -75,62 +111,103 @@
                             Minimum="1"
                             Maximum="100"
                             Value="{Binding Brightness, Mode=TwoWay}" />
-                        <Button Grid.Column="1" Text="Apply" Command="{Binding ApplyBrightnessCommand}" />
+                        <Button
+                            Grid.Column="1"
+                            Text="Apply"
+                            Command="{Binding ApplyBrightnessCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}" />
                     </Grid>
 
                     <VerticalStackLayout Grid.Row="3" Spacing="4">
                         <Label Text="{Binding CurrentLookText}" Style="{StaticResource MutedLabelStyle}" />
-                        <Label Text="{Binding LastActionStatus}" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Text="{Binding LastActionStatus}" Style="{StaticResource TinyLabelStyle}" />
                     </VerticalStackLayout>
                 </Grid>
             </Border>
 
             <Border Style="{StaticResource PanelBorderStyle}">
-                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                        <Label Text="Fast reactions" Style="{StaticResource SectionTitleLabelStyle}" />
-                        <Button Grid.Column="1" Text="Random" Command="{Binding RandomReactionCommand}" />
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Reaction strip" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Label Text="{Binding TextAcknowledgementText}" Style="{StaticResource TinyLabelStyle}" />
+                        </VerticalStackLayout>
+                        <Button
+                            Grid.Column="1"
+                            Text="Surprise"
+                            Command="{Binding RandomReactionCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}" />
                     </Grid>
-                    <Label
-                        Grid.Row="1"
-                        Text="{Binding TextAcknowledgementText}"
-                        Style="{StaticResource MutedLabelStyle}" />
 
-                    <Grid Grid.Row="2" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
-                        <Label Text="Favorites" FontAttributes="Bold" />
-                        <FlexLayout
-                            Grid.Row="1"
-                            AlignItems="Start"
-                            BindableLayout.ItemsSource="{Binding FavoriteReactions}"
-                            Direction="Row"
-                            Wrap="Wrap">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="home:HomeQuickActionCard">
-                                    <Button
-                                        Margin="0,0,8,8"
-                                        Text="{Binding Label}"
-                                        Command="{Binding TriggerCommand}" />
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-                        </FlexLayout>
+                    <Label Grid.Row="1" Text="Favorites" FontAttributes="Bold" />
+                    <FlexLayout
+                        Grid.Row="2"
+                        AlignItems="Stretch"
+                        BindableLayout.ItemsSource="{Binding FavoriteReactions}"
+                        Direction="Row"
+                        Wrap="Wrap">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="home:HomeQuickActionCard">
+                                <Border
+                                    Margin="0,0,10,10"
+                                    MinimumWidthRequest="132"
+                                    Style="{StaticResource ActionCardBorderStyle}"
+                                    Stroke="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}">
+                                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="5">
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                            <Border
+                                                BackgroundColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}, ConverterParameter=soft}"
+                                                HeightRequest="34"
+                                                Stroke="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                                StrokeThickness="1"
+                                                WidthRequest="44">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="8" />
+                                                </Border.StrokeShape>
+                                                <Label
+                                                    HorizontalTextAlignment="Center"
+                                                    Text="{Binding Id, Converter={StaticResource QuickActionIconConverter}}"
+                                                    TextColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                                    VerticalTextAlignment="Center"
+                                                    FontSize="11"
+                                                    FontAttributes="Bold" />
+                                            </Border>
+                                            <Label Grid.Column="1" Text="{Binding Label}" FontAttributes="Bold" VerticalTextAlignment="Center" />
+                                        </Grid>
+                                        <Label Grid.Row="1" Text="{Binding Description}" Style="{StaticResource TinyLabelStyle}" />
+                                        <Button
+                                            Grid.Row="2"
+                                            Text="Send"
+                                            Command="{Binding TriggerCommand}"
+                                            BorderColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                            TextColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                            BackgroundColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}, ConverterParameter=soft}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </FlexLayout>
 
-                        <Label Grid.Row="2" Text="Recent" FontAttributes="Bold" />
-                        <FlexLayout
-                            Grid.Row="3"
-                            AlignItems="Start"
-                            BindableLayout.ItemsSource="{Binding RecentReactions}"
-                            Direction="Row"
-                            Wrap="Wrap">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="home:HomeQuickActionCard">
-                                    <Button
-                                        Margin="0,0,8,8"
-                                        Text="{Binding Label}"
-                                        Command="{Binding TriggerCommand}" />
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-                        </FlexLayout>
-                    </Grid>
+                    <Label Grid.Row="3" Text="Recent" FontAttributes="Bold" />
+                    <FlexLayout
+                        Grid.Row="4"
+                        AlignItems="Stretch"
+                        BindableLayout.ItemsSource="{Binding RecentReactions}"
+                        Direction="Row"
+                        Wrap="Wrap">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="home:HomeQuickActionCard">
+                                <Button
+                                    Margin="0,0,8,8"
+                                    MinimumWidthRequest="118"
+                                    Text="{Binding Label}"
+                                    Command="{Binding TriggerCommand}"
+                                    BorderColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                    TextColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
+                                    BackgroundColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}, ConverterParameter=soft}" />
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </FlexLayout>
                 </Grid>
             </Border>
         </VerticalStackLayout>

@@ -15,6 +15,9 @@ public sealed class ReactViewModel : INotifyPropertyChanged
     private readonly ITextUploadTransport textTransport;
     private readonly IBuiltInAssetArchiveStore archiveStore;
     private readonly List<ReactReactionCard> allCards;
+    private readonly IReadOnlyList<ReactReactionGroup> allGroups;
+    private IReadOnlyList<ReactReactionGroup> groups;
+    private ReactFilterOption selectedFilter;
     private IReadOnlyList<BuiltInAssetAction> favoriteBuiltIns = [];
     private string statusText;
     private string lastActionText = "None";
@@ -34,10 +37,20 @@ public sealed class ReactViewModel : INotifyPropertyChanged
 
         var deck = new ReactDeckCatalog(catalog).Build();
         PinnedCards = deck.PinnedCards.Select(CreateCard).ToArray();
-        Groups = deck.Groups
+        allGroups = deck.Groups
             .Select(group => new ReactReactionGroup(group.Category, group.Title, group.Cards.Select(CreateCard).ToArray()))
             .ToArray();
-        allCards = PinnedCards.Concat(Groups.SelectMany(group => group.Cards)).ToList();
+        groups = allGroups;
+        allCards = PinnedCards.Concat(allGroups.SelectMany(group => group.Cards)).ToList();
+        FilterOptions =
+        [
+            new ReactFilterOption("All", null),
+            new ReactFilterOption("Meme", QuickActionCategory.Meme),
+            new ReactFilterOption("Social", QuickActionCategory.Social),
+            new ReactFilterOption("RAVE", QuickActionCategory.Rave),
+            new ReactFilterOption("Welfare", QuickActionCategory.Welfare)
+        ];
+        selectedFilter = FilterOptions[0];
 
         statusText = BuildReadinessText();
         commandTransport.TransportStateChanged += OnCommandTransportStateChanged;
@@ -48,7 +61,30 @@ public sealed class ReactViewModel : INotifyPropertyChanged
 
     public IReadOnlyList<ReactReactionCard> PinnedCards { get; }
 
-    public IReadOnlyList<ReactReactionGroup> Groups { get; }
+    public IReadOnlyList<ReactReactionGroup> Groups
+    {
+        get => groups;
+        private set => SetField(ref groups, value);
+    }
+
+    public IReadOnlyList<ReactFilterOption> FilterOptions { get; }
+
+    public ReactFilterOption SelectedFilter
+    {
+        get => selectedFilter;
+        set
+        {
+            if (value is null)
+            {
+                return;
+            }
+
+            if (SetField(ref selectedFilter, value))
+            {
+                ApplyFilter();
+            }
+        }
+    }
 
     public IReadOnlyList<BuiltInAssetAction> FavoriteBuiltIns
     {
@@ -159,6 +195,13 @@ public sealed class ReactViewModel : INotifyPropertyChanged
                 cancellationToken => SendBuiltInAsync(record, cancellationToken),
                 () => action is not null && CanSendBuiltIn()));
         return action;
+    }
+
+    private void ApplyFilter()
+    {
+        Groups = SelectedFilter.Category is null
+            ? allGroups
+            : allGroups.Where(group => group.Category == SelectedFilter.Category).ToArray();
     }
 
     private bool CanSend(ReactReactionCard card)
