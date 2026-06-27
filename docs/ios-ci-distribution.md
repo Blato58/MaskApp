@@ -79,6 +79,10 @@ If `build_number` is empty, the workflow uses the GitHub Actions run number.
 If `publish_pages` is enabled, the workflow also publishes a release because the
 phone source needs a stable IPA URL.
 
+GitHub Pages is optional and depends on the repository plan/settings. If Pages is
+not available for the repository, the workflow skips the Pages deployment with a
+warning after publishing the release-backed IPA.
+
 Tag pushes also run the workflow for tags matching:
 
 ```text
@@ -90,7 +94,8 @@ Tag runs publish a release asset using the pushed tag as the release tag.
 
 ## Install Or Update On iPhone
 
-After a successful run with `publish_release` and `publish_pages` enabled:
+After a successful run with `publish_release` and `publish_pages` enabled, when
+GitHub Pages is available:
 
 1. Open the generated GitHub Pages install page on the iPhone.
 2. Add the source to Feather or an AltStore-style installer.

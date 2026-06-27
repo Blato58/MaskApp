@@ -288,8 +288,24 @@ jobs:
           echo "IPA_DOWNLOAD_URL=$ipa_url" >> "$GITHUB_ENV"
           echo "Release IPA URL: $ipa_url"
 
-      - name: Generate Pages source and install page
+      - name: Check Pages availability
         if: env.PUBLISH_PAGES == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          if gh api "repos/${GITHUB_REPOSITORY}/pages" >/dev/null 2>&1; then
+            echo "PAGES_AVAILABLE=true" >> "$GITHUB_ENV"
+            echo "GitHub Pages is available for this repository."
+          else
+            echo "PAGES_AVAILABLE=false" >> "$GITHUB_ENV"
+            echo "::warning::GitHub Pages is not enabled or not supported for this repository. Skipping Pages publishing."
+          fi
+
+      - name: Generate Pages source and install page
+        if: env.PUBLISH_PAGES == 'true' && env.PAGES_AVAILABLE == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -323,17 +339,17 @@ jobs:
             --release-notes "$RELEASE_NOTES"
 
       - name: Configure Pages
-        if: env.PUBLISH_PAGES == 'true'
+        if: env.PUBLISH_PAGES == 'true' && env.PAGES_AVAILABLE == 'true'
         uses: actions/configure-pages@v6
 
       - name: Upload Pages artifact
-        if: env.PUBLISH_PAGES == 'true'
+        if: env.PUBLISH_PAGES == 'true' && env.PAGES_AVAILABLE == 'true'
         uses: actions/upload-pages-artifact@v4
         with:
           path: dist/pages
 
       - name: Deploy Pages
-        if: env.PUBLISH_PAGES == 'true'
+        if: env.PUBLISH_PAGES == 'true' && env.PAGES_AVAILABLE == 'true'
         uses: actions/deploy-pages@v5
 
       - name: Clean up signing keychain
