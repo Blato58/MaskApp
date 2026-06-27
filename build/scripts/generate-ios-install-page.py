@@ -45,7 +45,8 @@ def main() -> int:
     encoded_source_url = quote(source_url, safe="")
     feather_url = f"feather://source/{source_url}"
     altstore_url = f"altstore://source?url={encoded_source_url}"
-    manifest_url = "manifest.plist"
+    manifest_url = source_url.rsplit("/", 1)[0].rstrip("/") + "/manifest.plist"
+    direct_install_url = f"itms-services://?action=download-manifest&url={quote(manifest_url, safe='')}"
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -54,6 +55,7 @@ def main() -> int:
     escaped_notes = html.escape(release_notes).replace("\n", "<br>")
     escaped_source_url = html.escape(source_url)
     escaped_ipa_url = html.escape(args.ipa_url)
+    escaped_direct_install_url = html.escape(direct_install_url)
     escaped_bundle_id = html.escape(bundle_id)
 
     index_html = f"""<!doctype html>
@@ -139,6 +141,7 @@ def main() -> int:
     <p class="meta">Version {html.escape(str(version))} ({html.escape(str(build))}) &middot; {escaped_bundle_id}</p>
 
     <div class="actions">
+      <a class="button" href="{escaped_direct_install_url}">Install signed app</a>
       <a class="button" href="{escaped_ipa_url}">Download IPA</a>
       <a class="button secondary" href="{html.escape(feather_url)}">Add source to Feather</a>
       <a class="button secondary" href="{html.escape(altstore_url)}">Add source to AltStore</a>
@@ -153,15 +156,15 @@ def main() -> int:
     <h2>Install Or Update</h2>
     <ol>
       <li>Open this page on your iPhone.</li>
-      <li>Add the source to Feather or an AltStore-style installer.</li>
-      <li>Install the latest build.</li>
+      <li>Use <strong>Install signed app</strong> first to install the CI-signed IPA without re-signing.</li>
+      <li>If direct install is blocked on the device, add the source to Feather or an AltStore-style installer.</li>
       <li>Future builds should appear as updates after this source JSON changes.</li>
     </ol>
 
     <p class="warning">The IPA URL and source JSON must be reachable from the iPhone. Private GitHub repositories or private release assets may not work for direct Feather or AltStore-style updates unless the phone app can access the URL.</p>
 
     <h2>Signing</h2>
-    <p>This IPA is signed in GitHub Actions with the provisioning profile stored in GitHub Secrets. If Feather insists on re-signing, import your own <code>.p12</code> and <code>.mobileprovision</code> into Feather locally.</p>
+    <p>This IPA is signed in GitHub Actions with the provisioning profile stored in GitHub Secrets. Feather installs through its own signing flow, so use the direct signed install path when re-signing causes a launch crash.</p>
 
     <h2>Manual Fallback</h2>
     <p>Download the IPA from the workflow artifact or GitHub Release, send it to the iPhone, and open it in your sideloading tool.</p>
