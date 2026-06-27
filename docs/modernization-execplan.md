@@ -17,6 +17,9 @@ Current product facts:
 
 - iOS is the primary target. Android remains secondary and should compile when
   touched.
+- `docs/stock-mask-protocol.md` is the repo-local reference for community
+  reverse-engineered stock Shining Mask protocol behavior. Read it before
+  protocol, BLE, Text, Image, Rhythm, RAVE, or DIY-slot work.
 - Connect, mask control MVP, and Text have implementation work in place, but
   physical validation remains explicit.
 - Text validation/fix is still the next implementation priority.
@@ -40,6 +43,8 @@ Use when one bounded slice should be completed.
 
 1. Read `AGENTS.md`, `docs/product-vision.md`, `docs/progress.md`, this file,
    and the relevant Java source map or Java files.
+   Also read `docs/stock-mask-protocol.md` before any protocol, BLE, Text,
+   Image, Rhythm, RAVE, or DIY-slot changes.
 2. Pick the next smallest slice that improves real user behavior.
 3. Identify the product pillar, target user moment, observer-facing value,
    capability confidence, and physical validation status.
@@ -191,6 +196,10 @@ Exit criteria:
 - The RAVE entry point can be used without internet or AI.
 - The mode prefers instant commands, short text, built-in looks, and previously
   validated upload paths.
+- RAVE FAST behavior follows `docs/stock-mask-protocol.md`: instant encrypted
+  commands first, no long event-time uploads, DIY playback only after slot
+  behavior is proven, and visualizer features kept in Labs until physically
+  tested.
 - Automatic Drop Detector, Voice Mouth, and Bass Face remain Labs/Experimental.
 
 ### Phase 4: Built-in Gallery Scanner
@@ -263,6 +272,9 @@ Exit criteria:
 - Upload progress and failures are explicit.
 - DIY slot behavior is physically tested before features rely on fast slot
   playback or sequencing.
+- `DATS`, upload-packet, `DATCP`, `CHEC`, `DELE`, and `PLAY` behavior is
+  implemented from `docs/stock-mask-protocol.md` and verified against a real
+  mask before user-facing product claims.
 
 ### Phase 8: Rhythm, Voice, And RAVE Labs
 
@@ -283,6 +295,9 @@ Exit criteria:
 
 - Permission failure is understandable.
 - Audio mode can be stopped reliably.
+- Deterministic audio visualizer packets from `docs/stock-mask-protocol.md` are
+  physically tested before microphone input or Labs automation is presented as
+  more than Experimental.
 - Physical visualizer and DIY playback behavior is recorded before Labs features
   move into the main product.
 

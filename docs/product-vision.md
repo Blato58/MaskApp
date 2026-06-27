@@ -14,6 +14,11 @@ The app should feel like a fast reaction deck, meme generator, pixel-art editor,
 party remote, audio visualizer, and performance tool. The best version is useful
 to the wearer and funny or memorable to people looking at the mask.
 
+Protocol capability claims should be checked against
+`docs/stock-mask-protocol.md` before BLE, Text, Image, Rhythm, or RAVE work. That
+document summarizes community reverse-engineered stock-firmware evidence; it is
+not manufacturer documentation.
+
 ## Product Promise
 
 - Emotional promise: the wearer can react to the room without speaking.
@@ -89,8 +94,8 @@ as Labs features until a real-mask test proves the behavior.
 | Brightness, dim/safe-off, built-in image command, built-in animation command | Implemented | Command builders and UI exist; physical command validation remains open. |
 | Text upload with ACK mode and write-only compatibility | Implemented | Core tests and platform builds pass; physical text upload validation remains open. |
 | Built-in static image and animation galleries | Protocol-documented | Planned scanner/favorites feature; not yet implemented as a product flow. |
-| Custom RGB image upload and DIY playback | Protocol-documented | Must be mapped and tested before product claims. |
-| Audio visualizer protocol | Protocol-documented | Rhythm/RAVE plans can target it, but physical behavior is not yet proven here. |
+| Custom RGB image upload and DIY playback | Protocol-documented | Stock protocol reference documents upload and `PLAY`; must be mapped and tested before product claims. |
+| Audio visualizer protocol | Protocol-documented | Stock protocol reference documents encrypted visualizer packets; Rhythm/RAVE plans can target it, but physical behavior is not yet proven here. |
 | Reaction Deck, Mask Packs, Party Director, observer games | Vision | App-layer product compositions that should use proven lower-level operations. |
 | Drop Detector | Experimental | Keep in Labs until audio detection and resulting mask behavior are proven on a real mask. |
 | Voice Mouth | Experimental | Keep in Labs until microphone, visualizer, DIY playback, and timing are proven on a real mask. |
@@ -140,6 +145,11 @@ DIY slots only after validation, and live visualizer control only after basic
 physical testing. Automatic Drop Detector, Voice Mouth, and Bass Face stay in
 Labs/Experimental until visualizer and DIY playback reliability are proven on a
 real mask.
+
+For RAVE FAST implementation guidance, use `docs/stock-mask-protocol.md`:
+instant encrypted commands first, short text after physical validation,
+preloaded DIY slots only after slot playback is proven, and audio visualization
+only in Labs until deterministic real-mask tests pass.
 
 ## Future Apple Watch Companion
 

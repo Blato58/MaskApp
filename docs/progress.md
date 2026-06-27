@@ -35,6 +35,7 @@ Capability confidence and physical validation status are defined in
 - [x] Add GitHub Actions macOS IPA distribution workflow, signing-secret setup docs, and Feather/AltStore-style Pages output generation.
 - [x] Add modernization execution plan, readiness checklist, slice template, and per-slice record folder.
 - [x] Add wearable face controller product vision, capability-confidence model, RAVE MVP definition, and overclaim guardrails.
+- [x] Add stock Shining Mask protocol reference from community reverse-engineering evidence for BLE, Text, Image, Rhythm, DIY, and RAVE FAST work.
 
 ## Product Milestones
 
@@ -43,11 +44,11 @@ Capability confidence and physical validation status are defined in
 | Text validation/fix | [~] | Implemented | Needs real-mask test | Protocol constants, text `MODE`, ACK parsing, and upload-characteristic routing are corrected for real-mask testing; validate ACK-required and write-only upload on physical iOS first, then Android. |
 | Control Room | [~] | Implemented | Needs real-mask test | Validate Control Room connect recovery, blackout, brightness, random reaction, and recent/favorite reaction sends on a real mask. |
 | Reaction Deck MVP | [~] | Implemented | Needs real-mask test | Validate one-tap short captions, BLACKOUT, Random Reaction, and write-only fallback on a real mask. |
-| RAVE MVP entry point | [~] | Implemented | Needs real-mask test | Validate manual RAVE buttons, brightness cap, BLACKOUT, Festival Lock, and reconnect affordance on physical iOS. |
+| RAVE MVP entry point | [~] | Implemented | Needs real-mask test | Validate manual RAVE buttons, brightness cap, BLACKOUT, Festival Lock, and reconnect affordance on physical iOS; follow RAVE FAST guidance in `docs/stock-mask-protocol.md`. |
 | Built-in Gallery Scanner | [ ] | Protocol-documented | Needs real-mask test | Scan, label, favorite, and save built-in image/animation IDs. |
 | Preset Library and Mask Packs | [ ] | Vision | Docs-only | Add JSON-backed saved looks, favorites, history, import, and export after core send flows are reliable. |
-| Image Studio and DIY slots | [ ] | Protocol-documented | Needs real-mask test | Map image upload and DIY playback before relying on slot sequencing. |
-| Rhythm and RAVE Labs | [ ] | Experimental | Needs real-mask test | Test visualizer protocol, audio behavior, Drop Detector, Voice Mouth, Bass Face, GIF-ish playback, and real-time effects before product claims. |
+| Image Studio and DIY slots | [ ] | Protocol-documented | Needs real-mask test | Implement from `docs/stock-mask-protocol.md`; validate image upload, `CHEC`, `DELE`, and `PLAY` before relying on slot sequencing. |
+| Rhythm and RAVE Labs | [ ] | Experimental | Needs real-mask test | Test visualizer protocol from `docs/stock-mask-protocol.md`, audio behavior, Drop Detector, Voice Mouth, Bass Face, GIF-ish playback, and real-time effects before product claims. |
 | AI Composer | [ ] | Vision | Docs-only | Add offline templates first; use typed OpenAI Responses API later without ChatGPT web UI automation. |
 | Device reliability | [~] | Implemented | Needs real-mask test | Add reconnect, known device memory, command queue visibility, diagnostics, and device checklist. |
 | Apple Watch Quick Deck + Mode Switcher | [ ] | Vision | Docs-only | Backlog only; phone-side quick-action and mode IDs now exist, but no watchOS code is implemented. |
@@ -84,7 +85,9 @@ Capability confidence and physical validation status are defined in
 - [x] Connect slice state and BLE abstraction contracts added.
 - [~] Port `Agreement` command builders with tests before UI wiring. MVP coverage includes AES-128 ECB `LIGHT`, `IMAG`, and `ANIM` commands from Java plus external reverse-engineered protocol evidence.
 - [x] Port text upload frame splitting and acknowledgement parsing with tests.
-- [ ] Port DIY/image frame splitting and acknowledgement parsing with tests.
+- [ ] Port stock-protocol `MODE`, `M`, `FC`, and `BC` text controls with focused tests before exposing advanced text styling.
+- [ ] Port DIY/image frame splitting and acknowledgement parsing from `docs/stock-mask-protocol.md` with tests.
+- [ ] Port audio visualizer packet builder from `docs/stock-mask-protocol.md` behind Rhythm/RAVE Labs with tests.
 - [ ] Map GreenDAO entities and choose persistence replacement.
 
 ## Validation

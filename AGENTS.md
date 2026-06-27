@@ -69,6 +69,7 @@ Use `.github/workflows/ios-ipa.yml` for CI-based signed iOS IPA distribution. Se
 ## Agent Notes
 
 - Before selecting or implementing a slice, read `docs/product-vision.md`, `docs/modernization-execplan.md`, and `docs/progress.md`.
+- Before protocol, BLE, Text, Image, Rhythm, RAVE, or DIY-slot work, read `docs/stock-mask-protocol.md` and treat it as community reverse-engineered evidence, not manufacturer documentation.
 - Start from `docs/android-source-map.md` and the relevant Java files before porting a feature.
 - Check `docs/progress.md` before starting a slice and update it when the slice, platform adapter, or validation status changes.
 - Every slice should state how it moves MaskApp toward the wearable face controller vision, which product pillar it serves, and what physical validation status applies.
