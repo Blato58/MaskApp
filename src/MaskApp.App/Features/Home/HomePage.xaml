@@ -5,7 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:home="clr-namespace:MaskApp.Core.Features.Home;assembly=MaskApp.Core"
     x:DataType="home:HomeViewModel"
-    Title="Home"
+    Title="Control"
     BackgroundColor="{StaticResource PageBackgroundColor}">
     <ScrollView>
         <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="18">
@@ -15,67 +15,124 @@
             </VerticalStackLayout>
 
             <Border Style="{StaticResource PanelBorderStyle}">
-                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
-                    <Label Text="Current workbench" Style="{StaticResource SectionTitleLabelStyle}" />
-                    <Label
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <Label Text="Mask status" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Border
+                            Grid.Column="1"
+                            Padding="8,3"
+                            BackgroundColor="{StaticResource ChipBackgroundColor}"
+                            StrokeThickness="0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <Label Text="{Binding CommandTransportState}" Style="{StaticResource ChipLabelStyle}" />
+                        </Border>
+                    </Grid>
+
+                    <Grid
                         Grid.Row="1"
-                        Text="Connect to the mask, test encrypted commands, and inspect diagnostics from one validated control surface."
-                        Style="{StaticResource MutedLabelStyle}" />
-                    <Button
-                        Grid.Row="2"
-                        HorizontalOptions="Start"
-                        Text="Open Connect"
-                        Clicked="OnOpenConnectClicked" />
+                        ColumnDefinitions="Auto,*"
+                        ColumnSpacing="10"
+                        RowDefinitions="Auto,Auto,Auto,Auto"
+                        RowSpacing="4">
+                        <Label Text="Control" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Grid.Column="1" Text="{Binding ControlTransportText}" />
+
+                        <Label Grid.Row="1" Text="Status" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding CommandTransportStatusText}" />
+
+                        <Label Grid.Row="2" Text="Text" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Grid.Row="2" Grid.Column="1" Text="{Binding TextTransportText}" />
+
+                        <Label Grid.Row="3" Text="Upload" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Grid.Row="3" Grid.Column="1" Text="{Binding TextTransportStatusText}" />
+                    </Grid>
+
+                    <Label Grid.Row="2" Text="{Binding RecoveryHint}" Style="{StaticResource MutedLabelStyle}" />
+
+                    <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <Button Text="Open Connect" Clicked="OnOpenConnectClicked" />
+                        <Button Grid.Column="1" Text="Open Text" Clicked="OnOpenTextClicked" />
+                    </Grid>
                 </Grid>
             </Border>
 
-            <VerticalStackLayout Spacing="10">
-                <Label Text="Migration roadmap" Style="{StaticResource SectionTitleLabelStyle}" />
-                <VerticalStackLayout
-                    BindableLayout.ItemsSource="{Binding FeatureCards}"
-                    Spacing="10">
-                    <BindableLayout.ItemTemplate>
-                        <DataTemplate x:DataType="home:HomeFeatureCard">
-                            <Border Style="{StaticResource PanelBorderStyle}">
-                                <Border.Triggers>
-                                    <DataTrigger
-                                        Binding="{Binding IsAvailable}"
-                                        TargetType="Border"
-                                        Value="False">
-                                        <Setter Property="Opacity" Value="0.72" />
-                                    </DataTrigger>
-                                </Border.Triggers>
-                                <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="8" ColumnSpacing="12">
-                                    <Label Text="{Binding Name}" Style="{StaticResource SectionTitleLabelStyle}" />
-                                    <Border
-                                        Grid.Column="1"
-                                        Padding="8,3"
-                                        BackgroundColor="{StaticResource ChipBackgroundColor}"
-                                        StrokeThickness="0">
-                                        <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="8" />
-                                        </Border.StrokeShape>
-                                        <Label Text="{Binding Status}" Style="{StaticResource ChipLabelStyle}" />
-                                    </Border>
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="14">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <Label Text="Live controls" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Label Grid.Column="1" Text="{Binding BrightnessText}" Style="{StaticResource MutedLabelStyle}" />
+                    </Grid>
 
-                                    <Label
-                                        Grid.Row="1"
-                                        Grid.ColumnSpan="2"
-                                        Text="{Binding Description}"
-                                        Style="{StaticResource MutedLabelStyle}" />
+                    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <Button Text="BLACKOUT" Command="{Binding BlackoutCommand}" />
+                        <Button Grid.Column="1" Text="Restore" Command="{Binding RestoreBrightnessCommand}" />
+                    </Grid>
 
+                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <Slider
+                            Minimum="1"
+                            Maximum="100"
+                            Value="{Binding Brightness, Mode=TwoWay}" />
+                        <Button Grid.Column="1" Text="Apply" Command="{Binding ApplyBrightnessCommand}" />
+                    </Grid>
+
+                    <VerticalStackLayout Grid.Row="3" Spacing="4">
+                        <Label Text="{Binding CurrentLookText}" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Text="{Binding LastActionStatus}" Style="{StaticResource MutedLabelStyle}" />
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <Label Text="Fast reactions" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Button Grid.Column="1" Text="Random" Command="{Binding RandomReactionCommand}" />
+                    </Grid>
+                    <Label
+                        Grid.Row="1"
+                        Text="{Binding TextAcknowledgementText}"
+                        Style="{StaticResource MutedLabelStyle}" />
+
+                    <Grid Grid.Row="2" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
+                        <Label Text="Favorites" FontAttributes="Bold" />
+                        <FlexLayout
+                            Grid.Row="1"
+                            AlignItems="Start"
+                            BindableLayout.ItemsSource="{Binding FavoriteReactions}"
+                            Direction="Row"
+                            Wrap="Wrap">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="home:HomeQuickActionCard">
                                     <Button
-                                        Grid.Row="2"
-                                        HorizontalOptions="Start"
-                                        IsEnabled="{Binding IsAvailable}"
-                                        Text="{Binding ActionText}"
-                                        Clicked="OnFeatureActionClicked" />
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </BindableLayout.ItemTemplate>
-                </VerticalStackLayout>
-            </VerticalStackLayout>
+                                        Margin="0,0,8,8"
+                                        Text="{Binding Label}"
+                                        Command="{Binding TriggerCommand}" />
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </FlexLayout>
+
+                        <Label Grid.Row="2" Text="Recent" FontAttributes="Bold" />
+                        <FlexLayout
+                            Grid.Row="3"
+                            AlignItems="Start"
+                            BindableLayout.ItemsSource="{Binding RecentReactions}"
+                            Direction="Row"
+                            Wrap="Wrap">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="home:HomeQuickActionCard">
+                                    <Button
+                                        Margin="0,0,8,8"
+                                        Text="{Binding Label}"
+                                        Command="{Binding TriggerCommand}" />
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </FlexLayout>
+                    </Grid>
+                </Grid>
+            </Border>
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

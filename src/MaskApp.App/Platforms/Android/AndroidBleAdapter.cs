@@ -16,7 +16,9 @@ namespace MaskApp.App.Infrastructure.Bluetooth;
 public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMaskCommandTransport, ITextUploadTransport
 {
     private static readonly UUID MaskServiceUuid = UUID.FromString(MaskBleProtocol.ServiceUuid)!;
-    private static readonly UUID GeneralWriteCharacteristicUuid = UUID.FromString(MaskBleProtocol.GeneralWriteCharacteristicUuid)!;
+    private static readonly UUID CommandCharacteristicUuid = UUID.FromString(MaskBleProtocol.CommandCharacteristicUuid)!;
+    private static readonly UUID TextUploadCharacteristicUuid = UUID.FromString(MaskBleProtocol.TextUploadCharacteristicUuid)!;
+    private static readonly UUID NotificationCharacteristicUuid = UUID.FromString(MaskBleProtocol.NotificationCharacteristicUuid)!;
     private static readonly UUID ClientCharacteristicConfigurationUuid = UUID.FromString("00002902-0000-1000-8000-00805f9b34fb")!;
 
     private readonly Dictionary<string, BluetoothDevice> devicesById = [];
@@ -26,6 +28,7 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
     private BleScanCallback? scanCallback;
     private BluetoothGatt? connectedGatt;
     private BluetoothGattCharacteristic? generalWriteCharacteristic;
+    private BluetoothGattCharacteristic? textUploadWriteCharacteristic;
     private BluetoothGattCharacteristic? textNotifyCharacteristic;
     private AndroidGattCallback? gattCallback;
     private TaskCompletionSource<TextUploadAcknowledgement>? pendingTextAcknowledgement;
@@ -429,14 +432,20 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
             return;
         }
 
-        generalWriteCharacteristic = service.GetCharacteristic(GeneralWriteCharacteristicUuid);
+        generalWriteCharacteristic = service.GetCharacteristic(CommandCharacteristicUuid);
         if (generalWriteCharacteristic is null)
         {
             SetTransportState(MaskCommandTransportState.Failed, "Mask write characteristic was not found.");
             return;
         }
 
-        var notifyCharacteristic = service.Characteristics?.FirstOrDefault(CanNotify);
+        textUploadWriteCharacteristic = service.GetCharacteristic(TextUploadCharacteristicUuid);
+        var notifyCharacteristic = service.GetCharacteristic(NotificationCharacteristicUuid);
+        if (notifyCharacteristic is null || !CanNotify(notifyCharacteristic))
+        {
+            notifyCharacteristic = service.Characteristics?.FirstOrDefault(CanNotify);
+        }
+
         if (notifyCharacteristic is not null && EnableNotifications(gatt, notifyCharacteristic))
         {
             textNotifyCharacteristic = notifyCharacteristic;
@@ -446,6 +455,8 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
             MaskCommandTransportState.Ready,
             textNotifyCharacteristic is null
                 ? "Mask controls ready. Text upload ACK notifications were not found."
+                : textUploadWriteCharacteristic is null
+                    ? "Mask controls and text ACK ready. Text frames will use command-characteristic compatibility."
                 : "Mask controls and text upload ready.");
     }
 
@@ -513,12 +524,15 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
 
     private void WriteTextFrame(TextUploadFrame frame)
     {
-        WriteBytes(frame.Data.ToArray(), $"text frame {frame.Index}");
+        WriteBytes(frame.Data.ToArray(), $"text frame {frame.Index}", textUploadWriteCharacteristic ?? generalWriteCharacteristic);
     }
 
-    private void WriteBytes(byte[] payload, string description)
+    private void WriteBytes(byte[] payload, string description) =>
+        WriteBytes(payload, description, generalWriteCharacteristic);
+
+    private void WriteBytes(byte[] payload, string description, BluetoothGattCharacteristic? characteristic)
     {
-        if (connectedGatt is null || generalWriteCharacteristic is null)
+        if (connectedGatt is null || characteristic is null)
         {
             throw new InvalidOperationException("Mask controls are not ready.");
         }
@@ -531,7 +545,7 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
         if (OperatingSystem.IsAndroidVersionAtLeast(33))
         {
             var status = connectedGatt.WriteCharacteristic(
-                generalWriteCharacteristic,
+                characteristic,
                 payload,
                 (int)GattWriteType.NoResponse);
             if (status != (int)CurrentBluetoothStatusCodes.Success)
@@ -542,9 +556,9 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
             return;
         }
 
-        generalWriteCharacteristic.WriteType = GattWriteType.NoResponse;
-        generalWriteCharacteristic.SetValue(payload);
-        if (!connectedGatt.WriteCharacteristic(generalWriteCharacteristic))
+        characteristic.WriteType = GattWriteType.NoResponse;
+        characteristic.SetValue(payload);
+        if (!connectedGatt.WriteCharacteristic(characteristic))
         {
             throw new InvalidOperationException($"Android BLE write did not start for {description}.");
         }
@@ -594,6 +608,7 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
         pendingTextAcknowledgement?.TrySetCanceled();
         pendingTextAcknowledgement = null;
         generalWriteCharacteristic = null;
+        textUploadWriteCharacteristic = null;
         textNotifyCharacteristic = null;
 
         if (connectedGatt is not null)

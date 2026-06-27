@@ -1,0 +1,34 @@
+namespace MaskApp.Core.Features.QuickActions;
+
+public enum QuickActionId
+{
+    Blackout,
+    RestoreBrightness,
+    SetBrightness,
+    RandomReaction,
+    Nope,
+    Lol,
+    Sus,
+    Bruh,
+    SendHelp,
+    Buffering,
+    NpcMode,
+    Face404,
+    NiceFit,
+    VibeCheck,
+    Drop,
+    WheelUp,
+    Reload,
+    Boh,
+    PullUp,
+    RunItBack,
+    BassFaceManual,
+    Hydrate,
+    Water,
+    AllGood,
+    NiceMoves,
+    TooMuchBass,
+    NoThoughts,
+    WhereWater,
+    ILiveHere
+}

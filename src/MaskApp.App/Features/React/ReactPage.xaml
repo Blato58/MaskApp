@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="MaskApp.App.Features.React.ReactPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:react="clr-namespace:MaskApp.Core.Features.React;assembly=MaskApp.Core"
+    x:DataType="react:ReactViewModel"
+    Title="React"
+    BackgroundColor="{StaticResource PageBackgroundColor}">
+    <ScrollView>
+        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="18">
+            <VerticalStackLayout Spacing="6">
+                <Label Text="React" Style="{StaticResource PageTitleLabelStyle}" />
+                <Label Text="{Binding ReadinessText}" Style="{StaticResource MutedLabelStyle}" />
+            </VerticalStackLayout>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <Label Text="Always ready" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <ActivityIndicator
+                            Grid.Column="1"
+                            IsRunning="{Binding IsSending}"
+                            IsVisible="{Binding IsSending}"
+                            VerticalOptions="Center" />
+                    </Grid>
+                    <Label Grid.Row="1" Text="BLACKOUT stays visible for recovery; Random Reaction stays offline." Style="{StaticResource MutedLabelStyle}" />
+                    <FlexLayout
+                        Grid.Row="2"
+                        AlignItems="Stretch"
+                        BindableLayout.ItemsSource="{Binding PinnedCards}"
+                        Direction="Row"
+                        Wrap="Wrap">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="react:ReactReactionCard">
+                                <Border
+                                    Margin="0,0,10,10"
+                                    Padding="12"
+                                    MinimumWidthRequest="148"
+                                    Style="{StaticResource PanelBorderStyle}">
+                                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
+                                        <Label Text="{Binding Label}" FontAttributes="Bold" />
+                                        <Label Text="{Binding Description}" FontSize="12" TextColor="{StaticResource SecondaryTextColor}" />
+                                        <Button
+                                            Grid.Row="2"
+                                            Text="Send"
+                                            Command="{Binding SendCommand}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </FlexLayout>
+                    <Grid Grid.Row="3" RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
+                        <Label Text="{Binding CommandReadinessText}" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Grid.Row="1" Text="{Binding TextReadinessText}" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Grid.Row="2" Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <VerticalStackLayout
+                BindableLayout.ItemsSource="{Binding Groups}"
+                Spacing="14">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="react:ReactReactionGroup">
+                        <Border Style="{StaticResource PanelBorderStyle}">
+                            <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                                <Label Text="{Binding Title}" Style="{StaticResource SectionTitleLabelStyle}" />
+                                <FlexLayout
+                                    Grid.Row="1"
+                                    AlignItems="Stretch"
+                                    BindableLayout.ItemsSource="{Binding Cards}"
+                                    Direction="Row"
+                                    Wrap="Wrap">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="react:ReactReactionCard">
+                                            <Border
+                                                Margin="0,0,10,10"
+                                                Padding="12"
+                                                MinimumWidthRequest="148"
+                                                StrokeThickness="1">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="8" />
+                                                </Border.StrokeShape>
+                                                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="5">
+                                                    <Label Text="{Binding Label}" FontAttributes="Bold" />
+                                                    <Label Grid.Row="1" Text="{Binding Caption}" FontSize="12" TextColor="{StaticResource AccentColor}" />
+                                                    <Label Grid.Row="2" Text="{Binding Description}" FontSize="12" TextColor="{StaticResource SecondaryTextColor}" />
+                                                    <Button
+                                                        Grid.Row="3"
+                                                        Text="Send"
+                                                        Command="{Binding SendCommand}" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </FlexLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+                    <Label Text="Last send" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Grid Grid.Row="1" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="4">
+                        <Label Text="Action" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Grid.Column="1" Text="{Binding LastActionText}" />
+                        <Label Grid.Row="1" Text="Status" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding StatusText}" />
+                    </Grid>
+                </Grid>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

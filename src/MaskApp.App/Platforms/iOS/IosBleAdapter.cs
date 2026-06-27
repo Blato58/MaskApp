@@ -16,12 +16,15 @@ namespace MaskApp.App.Infrastructure.Bluetooth;
 public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleDeviceConnection, IMaskCommandTransport, ITextUploadTransport
 {
     private static readonly CBUUID MaskServiceUuid = CBUUID.FromString(MaskBleProtocol.ServiceUuid);
-    private static readonly CBUUID GeneralWriteCharacteristicUuid = CBUUID.FromString(MaskBleProtocol.GeneralWriteCharacteristicUuid);
+    private static readonly CBUUID CommandCharacteristicUuid = CBUUID.FromString(MaskBleProtocol.CommandCharacteristicUuid);
+    private static readonly CBUUID TextUploadCharacteristicUuid = CBUUID.FromString(MaskBleProtocol.TextUploadCharacteristicUuid);
+    private static readonly CBUUID NotificationCharacteristicUuid = CBUUID.FromString(MaskBleProtocol.NotificationCharacteristicUuid);
 
     private readonly Dictionary<string, CBPeripheral> peripheralsById = [];
     private CBCentralManager? centralManager;
     private CBPeripheral? connectedPeripheral;
     private CBCharacteristic? generalWriteCharacteristic;
+    private CBCharacteristic? textUploadWriteCharacteristic;
     private CBCharacteristic? textNotifyCharacteristic;
     private MaskPeripheralDelegate? connectedPeripheralDelegate;
     private TaskCompletionSource<TextUploadAcknowledgement>? pendingTextAcknowledgement;
@@ -101,6 +104,7 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         }
 
         generalWriteCharacteristic = null;
+        textUploadWriteCharacteristic = null;
         textNotifyCharacteristic = null;
         connectedPeripheral = null;
         connectedPeripheralDelegate = null;
@@ -122,6 +126,7 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         }
 
         generalWriteCharacteristic = null;
+        textUploadWriteCharacteristic = null;
         textNotifyCharacteristic = null;
         connectedPeripheral = null;
         connectedPeripheralDelegate = null;
@@ -295,13 +300,14 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
 
     private void WriteTextFrame(TextUploadFrame frame)
     {
-        if (connectedPeripheral is null || generalWriteCharacteristic is null)
+        var writeCharacteristic = textUploadWriteCharacteristic ?? generalWriteCharacteristic;
+        if (connectedPeripheral is null || writeCharacteristic is null)
         {
             throw new InvalidOperationException("Mask controls are not ready.");
         }
 
         using var payload = NSData.FromArray(frame.Data.ToArray());
-        connectedPeripheral.WriteValue(payload, generalWriteCharacteristic, CBCharacteristicWriteType.WithoutResponse);
+        connectedPeripheral.WriteValue(payload, writeCharacteristic, CBCharacteristicWriteType.WithoutResponse);
     }
 
     public override void UpdatedState(CBCentralManager central)
@@ -369,6 +375,7 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         State = BleConnectionState.Failed;
         var message = error?.LocalizedDescription ?? "Failed to connect.";
         generalWriteCharacteristic = null;
+        textUploadWriteCharacteristic = null;
         textNotifyCharacteristic = null;
         connectedPeripheral = null;
         connectedPeripheralDelegate = null;
@@ -384,6 +391,7 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         State = BleConnectionState.Disconnected;
         var message = error?.LocalizedDescription ?? "Disconnected.";
         generalWriteCharacteristic = null;
+        textUploadWriteCharacteristic = null;
         textNotifyCharacteristic = null;
         connectedPeripheral = null;
         connectedPeripheralDelegate = null;
@@ -404,6 +412,7 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
     {
         connectedPeripheral = peripheral;
         generalWriteCharacteristic = null;
+        textUploadWriteCharacteristic = null;
         textNotifyCharacteristic = null;
         connectedPeripheralDelegate = new MaskPeripheralDelegate(this);
         peripheral.Delegate = connectedPeripheralDelegate;
@@ -443,7 +452,7 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
 #if DEBUG
                 logger.LogDebug(
                     "Discovering write characteristic {CharacteristicUuid} on service {ServiceUuid}.",
-                    MaskBleProtocol.GeneralWriteCharacteristicUuid,
+                    MaskBleProtocol.CommandCharacteristicUuid,
                     service.UUID.ToString());
 #endif
                 peripheral.DiscoverCharacteristics(null, service);
@@ -478,19 +487,35 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
 
         foreach (var characteristic in characteristics)
         {
-            if (IsUuid(characteristic.UUID, GeneralWriteCharacteristicUuid))
+            if (IsUuid(characteristic.UUID, CommandCharacteristicUuid))
             {
                 generalWriteCharacteristic = characteristic;
 #if DEBUG
-                logger.LogDebug("Selected write characteristic {CharacteristicUuid}.", characteristic.UUID.ToString());
+                logger.LogDebug("Selected command characteristic {CharacteristicUuid}.", characteristic.UUID.ToString());
 #endif
             }
 
-            if (textNotifyCharacteristic is null && CanNotify(characteristic))
+            if (IsUuid(characteristic.UUID, TextUploadCharacteristicUuid))
+            {
+                textUploadWriteCharacteristic = characteristic;
+#if DEBUG
+                logger.LogDebug("Selected text upload characteristic {CharacteristicUuid}.", characteristic.UUID.ToString());
+#endif
+            }
+
+            if (IsUuid(characteristic.UUID, NotificationCharacteristicUuid) && CanNotify(characteristic))
             {
                 textNotifyCharacteristic = characteristic;
 #if DEBUG
-                logger.LogDebug("Selected text ACK characteristic {CharacteristicUuid}.", characteristic.UUID.ToString());
+                logger.LogDebug("Selected exact text ACK characteristic {CharacteristicUuid}.", characteristic.UUID.ToString());
+#endif
+                connectedPeripheral?.SetNotifyValue(true, characteristic);
+            }
+            else if (textNotifyCharacteristic is null && CanNotify(characteristic))
+            {
+                textNotifyCharacteristic = characteristic;
+#if DEBUG
+                logger.LogDebug("Selected fallback text ACK characteristic {CharacteristicUuid}.", characteristic.UUID.ToString());
 #endif
                 connectedPeripheral?.SetNotifyValue(true, characteristic);
             }
@@ -506,6 +531,8 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
             MaskCommandTransportState.Ready,
             textNotifyCharacteristic is null
                 ? "Mask controls ready. Text upload ACK notifications were not found."
+                : textUploadWriteCharacteristic is null
+                    ? "Mask controls and text ACK ready. Text frames will use command-characteristic compatibility."
                 : "Mask controls and text upload ready.");
     }
 

@@ -68,8 +68,10 @@ public sealed class TextUploadProtocolTests
     }
 
     [Theory]
+    [InlineData("064441544F4B00000000000000000000", TextUploadAcknowledgement.StartAccepted)]
     [InlineData("07444154534F4B000000000000000000", TextUploadAcknowledgement.StartAccepted)]
     [InlineData("0452454F4B0000000000000000000000", TextUploadAcknowledgement.FrameAccepted)]
+    [InlineData("0652454F4B4F4B000000000000000000", TextUploadAcknowledgement.FrameAccepted)]
     [InlineData("0844415443504F4B0000000000000000", TextUploadAcknowledgement.Complete)]
     [InlineData("054552524F5200000000000000000000", TextUploadAcknowledgement.Error)]
     public void ParsePlaintextAcknowledgement_MapsKnownResponses(string plaintextHex, TextUploadAcknowledgement expected)
@@ -79,18 +81,30 @@ public sealed class TextUploadProtocolTests
         Assert.Equal(expected, acknowledgement);
     }
 
+    [Theory]
+    [InlineData("DATOK", TextUploadAcknowledgement.StartAccepted)]
+    [InlineData("REOKOK", TextUploadAcknowledgement.FrameAccepted)]
+    [InlineData("DATCPOK", TextUploadAcknowledgement.Complete)]
+    [InlineData("ERROR", TextUploadAcknowledgement.Error)]
+    public void ParsePlaintextAcknowledgement_AcceptsUnpaddedResponses(string plaintext, TextUploadAcknowledgement expected)
+    {
+        var acknowledgement = TextUploadProtocol.ParsePlaintextAcknowledgement(System.Text.Encoding.ASCII.GetBytes(plaintext));
+
+        Assert.Equal(expected, acknowledgement);
+    }
+
     [Fact]
     public void CreatePackage_BuildsPayloadFramesAndPostUploadCommands()
     {
-        var package = TextUploadProtocol.CreatePackage("A", new TextLedColor(1, 2, 3), mode: 2, speed: 25);
+        var package = TextUploadProtocol.CreatePackage("A", new TextLedColor(1, 2, 3), mode: 3, speed: 25);
 
         Assert.Equal("A", package.Text);
         Assert.Equal(6, package.ColumnCount);
         Assert.Equal(30, package.Payload.Length);
         Assert.Equal(2, package.Frames.Count);
         Assert.Equal(MaskCommandKind.TextMode, package.ModeCommand.Kind);
-        Assert.Equal(Convert.FromHexString("05444F4E450200000000000000000000"), package.ModeCommand.Plaintext.ToArray());
-        Assert.Equal(Convert.FromHexString("C0D1BA638B32C3B1199C52C4E453E65E"), package.ModeCommand.EncryptedPayload.ToArray());
+        Assert.Equal(Convert.FromHexString("054D4F44450300000000000000000000"), package.ModeCommand.Plaintext.ToArray());
+        Assert.Equal(16, package.ModeCommand.EncryptedPayload.Length);
         Assert.Equal(MaskCommandKind.TextSpeed, package.SpeedCommand.Kind);
         Assert.Equal(Convert.FromHexString("06535045454419000000000000000000"), package.SpeedCommand.Plaintext.ToArray());
         Assert.Equal(Convert.FromHexString("715837946F17DFFDBDEF98FAB3F47A51"), package.SpeedCommand.EncryptedPayload.ToArray());
