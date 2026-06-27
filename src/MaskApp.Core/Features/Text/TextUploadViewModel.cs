@@ -21,6 +21,10 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
     private string lastCommandText = "None";
     private int columnCount;
     private int frameCount;
+    private bool isSending;
+    private bool useCompatibilityWriteOnly;
+    private bool supportsAcknowledgements;
+    private TextUploadTransportState transportState;
 
     public TextUploadViewModel(ITextUploadTransport transport)
     {
@@ -43,8 +47,12 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
 
         selectedColor = TextColorOptions[0];
         selectedAnimationMode = AnimationModes[0];
+        supportsAcknowledgements = transport.SupportsAcknowledgements;
+        transportState = transport.State;
+        useCompatibilityWriteOnly = ShouldDefaultToCompatibilityMode(transport.State, transport.SupportsAcknowledgements);
         statusText = transport.StatusText;
-        SendCommand = new AsyncRelayCommand(SendAsync, () => !string.IsNullOrWhiteSpace(Text) && transport.IsReady);
+        SendCommand = new AsyncRelayCommand(SendAsync, CanSend);
+        transport.StateChanged += OnTransportStateChanged;
         RefreshPreview();
     }
 
@@ -106,6 +114,76 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
             ? $"{transport.TransportDisplayName} (simulated)"
             : $"{transport.TransportDisplayName} (real)";
 
+    public bool SupportsAcknowledgements
+    {
+        get => supportsAcknowledgements;
+        private set
+        {
+            if (SetField(ref supportsAcknowledgements, value))
+            {
+                OnPropertyChanged(nameof(AcknowledgementModeText));
+            }
+        }
+    }
+
+    public TextUploadTransportState TransportState
+    {
+        get => transportState;
+        private set
+        {
+            if (SetField(ref transportState, value))
+            {
+                OnPropertyChanged(nameof(CanUseCompatibilityWriteOnly));
+                OnPropertyChanged(nameof(AcknowledgementModeText));
+            }
+        }
+    }
+
+    public bool CanUseCompatibilityWriteOnly =>
+        TransportState is TextUploadTransportState.Ready
+            or TextUploadTransportState.CompatibilityReady
+            or TextUploadTransportState.Simulated;
+
+    public bool UseCompatibilityWriteOnly
+    {
+        get => useCompatibilityWriteOnly;
+        set
+        {
+            if (SetField(ref useCompatibilityWriteOnly, value))
+            {
+                OnPropertyChanged(nameof(AcknowledgementModeText));
+                SendCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public string AcknowledgementModeText
+    {
+        get
+        {
+            if (UseCompatibilityWriteOnly)
+            {
+                return "Write-only compatibility: sends without ACK confirmation.";
+            }
+
+            return SupportsAcknowledgements
+                ? "ACK required: each text step waits for mask confirmation."
+                : "ACK unavailable: enable write-only compatibility to send.";
+        }
+    }
+
+    public bool IsSending
+    {
+        get => isSending;
+        private set
+        {
+            if (SetField(ref isSending, value))
+            {
+                SendCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
     public string StatusText
     {
         get => statusText;
@@ -149,9 +227,9 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
             return;
         }
 
-        if (!transport.IsReady)
+        if (!CanSend())
         {
-            StatusText = transport.StatusText;
+            StatusText = BuildCannotSendStatus();
             return;
         }
 
@@ -166,9 +244,25 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
         ColumnCount = package.ColumnCount;
         FrameCount = package.Frames.Count;
 
-        var result = await transport.UploadAsync(package, cancellationToken).ConfigureAwait(false);
-        StatusText = result.Message;
-        FrameCount = result.FramesSent;
+        var options = UseCompatibilityWriteOnly
+            ? TextUploadOptions.WriteOnlyCompatibility
+            : TextUploadOptions.RequireAcknowledgements;
+
+        try
+        {
+            IsSending = true;
+            StatusText = UseCompatibilityWriteOnly
+                ? $"Sending {package.Frames.Count} frame(s) without ACK confirmation..."
+                : $"Sending {package.Frames.Count} frame(s) with ACK confirmation...";
+
+            var result = await transport.UploadAsync(package, options, cancellationToken).ConfigureAwait(false);
+            StatusText = result.Message;
+            FrameCount = result.FramesSent;
+        }
+        finally
+        {
+            IsSending = false;
+        }
     }
 
     private void RefreshPreview()
@@ -202,6 +296,55 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
         return (columnBits & (1 << (15 - row))) != 0;
     }
 
+    private void OnTransportStateChanged(object? sender, TextUploadTransportStateChangedEventArgs e)
+    {
+        TransportState = e.State;
+        SupportsAcknowledgements = e.SupportsAcknowledgements;
+        StatusText = e.Message;
+
+        if (ShouldDefaultToCompatibilityMode(e.State, e.SupportsAcknowledgements))
+        {
+            UseCompatibilityWriteOnly = true;
+        }
+
+        OnPropertyChanged(nameof(ActiveTransportText));
+        SendCommand.RaiseCanExecuteChanged();
+    }
+
+    private bool CanSend()
+    {
+        if (IsSending || string.IsNullOrWhiteSpace(Text) || !transport.IsReady)
+        {
+            return false;
+        }
+
+        if (UseCompatibilityWriteOnly)
+        {
+            return CanUseCompatibilityWriteOnly;
+        }
+
+        return SupportsAcknowledgements
+            && TransportState is TextUploadTransportState.Ready or TextUploadTransportState.Simulated;
+    }
+
+    private string BuildCannotSendStatus()
+    {
+        if (transport.IsReady && !SupportsAcknowledgements && !UseCompatibilityWriteOnly)
+        {
+            return "ACK notifications are unavailable. Enable write-only compatibility to send.";
+        }
+
+        return transport.StatusText;
+    }
+
+    private static bool ShouldDefaultToCompatibilityMode(
+        TextUploadTransportState state,
+        bool supportsAcknowledgements) =>
+        !supportsAcknowledgements && state == TextUploadTransportState.CompatibilityReady;
+
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {
         if (EqualityComparer<T>.Default.Equals(field, value))
@@ -210,7 +353,7 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
         }
 
         field = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        OnPropertyChanged(propertyName);
         return true;
     }
 }

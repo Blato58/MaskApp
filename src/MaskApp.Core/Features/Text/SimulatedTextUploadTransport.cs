@@ -2,20 +2,40 @@ namespace MaskApp.Core.Features.Text;
 
 public sealed class SimulatedTextUploadTransport : ITextUploadTransport
 {
+    event EventHandler<TextUploadTransportStateChangedEventArgs>? ITextUploadTransport.StateChanged
+    {
+        add { }
+        remove { }
+    }
+
     public string TransportDisplayName => "Simulator";
 
     public bool IsSimulated => true;
 
     public bool IsReady => true;
 
+    public bool SupportsAcknowledgements => true;
+
+    public TextUploadTransportState State => TextUploadTransportState.Simulated;
+
     public string StatusText => "Simulator ready.";
 
     public TextUploadPackage? LastPackage { get; private set; }
 
-    public Task<TextUploadResult> UploadAsync(TextUploadPackage package, CancellationToken cancellationToken = default)
+    public Task<TextUploadResult> UploadAsync(
+        TextUploadPackage package,
+        TextUploadOptions options,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         LastPackage = package;
+
+        if (options.CompatibilityWriteOnly)
+        {
+            return Task.FromResult(TextUploadResult.Success(
+                $"Simulated write-only text upload complete ({package.Frames.Count} frame(s)).",
+                package.Frames.Count));
+        }
 
         var startAck = TextUploadProtocol.ParsePlaintextAcknowledgement(
             [7, (byte)'D', (byte)'A', (byte)'T', (byte)'S', (byte)'O', (byte)'K', 0, 0, 0, 0, 0, 0, 0, 0, 0]);

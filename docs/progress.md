@@ -22,6 +22,7 @@ Status key:
 - [x] Add a modern workbench home screen and tab navigation that makes available and locked migration slices visible.
 - [x] Install and document `maui-mobile` workload.
 - [x] Add GitHub Actions macOS IPA distribution workflow, signing-secret setup docs, and Feather/AltStore-style Pages output generation.
+- [x] Add modernization execution plan, readiness checklist, slice template, and per-slice record folder.
 
 ## Feature Slices
 
@@ -30,7 +31,7 @@ Status key:
 | Connect | [~] | MAUI page, view model, contracts, iOS CoreBluetooth adapter, Android Bluetooth LE adapter, unit tests, workbench navigation, iOS/Android compile validation. | Make discovery and connection state visible, predictable, and recoverable inside a modern operational workbench instead of hiding behavior inside a large activity. | Validate scanning and connection on real iOS and Android devices. |
 | Mask control MVP | [~] | Power-as-dim/restore, brightness, image preset, animation preset, encrypted command builders, simulator transport for unsupported targets, diagnostics UI, iOS write characteristic discovery/debug logging, and Android BLE command writes. | Let the user interact with the mask from the first screen while keeping command readiness, command payloads, active transport, and failures visible. | Validate encrypted writes on physical iOS and Android devices and confirm preset IDs against real hardware. |
 | Settings | [ ] | Java source mapped only. | Rebuild settings as clear, grouped controls with explicit saved state and platform-appropriate permission paths. | Define settings model and iOS-first page behavior. |
-| Text | [~] | Deterministic ASCII glyph rasterizer, text upload payload/framing, encrypted `DATS`/`DATCP`/mode/speed commands, ACK parsing, simulator transport for unsupported targets, MAUI composer, LED preview, diagnostics, tests, iOS upload transport, Android BLE upload transport, and iOS/Android compile validation. | Improve text creation/editing flow with immediate preview feedback and an ACK-aware upload pipeline before claiming real hardware parity. | Validate text ACK notifications and upload frames on physical iOS and Android devices; expand glyph parity beyond the MVP set. |
+| Text | [~] | Deterministic ASCII glyph rasterizer, text upload payload/framing, encrypted `DATS`/`DATCP`/mode/speed commands, ACK parsing, simulator transport, MAUI composer, LED preview, diagnostics, transport state events, ACK capability reporting, ACK-required upload mode, write-only compatibility upload mode, tests, iOS upload transport, Android BLE upload transport, and compile validation. | Improve text creation/editing flow with immediate preview feedback, visible transport readiness, explicit ACK/write-only mode, send progress, and actionable diagnostics before claiming real hardware parity. | Validate ACK-required and write-only text upload on physical iOS first, then Android; expand glyph parity beyond the MVP set. |
 | Image | [ ] | Java source mapped only. | Make image import/crop/preview understandable and enforce mask limits before sending data. | Map image storage, picker, crop, and LED transform behavior. |
 | Rhythm | [ ] | Java source mapped only. | Provide clear audio/rhythm state, permission handling, and stop/recovery behavior. | Decide audio capture/visualizer approach for iOS. |
 | Microphone | [ ] | Java source mapped only. | Separate microphone capture state from rhythm playback and make permission failures actionable. | Define iOS microphone permission and capture slice. |
@@ -40,7 +41,7 @@ Status key:
 | Adapter | iOS | Android | Notes |
 | --- | --- | --- | --- |
 | BLE scan/connect | [~] | [~] | iOS CoreBluetooth adapter compiles; Android Bluetooth LE adapter scans by advertisement data, requests runtime permissions, and connects through GATT. Physical-device validation is still open. |
-| BLE mask commands | [~] | [~] | iOS discovers service `0000fff0-0000-1000-8000-00805f9b34fb`, writes encrypted commands to characteristic `d44bc439-abfd-45a2-b575-925416129600`, attempts to subscribe to notify/indicate ACK characteristics for text upload, and logs discovery/write details in debug builds; Android now uses the same service/characteristic for real GATT writes and attempts ACK notifications. |
+| BLE mask commands | [~] | [~] | iOS discovers service `0000fff0-0000-1000-8000-00805f9b34fb`, writes encrypted commands to characteristic `d44bc439-abfd-45a2-b575-925416129600`, reports text upload readiness separately from control readiness, supports ACK-required text upload when notify/indicate characteristics are found, supports write-only compatibility upload when ACK notifications are missing, and logs discovery/write details in debug builds; Android uses the same service/characteristic and mirrored text upload readiness/options. |
 | Permissions | [~] | [~] | iOS Info.plist and Android manifest include current permission baseline. Runtime request UX still belongs to slices. |
 | Storage | [ ] | [ ] | GreenDAO replacement not selected yet. |
 | Camera/media picker | [ ] | [ ] | iOS usage strings added; implementation not started. |
@@ -64,6 +65,8 @@ Status key:
 - [x] Roslyn diagnostics: no warnings or errors.
 - [x] Diagnostics/logging slice validated with core tests plus iOS and Android target builds.
 - [x] Text MVP validated with core tests plus iOS and Android target builds.
+- [x] Text repair slice core tests cover transport readiness events, ACK-required upload options, write-only compatibility upload options, unavailable transport, empty text, and diagnostics.
+- [x] Text repair slice validated with `dotnet test`, `dotnet build -f net10.0-ios`, and `dotnet build -f net10.0-android`.
 - [x] Android BLE adapter compile validation for scan/connect, command writes, and text upload transport wiring.
 - [~] iOS CI distribution scripts validated locally; signed IPA build awaits GitHub Actions secrets and macOS runner execution.
 - [ ] iOS simulator launch smoke test.

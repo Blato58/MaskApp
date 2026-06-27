@@ -52,7 +52,7 @@
             </Border>
 
             <Border Style="{StaticResource PanelBorderStyle}">
-                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <Label Text="Preview" Style="{StaticResource SectionTitleLabelStyle}" />
                         <Label Grid.Column="1" Text="{Binding ColumnCount, StringFormat='{}{0} columns'}" Style="{StaticResource MutedLabelStyle}" />
@@ -84,8 +84,25 @@
                         </CollectionView>
                     </Border>
                     <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                        <Label Text="{Binding ActiveTransportText}" Style="{StaticResource MutedLabelStyle}" VerticalTextAlignment="Center" />
-                        <Button Grid.Column="1" Text="Send" Command="{Binding SendCommand}" />
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="{Binding ActiveTransportText}" Style="{StaticResource MutedLabelStyle}" />
+                            <Label Text="{Binding AcknowledgementModeText}" FontSize="12" TextColor="#6B7280" />
+                        </VerticalStackLayout>
+                        <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
+                            <Label Text="Write-only" FontSize="12" TextColor="#6B7280" VerticalTextAlignment="Center" />
+                            <Switch
+                                IsEnabled="{Binding CanUseCompatibilityWriteOnly}"
+                                IsToggled="{Binding UseCompatibilityWriteOnly, Mode=TwoWay}" />
+                        </HorizontalStackLayout>
+                    </Grid>
+                    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+                        <Label Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" VerticalTextAlignment="Center" />
+                        <ActivityIndicator
+                            Grid.Column="1"
+                            IsRunning="{Binding IsSending}"
+                            IsVisible="{Binding IsSending}"
+                            VerticalOptions="Center" />
+                        <Button Grid.Column="2" Text="Send" Command="{Binding SendCommand}" />
                     </Grid>
                 </Grid>
             </Border>

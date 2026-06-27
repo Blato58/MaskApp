@@ -6,5 +6,10 @@ This folder tracks the Android-to-.NET migration.
 - `ios-ci-distribution.md` explains GitHub Actions IPA builds, signing secrets,
   Releases, Pages, and Feather/AltStore-style updates.
 - `migration-plan.md` defines the working migration order and validation gates.
+- `modernization-execplan.md` defines the long-term product roadmap, readiness
+  checklist, continuation workflow, and feature sequencing.
+- `modernization-slice-template.md` is the template for bounded modernization
+  records.
+- `modernization-slices/` stores per-slice execution records.
 - `progress.md` tracks completed, in-progress, blocked, and pending migration work.
 - `setup.md` records local setup and build prerequisites.

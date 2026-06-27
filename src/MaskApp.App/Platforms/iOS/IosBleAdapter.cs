@@ -25,6 +25,8 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
     private CBCharacteristic? textNotifyCharacteristic;
     private MaskPeripheralDelegate? connectedPeripheralDelegate;
     private TaskCompletionSource<TextUploadAcknowledgement>? pendingTextAcknowledgement;
+    private TextUploadTransportState textUploadState = TextUploadTransportState.Disconnected;
+    private event EventHandler<TextUploadTransportStateChangedEventArgs>? TextUploadStateChanged;
 #if DEBUG
     private readonly ILogger<IosBleAdapter> logger;
 
@@ -38,6 +40,11 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
     public event EventHandler<BleScannerStateChangedEventArgs>? ScannerStateChanged;
     public event EventHandler<BleConnectionStateChangedEventArgs>? ConnectionStateChanged;
     public event EventHandler<MaskCommandTransportStateChangedEventArgs>? TransportStateChanged;
+    event EventHandler<TextUploadTransportStateChangedEventArgs>? ITextUploadTransport.StateChanged
+    {
+        add => TextUploadStateChanged += value;
+        remove => TextUploadStateChanged -= value;
+    }
 
     public bool IsScanning { get; private set; }
     public BleConnectionState State { get; private set; } = BleConnectionState.Disconnected;
@@ -47,13 +54,15 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
     public string TransportStatusText { get; private set; } = "Connect to a mask to enable controls.";
     public bool IsReady => connectedPeripheral is not null
         && generalWriteCharacteristic is not null
-        && textNotifyCharacteristic is not null
         && TransportState == MaskCommandTransportState.Ready;
-    public string StatusText => IsReady
-        ? "Text upload ready."
-        : textNotifyCharacteristic is null
-            ? "Text upload ACK notifications were not found."
-            : TransportStatusText;
+    public bool SupportsAcknowledgements => textNotifyCharacteristic is not null;
+    TextUploadTransportState ITextUploadTransport.State => textUploadState;
+    public string StatusText => textUploadState switch
+    {
+        TextUploadTransportState.Ready => "Text upload ready with ACK confirmation.",
+        TextUploadTransportState.CompatibilityReady => "Text upload write-only compatibility ready. ACK notifications were not found.",
+        _ => TransportStatusText
+    };
 
     public Task StartScanningAsync(CancellationToken cancellationToken = default)
     {
@@ -148,13 +157,28 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         }
     }
 
-    public async Task<TextUploadResult> UploadAsync(TextUploadPackage package, CancellationToken cancellationToken = default)
+    public async Task<TextUploadResult> UploadAsync(
+        TextUploadPackage package,
+        TextUploadOptions options,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         if (!IsReady)
         {
             return TextUploadResult.Failure(StatusText, 0);
+        }
+
+        if (options.CompatibilityWriteOnly || !options.AckRequired)
+        {
+            return await UploadWriteOnlyAsync(package, options, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (!SupportsAcknowledgements)
+        {
+            return TextUploadResult.Failure(
+                "Text upload ACK notifications are unavailable. Enable write-only compatibility mode to send without confirmation.",
+                0);
         }
 
         try
@@ -206,6 +230,46 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         {
 #if DEBUG
             logger.LogDebug(ex, "Failed to upload text payload.");
+#endif
+            return TextUploadResult.Failure(ex.Message, 0);
+        }
+    }
+
+    private async Task<TextUploadResult> UploadWriteOnlyAsync(
+        TextUploadPackage package,
+        TextUploadOptions options,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            WriteEncryptedCommand(package.StartCommand);
+            await DelayBetweenTextWritesAsync(options, cancellationToken).ConfigureAwait(false);
+
+            var framesSent = 0;
+            foreach (var frame in package.Frames)
+            {
+                WriteTextFrame(frame);
+                framesSent++;
+                await DelayBetweenTextWritesAsync(options, cancellationToken).ConfigureAwait(false);
+            }
+
+            WriteEncryptedCommand(package.FinishCommand);
+            await DelayBetweenTextWritesAsync(options, cancellationToken).ConfigureAwait(false);
+            WriteEncryptedCommand(package.ModeCommand);
+            WriteEncryptedCommand(package.SpeedCommand);
+
+            return TextUploadResult.Success(
+                $"Sent text upload without ACK confirmation ({framesSent} frame(s)).",
+                framesSent);
+        }
+        catch (OperationCanceledException)
+        {
+            return TextUploadResult.Failure("Text upload was cancelled.", 0);
+        }
+        catch (Exception ex)
+        {
+#if DEBUG
+            logger.LogDebug(ex, "Failed to upload text payload without ACK confirmation.");
 #endif
             return TextUploadResult.Failure(ex.Message, 0);
         }
@@ -449,9 +513,44 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
     {
         TransportState = state;
         TransportStatusText = message;
+        RefreshTextUploadState(message);
         MainThread.BeginInvokeOnMainThread(() =>
             TransportStateChanged?.Invoke(this, new MaskCommandTransportStateChangedEventArgs(state, message)));
     }
+
+    private void RefreshTextUploadState(string fallbackMessage)
+    {
+        var state = TransportState switch
+        {
+            MaskCommandTransportState.Ready when IsReady && SupportsAcknowledgements => TextUploadTransportState.Ready,
+            MaskCommandTransportState.Ready when IsReady => TextUploadTransportState.CompatibilityReady,
+            MaskCommandTransportState.Discovering => TextUploadTransportState.Discovering,
+            MaskCommandTransportState.Failed => TextUploadTransportState.Failed,
+            _ => TextUploadTransportState.Disconnected
+        };
+
+        var message = state switch
+        {
+            TextUploadTransportState.Ready => "Text upload ready with ACK confirmation.",
+            TextUploadTransportState.CompatibilityReady => "Text upload write-only compatibility ready. ACK notifications were not found.",
+            _ => fallbackMessage
+        };
+
+        textUploadState = state;
+        MainThread.BeginInvokeOnMainThread(() =>
+            TextUploadStateChanged?.Invoke(
+                this,
+                new TextUploadTransportStateChangedEventArgs(
+                    state,
+                    message,
+                    SupportsAcknowledgements,
+                    IsReady)));
+    }
+
+    private static Task DelayBetweenTextWritesAsync(TextUploadOptions options, CancellationToken cancellationToken) =>
+        options.InterFrameDelay > TimeSpan.Zero
+            ? Task.Delay(options.InterFrameDelay, cancellationToken)
+            : Task.CompletedTask;
 
     private static byte[] BuildAdvertisementPacket(NSData manufacturerData)
     {
