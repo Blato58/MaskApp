@@ -56,6 +56,14 @@ public sealed class RaveViewModel : INotifyPropertyChanged
             CreateAction(QuickActionId.TooMuchBass, "DnB")
         ];
 
+        CommandFallbackActions =
+        [
+            CreateCommandFallbackAction(QuickActionId.TestImage1),
+            CreateCommandFallbackAction(QuickActionId.TestImage2),
+            CreateCommandFallbackAction(QuickActionId.TestAnimation1),
+            CreateCommandFallbackAction(QuickActionId.TestAnimation2)
+        ];
+
         BlackoutCommand = new AsyncRelayCommand(BlackoutAsync, CanSendBrightnessCommand);
         RestoreCommand = new AsyncRelayCommand(RestoreAsync, CanSendBrightnessCommand);
         ApplyBrightnessCapCommand = new AsyncRelayCommand(ApplyBrightnessCapAsync, CanSendBrightnessCommand);
@@ -67,6 +75,8 @@ public sealed class RaveViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public IReadOnlyList<RaveAction> Actions { get; }
+
+    public IReadOnlyList<RaveAction> CommandFallbackActions { get; }
 
     public AsyncRelayCommand BlackoutCommand { get; }
 
@@ -158,6 +168,17 @@ public sealed class RaveViewModel : INotifyPropertyChanged
             new AsyncRelayCommand(cancellationToken => SendActionAsync(action.Id, action.Label, cancellationToken), CanSendCaption));
     }
 
+    private RaveAction CreateCommandFallbackAction(QuickActionId actionId)
+    {
+        var action = catalog.Get(actionId);
+        return new RaveAction(
+            action.Id,
+            action.Label,
+            $"Command-only built-in ID {action.BuiltInId}",
+            "Fallback",
+            new AsyncRelayCommand(cancellationToken => SendCommandFallbackAsync(action.Id, action.Label, cancellationToken), CanSendBrightnessCommand));
+    }
+
     private async Task SendActionAsync(QuickActionId actionId, string label, CancellationToken cancellationToken)
     {
         if (!CanSendCaption())
@@ -210,6 +231,33 @@ public sealed class RaveViewModel : INotifyPropertyChanged
         }
 
         return SendBrightnessAsync(QuickActionId.SetBrightness, $"BRIGHTNESS CAP {cappedBrightness}%", cappedBrightness, cancellationToken);
+    }
+
+    private async Task SendCommandFallbackAsync(QuickActionId actionId, string label, CancellationToken cancellationToken)
+    {
+        if (!CanSendBrightnessCommand())
+        {
+            SendStatusText = maskTransport.TransportStatusText;
+            return;
+        }
+
+        LastActionText = label;
+        LastPayloadText = $"Intent {actionId}";
+
+        try
+        {
+            IsSending = true;
+            SendStatusText = $"Sending {label} command fallback. Needs real-mask test.";
+            var result = await dispatcher.TriggerAsync(actionId, cancellationToken: cancellationToken).ConfigureAwait(false);
+            SendStatusText = result.Succeeded
+                ? $"{result.Message} Needs real-mask test."
+                : result.Message;
+            LastPayloadText = result.Status;
+        }
+        finally
+        {
+            IsSending = false;
+        }
     }
 
     private async Task SendBrightnessAsync(QuickActionId actionId, string label, int brightness, CancellationToken cancellationToken)
@@ -279,6 +327,11 @@ public sealed class RaveViewModel : INotifyPropertyChanged
     private void RaiseCommandStates()
     {
         foreach (var action in Actions)
+        {
+            action.SendCommand.RaiseCanExecuteChanged();
+        }
+
+        foreach (var action in CommandFallbackActions)
         {
             action.SendCommand.RaiseCanExecuteChanged();
         }

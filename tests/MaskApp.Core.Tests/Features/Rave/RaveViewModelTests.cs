@@ -81,6 +81,20 @@ public sealed class RaveViewModelTests
     }
 
     [Fact]
+    public async Task CommandFallbackAction_UsesCommandOnlyQuickAction()
+    {
+        var dispatcher = new RecordingQuickActionDispatcher();
+        var viewModel = CreateViewModel(dispatcher: dispatcher);
+
+        await viewModel.CommandFallbackActions.Single(action => action.Id == QuickActionId.TestAnimation1)
+            .SendCommand.ExecuteAsync();
+
+        Assert.Equal(QuickActionId.TestAnimation1, dispatcher.LastActionId);
+        Assert.Equal("Test Anim 1", viewModel.LastActionText);
+        Assert.Contains("Needs real-mask test", viewModel.SendStatusText);
+    }
+
+    [Fact]
     public async Task ManualAction_WriteOnlyFailure_DoesNotReportSent()
     {
         var dispatcher = new RecordingQuickActionDispatcher(QuickActionResult.Failed(QuickActionId.WheelUp, "Upload failed."));
@@ -102,6 +116,7 @@ public sealed class RaveViewModelTests
 
         Assert.False(viewModel.ShowSecondaryControls);
         Assert.Contains("BLACKOUT", viewModel.FestivalLockStatusText);
+        Assert.Equal(4, viewModel.CommandFallbackActions.Count);
     }
 
     [Fact]

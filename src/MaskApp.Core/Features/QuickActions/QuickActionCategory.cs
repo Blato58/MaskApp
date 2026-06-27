@@ -6,5 +6,6 @@ public enum QuickActionCategory
     Meme,
     Social,
     Rave,
-    Welfare
+    Welfare,
+    BuiltIn
 }

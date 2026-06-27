@@ -125,6 +125,7 @@ public sealed class ReactViewModel : INotifyPropertyChanged
         return card.Kind switch
         {
             QuickActionKind.Command => commandTransport.TransportState == MaskCommandTransportState.Ready,
+            QuickActionKind.BuiltInImage or QuickActionKind.BuiltInAnimation => commandTransport.TransportState == MaskCommandTransportState.Ready,
             QuickActionKind.Text or QuickActionKind.Random => textTransport.IsReady,
             _ => false
         };
@@ -134,6 +135,7 @@ public sealed class ReactViewModel : INotifyPropertyChanged
         card.Kind switch
         {
             QuickActionKind.Command => commandTransport.TransportStatusText,
+            QuickActionKind.BuiltInImage or QuickActionKind.BuiltInAnimation => commandTransport.TransportStatusText,
             QuickActionKind.Text or QuickActionKind.Random => textTransport.StatusText,
             _ => "This reaction is not available."
         };

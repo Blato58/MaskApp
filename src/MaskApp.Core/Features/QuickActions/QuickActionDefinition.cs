@@ -7,4 +7,5 @@ public sealed record QuickActionDefinition(
     QuickActionKind Kind,
     string? Caption = null,
     int? Brightness = null,
+    int? BuiltInId = null,
     bool IsRave = false);

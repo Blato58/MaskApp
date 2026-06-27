@@ -26,4 +26,17 @@ public sealed class QuickActionCatalogTests
         Assert.Contains("WHEEL UP", raveLabels);
         Assert.Contains("TOO MUCH BASS", raveLabels);
     }
+
+    [Fact]
+    public void BuiltInFallbacks_AreClearlyLabeledAsTestActions()
+    {
+        var catalog = new QuickActionCatalog();
+
+        var builtIns = catalog.ByCategory(QuickActionCategory.BuiltIn);
+
+        Assert.Equal(
+            ["Test Image 1", "Test Image 2", "Test Anim 1", "Test Anim 2"],
+            builtIns.Select(action => action.Label).ToArray());
+        Assert.All(builtIns, action => Assert.True(action.BuiltInId is 1 or 2));
+    }
 }

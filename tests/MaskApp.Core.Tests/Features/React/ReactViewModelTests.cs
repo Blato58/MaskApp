@@ -57,6 +57,21 @@ public sealed class ReactViewModelTests
         Assert.Contains("BLACKOUT ready.", viewModel.ReadinessText);
     }
 
+    [Fact]
+    public void BuiltInFallbackCommand_StaysAvailableWhenTextTransportIsNotReady()
+    {
+        var viewModel = new ReactViewModel(
+            new QuickActionCatalog(),
+            new FakeQuickActionDispatcher(QuickActionResult.Sent(QuickActionId.TestImage1, "Sent image.")),
+            new FakeCommandTransport(),
+            new FakeTextUploadTransport(IsReady: false, StatusText: "Connect text first."));
+        var card = viewModel.Groups.Single(group => group.Category == QuickActionCategory.BuiltIn)
+            .Cards.Single(card => card.Id == QuickActionId.TestImage1);
+
+        Assert.True(card.SendCommand.CanExecute(null));
+        Assert.Contains("Needs real-mask test", card.Description);
+    }
+
     private sealed class FakeQuickActionDispatcher : IQuickActionDispatcher
     {
         private readonly QuickActionResult result;

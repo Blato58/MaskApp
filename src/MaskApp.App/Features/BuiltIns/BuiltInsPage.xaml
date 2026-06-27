@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="MaskApp.App.Features.BuiltIns.BuiltInsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:builtins="clr-namespace:MaskApp.Core.Features.BuiltIns;assembly=MaskApp.Core"
+    x:DataType="builtins:BuiltInsViewModel"
+    Title="Built-ins"
+    BackgroundColor="{StaticResource PageBackgroundColor}">
+    <Grid RowDefinitions="*,Auto">
+        <ScrollView>
+            <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="18">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Built-ins" Style="{StaticResource PageTitleLabelStyle}" />
+                    <Label Text="Real-mask scanner for stock IMAG and ANIM command IDs." Style="{StaticResource MutedLabelStyle}" />
+                </VerticalStackLayout>
+
+                <Border Style="{StaticResource PanelBorderStyle}">
+                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Label Text="Scanner mode" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Border
+                                Grid.Column="1"
+                                Padding="8,3"
+                                BackgroundColor="{StaticResource ChipBackgroundColor}"
+                                StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <Label Text="{Binding ValidationLabel}" Style="{StaticResource ChipLabelStyle}" />
+                            </Border>
+                        </Grid>
+                        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="12">
+                            <Button Text="Static Image" Command="{Binding SelectStaticImageCommand}" />
+                            <Button Grid.Column="1" Text="Animation" Command="{Binding SelectAnimationCommand}" />
+                        </Grid>
+                        <Label Grid.Row="2" Text="{Binding RangeNote}" Style="{StaticResource MutedLabelStyle}" />
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource PanelBorderStyle}">
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
+                        <Label Text="{Binding ModeText}" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+                            <Label
+                                Text="{Binding CurrentId, StringFormat='ID {0}'}"
+                                FontAttributes="Bold"
+                                FontSize="24"
+                                VerticalTextAlignment="Center" />
+                            <Label
+                                Grid.Column="1"
+                                Text="{Binding CurrentHexId}"
+                                Style="{StaticResource MutedLabelStyle}"
+                                VerticalTextAlignment="Center" />
+                            <Label
+                                Grid.Column="2"
+                                Text="{Binding MaxId, StringFormat='max {0}'}"
+                                Style="{StaticResource MutedLabelStyle}"
+                                VerticalTextAlignment="Center" />
+                        </Grid>
+                        <Stepper
+                            Grid.Row="2"
+                            Minimum="0"
+                            Maximum="{Binding MaxId}"
+                            Increment="1"
+                            Value="{Binding CurrentIdValue, Mode=TwoWay}" />
+                        <Grid Grid.Row="3" ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                            <Button Text="Previous" Command="{Binding PreviousCommand}" />
+                            <Button Grid.Column="1" Text="Send" Command="{Binding SendCommand}" />
+                            <Button Grid.Column="2" Text="Next" Command="{Binding NextCommand}" />
+                        </Grid>
+                        <Button
+                            Grid.Row="4"
+                            Text="{Binding SendButtonText}"
+                            Command="{Binding SendCommand}" />
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource PanelBorderStyle}">
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
+                        <Label Text="Validation notes" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Label Grid.Row="1" Text="{Binding TransportReadinessText}" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Grid.Row="2" Text="{Binding SuggestedSequence}" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Grid.Row="3" Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
+                        <Grid
+                            Grid.Row="4"
+                            ColumnDefinitions="Auto,*"
+                            ColumnSpacing="10">
+                            <Label Text="Last" Style="{StaticResource MutedLabelStyle}" />
+                            <Label Grid.Column="1" Text="{Binding LastCommandText}" />
+                        </Grid>
+                    </Grid>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid
+            Grid.Row="1"
+            Padding="16"
+            BackgroundColor="#111827"
+            ColumnDefinitions="*,Auto"
+            ColumnSpacing="12">
+            <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                <Label Text="Use BLACKOUT if an ID looks bad" FontAttributes="Bold" TextColor="#FFFFFF" />
+                <Label Text="{Binding TransportReadinessText}" FontSize="12" TextColor="#CBD5E1" />
+            </VerticalStackLayout>
+            <Button
+                Grid.Column="1"
+                BackgroundColor="#EF4444"
+                FontAttributes="Bold"
+                HeightRequest="58"
+                Text="BLACKOUT"
+                TextColor="#FFFFFF"
+                Command="{Binding BlackoutCommand}" />
+        </Grid>
+    </Grid>
+</ContentPage>

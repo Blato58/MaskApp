@@ -49,6 +49,36 @@
                 </Border>
 
                 <Border IsVisible="{Binding ShowSecondaryControls}" Style="{StaticResource PanelBorderStyle}">
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
+                        <Label Text="Command fallbacks" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Label
+                            Grid.Row="1"
+                            Text="Test/fallback built-ins use command transport only. Needs real-mask test."
+                            Style="{StaticResource MutedLabelStyle}" />
+                        <FlexLayout
+                            Grid.Row="2"
+                            AlignItems="Start"
+                            BindableLayout.ItemsSource="{Binding CommandFallbackActions}"
+                            Direction="Row"
+                            Wrap="Wrap">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="rave:RaveAction">
+                                    <Button
+                                        Margin="0,0,10,10"
+                                        MinimumWidthRequest="148"
+                                        Text="{Binding Label}"
+                                        Command="{Binding SendCommand}" />
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </FlexLayout>
+                        <Button
+                            Grid.Row="3"
+                            Text="Apply brightness cap"
+                            Command="{Binding ApplyBrightnessCapCommand}" />
+                    </Grid>
+                </Border>
+
+                <Border IsVisible="{Binding ShowSecondaryControls}" Style="{StaticResource PanelBorderStyle}">
                     <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
                         <Label Text="Brightness cap" Style="{StaticResource SectionTitleLabelStyle}" />
                         <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="12">

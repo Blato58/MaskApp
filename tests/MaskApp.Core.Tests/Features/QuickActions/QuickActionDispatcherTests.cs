@@ -59,6 +59,49 @@ public sealed class QuickActionDispatcherTests
         Assert.False(textTransport.WasCalled);
     }
 
+    [Theory]
+    [InlineData(QuickActionId.TestImage1, MaskCommandKind.Image, 1)]
+    [InlineData(QuickActionId.TestAnimation2, MaskCommandKind.Animation, 2)]
+    public async Task TriggerAsync_BuiltInFallback_SendsCommandTransport(
+        QuickActionId actionId,
+        MaskCommandKind expectedKind,
+        int expectedId)
+    {
+        var commandTransport = new FakeCommandTransport();
+        var dispatcher = new QuickActionDispatcher(
+            new QuickActionCatalog(),
+            commandTransport,
+            new SimulatedTextUploadTransport());
+
+        var result = await dispatcher.TriggerAsync(actionId);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(commandTransport.LastCommand);
+        Assert.Equal(expectedKind, commandTransport.LastCommand.Kind);
+        Assert.Equal(expectedId, commandTransport.LastCommand.Plaintext.Span[5]);
+    }
+
+    [Fact]
+    public async Task TriggerAsync_BuiltInFallback_ReportsUnavailableCommandTransport()
+    {
+        var commandTransport = new FakeCommandTransport
+        {
+            TransportState = MaskCommandTransportState.Disconnected,
+            TransportStatusText = "Connect first."
+        };
+        var dispatcher = new QuickActionDispatcher(
+            new QuickActionCatalog(),
+            commandTransport,
+            new SimulatedTextUploadTransport());
+
+        var result = await dispatcher.TriggerAsync(QuickActionId.TestImage1);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("command transport not ready", result.Status);
+        Assert.Equal("Connect first.", result.Message);
+        Assert.Null(commandTransport.LastCommand);
+    }
+
     private sealed class FakeCommandTransport : IMaskCommandTransport
     {
         public event EventHandler<MaskCommandTransportStateChangedEventArgs>? TransportStateChanged
@@ -73,7 +116,7 @@ public sealed class QuickActionDispatcherTests
 
         public MaskCommandTransportState TransportState { get; init; } = MaskCommandTransportState.Ready;
 
-        public string TransportStatusText => "Fake ready.";
+        public string TransportStatusText { get; init; } = "Fake ready.";
 
         public MaskCommand? LastCommand { get; private set; }
 

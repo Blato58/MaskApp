@@ -24,7 +24,7 @@ public sealed class ReactDeckCatalog
             .ToArray();
 
         var groups = catalog.Actions
-            .Where(action => action.Kind == QuickActionKind.Text)
+            .Where(action => action.Kind is QuickActionKind.Text or QuickActionKind.BuiltInImage or QuickActionKind.BuiltInAnimation)
             .GroupBy(action => action.Category)
             .OrderBy(group => GetSortOrder(group.Key))
             .Select(group => new ReactDeckGroup(
@@ -55,6 +55,8 @@ public sealed class ReactDeckCatalog
         {
             QuickActionKind.Command when action.Id == QuickActionId.Blackout => "Dim the mask fast.",
             QuickActionKind.Random => "Pick a surprise offline caption.",
+            QuickActionKind.BuiltInImage => $"Command-only test/fallback image ID {action.BuiltInId}. Needs real-mask test.",
+            QuickActionKind.BuiltInAnimation => $"Command-only test/fallback animation ID {action.BuiltInId}. Needs real-mask test.",
             QuickActionKind.Text => action.Category switch
             {
                 QuickActionCategory.Meme => $"Meme caption: {caption}",
@@ -73,6 +75,7 @@ public sealed class ReactDeckCatalog
             QuickActionCategory.Social => "Social",
             QuickActionCategory.Rave => "RAVE",
             QuickActionCategory.Welfare => "Welfare",
+            QuickActionCategory.BuiltIn => "Built-in test fallbacks",
             QuickActionCategory.General => "General",
             _ => category.ToString()
         };
@@ -84,7 +87,8 @@ public sealed class ReactDeckCatalog
             QuickActionCategory.Social => 1,
             QuickActionCategory.Rave => 2,
             QuickActionCategory.Welfare => 3,
-            QuickActionCategory.General => 4,
+            QuickActionCategory.BuiltIn => 4,
+            QuickActionCategory.General => 5,
             _ => 5
         };
 }

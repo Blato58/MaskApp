@@ -30,5 +30,9 @@ public enum QuickActionId
     TooMuchBass,
     NoThoughts,
     WhereWater,
-    ILiveHere
+    ILiveHere,
+    TestImage1,
+    TestImage2,
+    TestAnimation1,
+    TestAnimation2
 }

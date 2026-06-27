@@ -36,6 +36,7 @@ Capability confidence and physical validation status are defined in
 - [x] Add modernization execution plan, readiness checklist, slice template, and per-slice record folder.
 - [x] Add wearable face controller product vision, capability-confidence model, RAVE MVP definition, and overclaim guardrails.
 - [x] Add stock Shining Mask protocol reference from community reverse-engineering evidence for BLE, Text, Image, Rhythm, DIY, and RAVE FAST work.
+- [x] Add real-mask validation checklist for iPhone festival readiness testing.
 
 ## Product Milestones
 
@@ -44,8 +45,8 @@ Capability confidence and physical validation status are defined in
 | Text validation/fix | [~] | Implemented | Needs real-mask test | Protocol constants, text `MODE`, ACK parsing, and upload-characteristic routing are corrected for real-mask testing; validate ACK-required and write-only upload on physical iOS first, then Android. |
 | Control Room | [~] | Implemented | Needs real-mask test | Validate Control Room connect recovery, blackout, brightness, random reaction, and recent/favorite reaction sends on a real mask. |
 | Reaction Deck MVP | [~] | Implemented | Needs real-mask test | Validate one-tap short captions, BLACKOUT, Random Reaction, and write-only fallback on a real mask. |
-| RAVE MVP entry point | [~] | Implemented | Needs real-mask test | Validate manual RAVE buttons, brightness cap, BLACKOUT, Festival Lock, and reconnect affordance on physical iOS; follow RAVE FAST guidance in `docs/stock-mask-protocol.md`. |
-| Built-in Gallery Scanner | [ ] | Protocol-documented | Needs real-mask test | Scan, label, favorite, and save built-in image/animation IDs. |
+| RAVE MVP entry point | [~] | Implemented | Needs real-mask test | Validate manual RAVE buttons, command fallbacks, brightness cap, BLACKOUT, Festival Lock, and reconnect affordance on physical iOS; follow RAVE FAST guidance in `docs/stock-mask-protocol.md`. |
+| Built-in Gallery Scanner | [~] | Implemented | Needs real-mask test | Built-ins tab can scan/send `IMAG` and `ANIM` IDs with decimal/hex display and BLACKOUT; validate useful IDs on real mask before favorites/persistence. |
 | Preset Library and Mask Packs | [ ] | Vision | Docs-only | Add JSON-backed saved looks, favorites, history, import, and export after core send flows are reliable. |
 | Image Studio and DIY slots | [ ] | Protocol-documented | Needs real-mask test | Implement from `docs/stock-mask-protocol.md`; validate image upload, `CHEC`, `DELE`, and `PLAY` before relying on slot sequencing. |
 | Rhythm and RAVE Labs | [ ] | Experimental | Needs real-mask test | Test visualizer protocol from `docs/stock-mask-protocol.md`, audio behavior, Drop Detector, Voice Mouth, Bass Face, GIF-ish playback, and real-time effects before product claims. |
@@ -61,7 +62,8 @@ Capability confidence and physical validation status are defined in
 | Mask control MVP | [~] | Power-as-dim/restore, brightness, image preset, animation preset, encrypted command builders, simulator transport for unsupported targets, diagnostics UI, exact command characteristic routing, iOS write characteristic discovery/debug logging, and Android BLE command writes. | Let the user interact with the mask from Control Room/RAVE while keeping command readiness, active transport, and failures visible. | Validate encrypted writes on physical iOS and Android devices and confirm preset IDs against real hardware. |
 | Control Room | [~] | Home page/view model now shows control/text transport status, recovery hints, brightness, BLACKOUT, restore, random reaction, favorite reactions, and recent reactions through shared quick-action intents. | Make the first screen useful for live mask operation instead of showing a migration roadmap. | Validate open-connect, blackout, brightness cap, and short reactions on a real mask. |
 | Reaction Deck | [~] | React page/view model groups short offline reactions by catalog category and pins BLACKOUT plus Random Reaction. | Give the wearer a one-tap deck for social/meme/welfare reactions. | Validate short caption sends and write-only/ACK status on a real mask. |
-| RAVE MVP | [~] | RAVE page/view model provides large manual DnB/festival buttons, BLACKOUT, brightness cap, Festival Lock, connect action, offline/manual status, and shared intent dispatch. | Make the mask useful in a loud/dark festival setting without internet, AI, microphone, or automation. | Validate physical text timing, blackout, brightness cap, and reconnect in iOS real-mask testing. |
+| RAVE MVP | [~] | RAVE page/view model provides large manual DnB/festival buttons, command-only built-in fallbacks, BLACKOUT, brightness cap, Festival Lock, connect action, offline/manual status, and shared intent dispatch. | Make the mask useful in a loud/dark festival setting without internet, AI, microphone, or automation. | Validate physical text timing, command fallbacks, blackout, brightness cap, and reconnect in iOS real-mask testing. |
+| Built-in Scanner | [~] | Built-ins page/view model sends static image and animation IDs through command transport, shows decimal/hex IDs, safe range notes, last status, transport readiness, suggested test sequence, and BLACKOUT. | Let the wearer discover useful stock-firmware visuals on the real mask before the festival. | Test `IMAG`/`ANIM` IDs on physical iPhone/mask and write down useful IDs. |
 | Settings | [ ] | Java source mapped only. | Rebuild settings as clear, grouped controls with explicit saved state and platform-appropriate permission paths. | Define settings model and iOS-first page behavior. |
 | Text | [~] | Deterministic ASCII glyph rasterizer, text upload payload/framing, encrypted `DATS`/`DATCP`/`MODE`/speed commands, documented text modes, broader ACK parsing, simulator transport, MAUI composer, LED preview, diagnostics, transport state events, ACK capability reporting, ACK-required upload mode, write-only compatibility upload mode, tests, iOS upload transport, Android BLE upload transport, and compile validation. | Improve text creation/editing flow with immediate preview feedback, visible transport readiness, explicit ACK/write-only mode, send progress, and actionable diagnostics before claiming real hardware parity. | Validate ACK-required and write-only text upload on physical iOS first, then Android; expand glyph parity beyond the MVP set. |
 | Image | [ ] | Java source mapped only. | Make image import/crop/preview understandable and enforce mask limits before sending data. | Map image storage, picker, crop, and LED transform behavior. |
@@ -83,7 +85,7 @@ Capability confidence and physical validation status are defined in
 
 - [x] BLE advertisement product matcher ported from `android/base/app/BleConfig.java`.
 - [x] Connect slice state and BLE abstraction contracts added.
-- [~] Port `Agreement` command builders with tests before UI wiring. MVP coverage includes AES-128 ECB `LIGHT`, `IMAG`, and `ANIM` commands from Java plus external reverse-engineered protocol evidence.
+- [~] Port `Agreement` command builders with tests before UI wiring. MVP coverage includes AES-128 ECB `LIGHT`, `IMAG`, and `ANIM` commands from Java plus external reverse-engineered protocol evidence; built-in fallback quick actions now dispatch `IMAG`/`ANIM` through command transport.
 - [x] Port text upload frame splitting and acknowledgement parsing with tests.
 - [ ] Port stock-protocol `MODE`, `M`, `FC`, and `BC` text controls with focused tests before exposing advanced text styling.
 - [ ] Port DIY/image frame splitting and acknowledgement parsing from `docs/stock-mask-protocol.md` with tests.
@@ -102,6 +104,7 @@ Capability confidence and physical validation status are defined in
 - [x] Text repair slice core tests cover transport readiness events, ACK-required upload options, write-only compatibility upload options, unavailable transport, empty text, and diagnostics.
 - [x] Text repair slice validated with `dotnet test`, `dotnet build -f net10.0-ios`, and `dotnet build -f net10.0-android`.
 - [x] RAVE FAST MVP validated with `dotnet test tests\MaskApp.Core.Tests\MaskApp.Core.Tests.csproj`, Roslyn diagnostics, `dotnet build src\MaskApp.App\MaskApp.App.csproj -f net10.0-ios`, and `dotnet build src\MaskApp.App\MaskApp.App.csproj -f net10.0-android`.
+- [x] Real-mask RAVE validation slice compile/test validated with `dotnet test tests\MaskApp.Core.Tests\MaskApp.Core.Tests.csproj` (76 tests), Roslyn diagnostics (0 warnings, 0 errors), `dotnet build src\MaskApp.App\MaskApp.App.csproj -f net10.0-ios` (0 warnings, 0 errors), and `dotnet build src\MaskApp.App\MaskApp.App.csproj -f net10.0-android` (0 warnings, 0 errors).
 - [x] Android BLE adapter compile validation for scan/connect, command writes, and text upload transport wiring.
 - [~] iOS CI distribution scripts validated locally; signed IPA build awaits GitHub Actions secrets and macOS runner execution.
 - [ ] iOS simulator launch smoke test.

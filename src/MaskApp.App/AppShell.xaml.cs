@@ -1,4 +1,5 @@
 using MaskApp.App.Features.Connect;
+using MaskApp.App.Features.BuiltIns;
 using MaskApp.App.Features.Home;
 using MaskApp.App.Features.React;
 using MaskApp.App.Features.Rave;
@@ -21,6 +22,7 @@ public partial class AppShell : Shell
                 CreateShellContent<ReactPage>("React", "react", services),
                 CreateShellContent<TextPage>("Text", "text", services),
                 CreateShellContent<RavePage>("RAVE", "rave", services),
+                CreateShellContent<BuiltInsPage>("Built-ins", "builtins", services),
                 CreateShellContent<ConnectPage>("Connect", "connect", services)
             }
         });

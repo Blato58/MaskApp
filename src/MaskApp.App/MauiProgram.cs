@@ -1,10 +1,12 @@
 using MaskApp.App.Features.Connect;
+using MaskApp.App.Features.BuiltIns;
 using MaskApp.App.Features.Home;
 using MaskApp.App.Features.React;
 using MaskApp.App.Features.Rave;
 using MaskApp.App.Features.Text;
 using MaskApp.App.Infrastructure.Bluetooth;
 using MaskApp.Core.Features.Connect;
+using MaskApp.Core.Features.BuiltIns;
 using MaskApp.Core.Features.Home;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.QuickActions;
@@ -28,6 +30,8 @@ public static class MauiProgram
         builder.Services.AddTransient<HomeViewModel>();
         builder.Services.AddTransient<ConnectPage>();
         builder.Services.AddTransient<ConnectViewModel>();
+        builder.Services.AddTransient<BuiltInsPage>();
+        builder.Services.AddTransient<BuiltInsViewModel>();
         builder.Services.AddTransient<MaskControlViewModel>();
         builder.Services.AddTransient<TextPage>();
         builder.Services.AddTransient<TextUploadViewModel>();

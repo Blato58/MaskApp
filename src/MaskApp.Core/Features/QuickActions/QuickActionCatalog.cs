@@ -32,7 +32,11 @@ public sealed class QuickActionCatalog
         new(QuickActionId.TooMuchBass, "TOO MUCH BASS", QuickActionCategory.Rave, QuickActionKind.Text, "TOO MUCH BASS", IsRave: true),
         new(QuickActionId.NoThoughts, "NO THOUGHTS", QuickActionCategory.Rave, QuickActionKind.Text, "NO THOUGHTS", IsRave: true),
         new(QuickActionId.WhereWater, "WHERE WATER?", QuickActionCategory.Welfare, QuickActionKind.Text, "WHERE WATER?", IsRave: true),
-        new(QuickActionId.ILiveHere, "I LIVE HERE", QuickActionCategory.Rave, QuickActionKind.Text, "I LIVE HERE", IsRave: true)
+        new(QuickActionId.ILiveHere, "I LIVE HERE", QuickActionCategory.Rave, QuickActionKind.Text, "I LIVE HERE", IsRave: true),
+        new(QuickActionId.TestImage1, "Test Image 1", QuickActionCategory.BuiltIn, QuickActionKind.BuiltInImage, BuiltInId: 1, IsRave: true),
+        new(QuickActionId.TestImage2, "Test Image 2", QuickActionCategory.BuiltIn, QuickActionKind.BuiltInImage, BuiltInId: 2, IsRave: true),
+        new(QuickActionId.TestAnimation1, "Test Anim 1", QuickActionCategory.BuiltIn, QuickActionKind.BuiltInAnimation, BuiltInId: 1, IsRave: true),
+        new(QuickActionId.TestAnimation2, "Test Anim 2", QuickActionCategory.BuiltIn, QuickActionKind.BuiltInAnimation, BuiltInId: 2, IsRave: true)
     ];
 
     public IReadOnlyList<QuickActionDefinition> Actions { get; } = ActionDefinitions;

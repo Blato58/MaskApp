@@ -30,6 +30,8 @@ public sealed class QuickActionDispatcher : IQuickActionDispatcher
         {
             QuickActionKind.Command => await SendBrightnessAsync(action, action.Brightness ?? 60, cancellationToken).ConfigureAwait(false),
             QuickActionKind.Brightness => await SendBrightnessAsync(action, request?.Brightness ?? action.Brightness ?? 60, cancellationToken).ConfigureAwait(false),
+            QuickActionKind.BuiltInImage => await SendBuiltInCommandAsync(action, cancellationToken).ConfigureAwait(false),
+            QuickActionKind.BuiltInAnimation => await SendBuiltInCommandAsync(action, cancellationToken).ConfigureAwait(false),
             QuickActionKind.Text => await SendTextAsync(action, cancellationToken).ConfigureAwait(false),
             QuickActionKind.Random => await SendRandomReactionAsync(action, cancellationToken).ConfigureAwait(false),
             _ => QuickActionResult.Failed(actionId, "Quick action is not supported.")
@@ -47,6 +49,29 @@ public sealed class QuickActionDispatcher : IQuickActionDispatcher
         }
 
         var command = MaskCommandBuilder.Brightness(brightness);
+        var result = await commandTransport.SendAsync(command, cancellationToken).ConfigureAwait(false);
+        return result.Succeeded
+            ? QuickActionResult.Sent(action.Id, result.Message)
+            : QuickActionResult.Failed(action.Id, result.Message);
+    }
+
+    private async Task<QuickActionResult> SendBuiltInCommandAsync(
+        QuickActionDefinition action,
+        CancellationToken cancellationToken)
+    {
+        if (action.BuiltInId is null)
+        {
+            return QuickActionResult.Failed(action.Id, "Quick action has no built-in ID.");
+        }
+
+        if (commandTransport.TransportState != MaskCommandTransportState.Ready)
+        {
+            return QuickActionResult.Failed(action.Id, commandTransport.TransportStatusText, "command transport not ready");
+        }
+
+        var command = action.Kind == QuickActionKind.BuiltInAnimation
+            ? MaskCommandBuilder.Animation(action.BuiltInId.Value, action.Label)
+            : MaskCommandBuilder.Image(action.BuiltInId.Value, action.Label);
         var result = await commandTransport.SendAsync(command, cancellationToken).ConfigureAwait(false);
         return result.Succeeded
             ? QuickActionResult.Sent(action.Id, result.Message)
