@@ -14,26 +14,35 @@ public sealed class HomeViewModel : INotifyPropertyChanged
     private readonly IQuickActionDispatcher dispatcher;
     private readonly IMaskCommandTransport commandTransport;
     private readonly ITextUploadTransport textTransport;
+    private readonly IQuickActionTextSettingsStore quickCaptionSettingsStore;
     private int brightness = 60;
-    private string lastActionStatus = "No Control Room action sent yet.";
-    private string currentLookText = "Unknown; send a reaction or brightness command to update.";
+    private string lastActionStatus = "Ready";
+    private string currentLookText = "None";
     private MaskCommandTransportState commandTransportState;
     private string commandTransportStatusText;
     private TextUploadTransportState textTransportState;
     private string textTransportStatusText;
     private bool textTransportIsReady;
     private bool textTransportSupportsAcknowledgements;
+    private QuickCaptionModeOption selectedQuickCaptionMode;
+    private QuickCaptionSendModeOption selectedQuickCaptionSendMode;
+    private QuickCaptionBackgroundPresetOption selectedQuickCaptionBackgroundPreset;
+    private int quickCaptionSpeed = QuickActionTextSettings.RaveDefaults.Speed;
+    private bool quickCaptionBackgroundEnabled;
+    private bool settingsLoaded;
 
     public HomeViewModel(
         QuickActionCatalog catalog,
         IQuickActionDispatcher dispatcher,
         IMaskCommandTransport commandTransport,
-        ITextUploadTransport textTransport)
+        ITextUploadTransport textTransport,
+        IQuickActionTextSettingsStore? quickCaptionSettingsStore = null)
     {
         this.catalog = catalog;
         this.dispatcher = dispatcher;
         this.commandTransport = commandTransport;
         this.textTransport = textTransport;
+        this.quickCaptionSettingsStore = quickCaptionSettingsStore ?? new InMemoryQuickActionTextSettingsStore();
 
         commandTransportState = commandTransport.TransportState;
         commandTransportStatusText = commandTransport.TransportStatusText;
@@ -41,6 +50,27 @@ public sealed class HomeViewModel : INotifyPropertyChanged
         textTransportStatusText = textTransport.StatusText;
         textTransportIsReady = textTransport.IsReady;
         textTransportSupportsAcknowledgements = textTransport.SupportsAcknowledgements;
+        QuickCaptionModeOptions =
+        [
+            new QuickCaptionModeOption("Flash / Blink", QuickCaptionDisplayMode.FlashBlink),
+            new QuickCaptionModeOption("Scroll right-to-left", QuickCaptionDisplayMode.ScrollRightToLeft),
+            new QuickCaptionModeOption("Scroll left-to-right", QuickCaptionDisplayMode.ScrollLeftToRight)
+        ];
+        QuickCaptionSendModeOptions =
+        [
+            new QuickCaptionSendModeOption("Fast write-only", QuickCaptionSendMode.FastWriteOnly),
+            new QuickCaptionSendModeOption("Reliable ACK", QuickCaptionSendMode.ReliableAcknowledgement)
+        ];
+        QuickCaptionBackgroundPresetOptions =
+        [
+            new QuickCaptionBackgroundPresetOption("RAVE purple", QuickCaptionBackgroundPreset.RavePurple, "#A855F7"),
+            new QuickCaptionBackgroundPresetOption("Red alert", QuickCaptionBackgroundPreset.RedAlert, "#EF4444"),
+            new QuickCaptionBackgroundPresetOption("Deep blue", QuickCaptionBackgroundPreset.DeepBlue, "#1D4ED8"),
+            new QuickCaptionBackgroundPresetOption("Black", QuickCaptionBackgroundPreset.Black, "#000000")
+        ];
+        selectedQuickCaptionMode = QuickCaptionModeOptions[0];
+        selectedQuickCaptionSendMode = QuickCaptionSendModeOptions[0];
+        selectedQuickCaptionBackgroundPreset = QuickCaptionBackgroundPresetOptions[0];
 
         BlackoutCommand = new AsyncRelayCommand(
             cancellationToken => TriggerAsync(QuickActionId.Blackout, "Blackout", cancellationToken),
@@ -58,6 +88,7 @@ public sealed class HomeViewModel : INotifyPropertyChanged
         RandomReactionCommand = new AsyncRelayCommand(
             cancellationToken => TriggerAsync(QuickActionId.RandomReaction, "Random reaction", cancellationToken),
             () => CanUseTextReactions);
+        ResetQuickCaptionSettingsCommand = new AsyncRelayCommand(ResetQuickCaptionSettingsAsync);
 
         FavoriteReactions =
         [
@@ -93,9 +124,17 @@ public sealed class HomeViewModel : INotifyPropertyChanged
 
     public AsyncRelayCommand RandomReactionCommand { get; }
 
+    public AsyncRelayCommand ResetQuickCaptionSettingsCommand { get; }
+
     public IReadOnlyList<HomeQuickActionCard> FavoriteReactions { get; }
 
     public ObservableCollection<HomeQuickActionCard> RecentReactions { get; }
+
+    public IReadOnlyList<QuickCaptionModeOption> QuickCaptionModeOptions { get; }
+
+    public IReadOnlyList<QuickCaptionSendModeOption> QuickCaptionSendModeOptions { get; }
+
+    public IReadOnlyList<QuickCaptionBackgroundPresetOption> QuickCaptionBackgroundPresetOptions { get; }
 
     public int Brightness
     {
@@ -214,6 +253,72 @@ public sealed class HomeViewModel : INotifyPropertyChanged
             ? "Text reactions wait for ACK confirmation."
             : "Text reactions use write-only compatibility when available.";
 
+    public QuickCaptionModeOption SelectedQuickCaptionMode
+    {
+        get => selectedQuickCaptionMode;
+        set
+        {
+            if (value is not null && SetField(ref selectedQuickCaptionMode, value))
+            {
+                PersistQuickCaptionSettings();
+            }
+        }
+    }
+
+    public QuickCaptionSendModeOption SelectedQuickCaptionSendMode
+    {
+        get => selectedQuickCaptionSendMode;
+        set
+        {
+            if (value is not null && SetField(ref selectedQuickCaptionSendMode, value))
+            {
+                PersistQuickCaptionSettings();
+            }
+        }
+    }
+
+    public int QuickCaptionSpeed
+    {
+        get => quickCaptionSpeed;
+        set
+        {
+            if (SetField(ref quickCaptionSpeed, Math.Clamp(value, 1, 100)))
+            {
+                OnPropertyChanged(nameof(QuickCaptionSpeedText));
+                PersistQuickCaptionSettings();
+            }
+        }
+    }
+
+    public string QuickCaptionSpeedText => $"{QuickCaptionSpeed}";
+
+    public bool QuickCaptionBackgroundEnabled
+    {
+        get => quickCaptionBackgroundEnabled;
+        set
+        {
+            if (SetField(ref quickCaptionBackgroundEnabled, value))
+            {
+                PersistQuickCaptionSettings();
+            }
+        }
+    }
+
+    public QuickCaptionBackgroundPresetOption SelectedQuickCaptionBackgroundPreset
+    {
+        get => selectedQuickCaptionBackgroundPreset;
+        set
+        {
+            if (value is not null && SetField(ref selectedQuickCaptionBackgroundPreset, value))
+            {
+                PersistQuickCaptionSettings();
+            }
+        }
+    }
+
+    public string QuickCaptionBackgroundNote =>
+        "Background presets use BC/FC evidence and need real-mask test. Captions still send if style commands are unavailable.";
+
     public bool CanUseControlCommands => CommandTransportState == MaskCommandTransportState.Ready;
 
     public bool CanUseTextReactions => TextTransportIsReady;
@@ -224,21 +329,28 @@ public sealed class HomeViewModel : INotifyPropertyChanged
         {
             if (CanUseControlCommands && CanUseTextReactions)
             {
-                return "Mask controls and text reactions are ready.";
+                return "Ready";
             }
 
             if (!CanUseControlCommands && !CanUseTextReactions)
             {
-                return "Open Connect to scan or reconnect; controls and reactions unlock when the mask transport is ready.";
+                return "Connect to send";
             }
 
             if (!CanUseControlCommands)
             {
-                return "Open Connect to recover control commands; text reactions may still be available.";
+                return "Connect to send";
             }
 
-            return "Open Text for upload diagnostics if reactions do not appear on the mask.";
+            return "Text not ready";
         }
+    }
+
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        var settings = (await quickCaptionSettingsStore.LoadAsync(cancellationToken).ConfigureAwait(false)).Normalize();
+        ApplyQuickCaptionSettings(settings);
+        settingsLoaded = true;
     }
 
     private HomeQuickActionCard CreateReactionCard(QuickActionId actionId, string status)
@@ -262,8 +374,8 @@ public sealed class HomeViewModel : INotifyPropertyChanged
     {
         var result = await dispatcher.TriggerAsync(actionId, request, cancellationToken).ConfigureAwait(false);
         LastActionStatus = result.Succeeded
-            ? $"{displayName}: {result.Message}"
-            : $"{displayName}: {result.Message}";
+            ? "Sent, confirm on mask"
+            : "Failed";
 
         if (!result.Succeeded)
         {
@@ -274,6 +386,55 @@ public sealed class HomeViewModel : INotifyPropertyChanged
         if (catalog.Get(actionId).Kind == QuickActionKind.Text)
         {
             MoveToRecent(actionId);
+        }
+    }
+
+    private Task ResetQuickCaptionSettingsAsync(CancellationToken cancellationToken)
+    {
+        ApplyQuickCaptionSettings(QuickActionTextSettings.RaveDefaults);
+        settingsLoaded = true;
+        PersistQuickCaptionSettings();
+        LastActionStatus = "RAVE defaults restored";
+        return Task.CompletedTask;
+    }
+
+    private void ApplyQuickCaptionSettings(QuickActionTextSettings settings)
+    {
+        SelectedQuickCaptionMode = QuickCaptionModeOptions.Single(option => option.Mode == settings.DisplayMode);
+        SelectedQuickCaptionSendMode = QuickCaptionSendModeOptions.Single(option => option.SendMode == settings.SendMode);
+        QuickCaptionSpeed = settings.Speed;
+        QuickCaptionBackgroundEnabled = settings.BackgroundEnabled;
+        SelectedQuickCaptionBackgroundPreset = QuickCaptionBackgroundPresetOptions.Single(option => option.Preset == settings.BackgroundPreset);
+    }
+
+    private void PersistQuickCaptionSettings()
+    {
+        if (!settingsLoaded)
+        {
+            return;
+        }
+
+        var settings = new QuickActionTextSettings
+        {
+            DisplayMode = SelectedQuickCaptionMode.Mode,
+            Speed = QuickCaptionSpeed,
+            SendMode = SelectedQuickCaptionSendMode.SendMode,
+            BackgroundEnabled = QuickCaptionBackgroundEnabled,
+            BackgroundPreset = SelectedQuickCaptionBackgroundPreset.Preset
+        }.Normalize();
+
+        _ = PersistQuickCaptionSettingsAsync(settings);
+    }
+
+    private async Task PersistQuickCaptionSettingsAsync(QuickActionTextSettings settings)
+    {
+        try
+        {
+            await quickCaptionSettingsStore.SaveAsync(settings).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            LastActionStatus = "Failed";
         }
     }
 

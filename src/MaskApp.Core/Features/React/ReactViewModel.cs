@@ -52,7 +52,7 @@ public sealed class ReactViewModel : INotifyPropertyChanged
         ];
         selectedFilter = FilterOptions[0];
 
-        statusText = BuildReadinessText();
+        statusText = BuildPrimaryReadinessText();
         commandTransport.TransportStateChanged += OnCommandTransportStateChanged;
         textTransport.StateChanged += OnTextTransportStateChanged;
     }
@@ -129,15 +129,15 @@ public sealed class ReactViewModel : INotifyPropertyChanged
         }
     }
 
-    public string ReadinessText => BuildReadinessText();
+    public string ReadinessText => BuildPrimaryReadinessText();
 
     public string CommandReadinessText => commandTransport.TransportState == MaskCommandTransportState.Ready
-        ? "BLACKOUT ready."
-        : $"BLACKOUT unavailable: {commandTransport.TransportStatusText}";
+        ? "Ready"
+        : "Connect to send";
 
     public string TextReadinessText => textTransport.IsReady
         ? BuildTextReadyText()
-        : $"Text reactions unavailable: {textTransport.StatusText}";
+        : "Text not ready";
 
     public async Task InitializeArchiveAsync(CancellationToken cancellationToken = default)
     {
@@ -159,12 +159,12 @@ public sealed class ReactViewModel : INotifyPropertyChanged
         {
             IsSending = true;
             LastActionText = card.Label;
-            StatusText = $"Sending {card.Label}...";
+            StatusText = "Ready";
 
             var result = await dispatcher.TriggerAsync(card.Id, cancellationToken: cancellationToken).ConfigureAwait(false);
             StatusText = result.Succeeded
-                ? $"Sent {card.Label}. {result.Message}"
-                : $"{card.Label} failed: {result.Message}";
+                ? "Sent, confirm on mask"
+                : "Failed";
         }
         finally
         {
@@ -226,9 +226,9 @@ public sealed class ReactViewModel : INotifyPropertyChanged
     private string GetUnavailableStatus(ReactReactionCard card) =>
         card.Kind switch
         {
-            QuickActionKind.Command => commandTransport.TransportStatusText,
-            QuickActionKind.BuiltInImage or QuickActionKind.BuiltInAnimation => commandTransport.TransportStatusText,
-            QuickActionKind.Text or QuickActionKind.Random => textTransport.StatusText,
+            QuickActionKind.Command => "Connect to send",
+            QuickActionKind.BuiltInImage or QuickActionKind.BuiltInAnimation => "Connect to send",
+            QuickActionKind.Text or QuickActionKind.Random => "Text not ready",
             _ => "This reaction is not available."
         };
 
@@ -236,7 +236,7 @@ public sealed class ReactViewModel : INotifyPropertyChanged
     {
         if (!CanSendBuiltIn())
         {
-            StatusText = commandTransport.TransportStatusText;
+            StatusText = "Connect to send";
             return;
         }
 
@@ -244,12 +244,12 @@ public sealed class ReactViewModel : INotifyPropertyChanged
         {
             IsSending = true;
             LastActionText = record.DisplayName;
-            StatusText = $"Sending {record.DisplayName} ({record.HexId}). Needs real-mask test.";
+            StatusText = "Needs real-mask test";
             var result = await commandTransport.SendAsync(BuiltInAssetCommandFactory.CreateCommand(record), cancellationToken)
                 .ConfigureAwait(false);
             StatusText = result.Succeeded
-                ? $"{result.Message} Command-only built-in; confirm on mask."
-                : $"{record.DisplayName} failed: {result.Message}";
+                ? "Sent, confirm on mask"
+                : "Failed";
         }
         finally
         {
@@ -257,41 +257,41 @@ public sealed class ReactViewModel : INotifyPropertyChanged
         }
     }
 
-    private string BuildReadinessText()
+    private string BuildPrimaryReadinessText()
     {
         if (commandTransport.TransportState == MaskCommandTransportState.Ready && textTransport.IsReady)
         {
-            return "Ready for BLACKOUT and one-tap reactions.";
+            return "Ready";
         }
 
         if (commandTransport.TransportState == MaskCommandTransportState.Ready)
         {
-            return $"BLACKOUT ready. Text reactions need transport: {textTransport.StatusText}";
+            return "Text not ready";
         }
 
         if (textTransport.IsReady)
         {
-            return $"Text reactions ready. BLACKOUT needs command transport: {commandTransport.TransportStatusText}";
+            return "Ready";
         }
 
-        return $"Connect first. Command: {commandTransport.TransportStatusText} Text: {textTransport.StatusText}";
+        return "Connect to send";
     }
 
     private string BuildTextReadyText()
     {
         if (!textTransport.SupportsAcknowledgements)
         {
-            return "Text reactions ready in write-only compatibility mode.";
+            return "Ready";
         }
 
         return textTransport.IsSimulated
-            ? "Text reactions ready on simulated transport."
-            : "Text reactions ready with ACK support.";
+            ? "Ready"
+            : "Ready";
     }
 
     private void OnCommandTransportStateChanged(object? sender, MaskCommandTransportStateChangedEventArgs e)
     {
-        StatusText = BuildReadinessText();
+        StatusText = BuildPrimaryReadinessText();
         OnPropertyChanged(nameof(ReadinessText));
         OnPropertyChanged(nameof(CommandReadinessText));
         RaiseCardCommandStates();
@@ -299,7 +299,7 @@ public sealed class ReactViewModel : INotifyPropertyChanged
 
     private void OnTextTransportStateChanged(object? sender, TextUploadTransportStateChangedEventArgs e)
     {
-        StatusText = BuildReadinessText();
+        StatusText = BuildPrimaryReadinessText();
         OnPropertyChanged(nameof(ReadinessText));
         OnPropertyChanged(nameof(TextReadinessText));
         RaiseCardCommandStates();

@@ -9,15 +9,18 @@ public sealed class QuickActionDispatcher : IQuickActionDispatcher
     private readonly QuickActionCatalog catalog;
     private readonly IMaskCommandTransport commandTransport;
     private readonly ITextUploadTransport textTransport;
+    private readonly IQuickActionTextSettingsStore settingsStore;
 
     public QuickActionDispatcher(
         QuickActionCatalog catalog,
         IMaskCommandTransport commandTransport,
-        ITextUploadTransport textTransport)
+        ITextUploadTransport textTransport,
+        IQuickActionTextSettingsStore? settingsStore = null)
     {
         this.catalog = catalog;
         this.commandTransport = commandTransport;
         this.textTransport = textTransport;
+        this.settingsStore = settingsStore ?? new InMemoryQuickActionTextSettingsStore();
     }
 
     public async Task<QuickActionResult> TriggerAsync(
@@ -89,22 +92,30 @@ public sealed class QuickActionDispatcher : IQuickActionDispatcher
 
         if (!textTransport.IsReady)
         {
-            return QuickActionResult.Failed(action.Id, textTransport.StatusText, "text transport not ready");
+            return QuickActionResult.Failed(action.Id, "Text not ready", "text transport not ready");
         }
 
-        var package = TextUploadProtocol.CreatePackage(action.Caption, DefaultTextColor, mode: 3, speed: 70);
-        var options = textTransport.SupportsAcknowledgements
-            ? TextUploadOptions.RequireAcknowledgements
-            : TextUploadOptions.WriteOnlyCompatibility;
-        var result = await textTransport.UploadAsync(package, options, cancellationToken).ConfigureAwait(false);
-        if (result.Succeeded && !textTransport.SupportsAcknowledgements)
+        var settings = (await settingsStore.LoadAsync(cancellationToken).ConfigureAwait(false)).Normalize();
+        if (settings.SendMode == QuickCaptionSendMode.ReliableAcknowledgement && !textTransport.SupportsAcknowledgements)
         {
-            return QuickActionResult.Sent(action.Id, $"{result.Message} Write-only mode; confirm on mask.");
+            return QuickActionResult.Failed(action.Id, "Text not ready", "ack unavailable");
         }
 
-        return result.Succeeded
-            ? QuickActionResult.Sent(action.Id, result.Message)
-            : QuickActionResult.Failed(action.Id, result.Message);
+        var package = TextUploadProtocol.CreatePackage(
+            action.Caption,
+            DefaultTextColor,
+            settings.ProtocolMode,
+            settings.Speed);
+        var options = settings.SendMode == QuickCaptionSendMode.FastWriteOnly
+            ? TextUploadOptions.WriteOnlyCompatibility
+            : TextUploadOptions.RequireAcknowledgements;
+        var result = await textTransport.UploadAsync(package, options, cancellationToken).ConfigureAwait(false);
+        if (result.Succeeded)
+        {
+            return QuickActionResult.Sent(action.Id, "Sent, confirm on mask");
+        }
+
+        return QuickActionResult.Failed(action.Id, "Failed");
     }
 
     private Task<QuickActionResult> SendRandomReactionAsync(

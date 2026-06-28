@@ -27,7 +27,7 @@ public sealed class QuickActionDispatcherTests
     [Fact]
     public async Task TriggerAsync_TextReaction_UsesTextUploadTransport()
     {
-        var textTransport = new SimulatedTextUploadTransport();
+        var textTransport = new FakeTextUploadTransport();
         var dispatcher = new QuickActionDispatcher(
             new QuickActionCatalog(),
             new FakeCommandTransport(),
@@ -37,6 +37,59 @@ public sealed class QuickActionDispatcherTests
 
         Assert.True(result.Succeeded);
         Assert.Equal("LOL", textTransport.LastPackage?.Text);
+        Assert.Equal((byte)2, textTransport.LastPackage!.ModeCommand.Plaintext.Span[5]);
+        Assert.Equal((byte)100, textTransport.LastPackage.SpeedCommand.Plaintext.Span[6]);
+        Assert.False(textTransport.LastOptions?.AckRequired);
+        Assert.True(textTransport.LastOptions?.CompatibilityWriteOnly);
+        Assert.Equal("Sent, confirm on mask", result.Message);
+    }
+
+    [Fact]
+    public async Task TriggerAsync_TextReaction_UsesReliableAckWhenConfigured()
+    {
+        var textTransport = new FakeTextUploadTransport();
+        var dispatcher = new QuickActionDispatcher(
+            new QuickActionCatalog(),
+            new FakeCommandTransport(),
+            textTransport,
+            new InMemoryQuickActionTextSettingsStore(new QuickActionTextSettings
+            {
+                DisplayMode = QuickCaptionDisplayMode.ScrollLeftToRight,
+                Speed = 44,
+                SendMode = QuickCaptionSendMode.ReliableAcknowledgement
+            }));
+
+        var result = await dispatcher.TriggerAsync(QuickActionId.Drop);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal((byte)4, textTransport.LastPackage!.ModeCommand.Plaintext.Span[5]);
+        Assert.Equal((byte)44, textTransport.LastPackage.SpeedCommand.Plaintext.Span[6]);
+        Assert.True(textTransport.LastOptions?.AckRequired);
+        Assert.False(textTransport.LastOptions?.CompatibilityWriteOnly);
+    }
+
+    [Fact]
+    public async Task TriggerAsync_TextReaction_ReliableAckReportsNotReadyWhenAckUnavailable()
+    {
+        var textTransport = new FakeTextUploadTransport
+        {
+            SupportsAcknowledgements = false
+        };
+        var dispatcher = new QuickActionDispatcher(
+            new QuickActionCatalog(),
+            new FakeCommandTransport(),
+            textTransport,
+            new InMemoryQuickActionTextSettingsStore(new QuickActionTextSettings
+            {
+                SendMode = QuickCaptionSendMode.ReliableAcknowledgement
+            }));
+
+        var result = await dispatcher.TriggerAsync(QuickActionId.Lol);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Text not ready", result.Message);
+        Assert.Equal("ack unavailable", result.Status);
+        Assert.False(textTransport.WasCalled);
     }
 
     [Fact]
@@ -139,7 +192,7 @@ public sealed class QuickActionDispatcherTests
 
         public bool IsSimulated => true;
 
-        public bool IsReady { get; init; }
+        public bool IsReady { get; init; } = true;
 
         public bool SupportsAcknowledgements { get; init; } = true;
 
@@ -149,12 +202,18 @@ public sealed class QuickActionDispatcherTests
 
         public bool WasCalled { get; private set; }
 
+        public TextUploadPackage? LastPackage { get; private set; }
+
+        public TextUploadOptions? LastOptions { get; private set; }
+
         public Task<TextUploadResult> UploadAsync(
             TextUploadPackage package,
             TextUploadOptions options,
             CancellationToken cancellationToken = default)
         {
             WasCalled = true;
+            LastPackage = package;
+            LastOptions = options;
             return Task.FromResult(TextUploadResult.Success("Uploaded.", package.Frames.Count));
         }
     }

@@ -19,7 +19,7 @@ public sealed class BuiltInsViewModelTests
         var command = Assert.Single(transport.SentCommands);
         Assert.Equal(MaskCommandKind.Image, command.Kind);
         Assert.Equal(2, command.Plaintext.Span[5]);
-        Assert.Contains("Needs real-mask test", viewModel.StatusText);
+        Assert.Equal("Sent, confirm on mask", viewModel.StatusText);
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public sealed class BuiltInsViewModelTests
         await viewModel.SendCommand.ExecuteAsync();
 
         Assert.Empty(transport.SentCommands);
-        Assert.Equal("Connect first.", viewModel.StatusText);
+        Assert.Equal("Connect to send", viewModel.StatusText);
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public sealed class BuiltInsViewModelTests
         Assert.Equal(7, record.Id);
         Assert.Equal(BuiltInAssetStatus.Working, record.Status);
         Assert.Single(viewModel.FavoriteFaces);
-        Assert.Contains("Saved IMAG 7 as Working", viewModel.StatusText);
+        Assert.Equal("Ready", viewModel.StatusText);
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public sealed class BuiltInsViewModelTests
         Assert.True(record.IsFavorite);
         Assert.Equal(1, store.SaveCount);
         Assert.Single(viewModel.FavoriteFaces);
-        Assert.Contains("Favorited IMAG 1", viewModel.StatusText);
+        Assert.Equal("Ready", viewModel.StatusText);
     }
 
     [Fact]

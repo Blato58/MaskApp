@@ -35,7 +35,7 @@ public sealed class HomeViewModelTests
         Assert.Equal("Connect to a mask.", viewModel.CommandTransportStatusText);
         Assert.Equal(TextUploadTransportState.Disconnected, viewModel.TextTransportState);
         Assert.Equal("Text upload disconnected.", viewModel.TextTransportStatusText);
-        Assert.Contains("Open Connect", viewModel.RecoveryHint);
+        Assert.Equal("Connect to send", viewModel.RecoveryHint);
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public sealed class HomeViewModelTests
 
         Assert.Equal(QuickActionId.Blackout, dispatcher.LastActionId);
         Assert.Null(dispatcher.LastRequest);
-        Assert.Contains("Blackout", viewModel.LastActionStatus);
+        Assert.Equal("Sent, confirm on mask", viewModel.LastActionStatus);
         Assert.Equal("Blackout", viewModel.CurrentLookText);
     }
 

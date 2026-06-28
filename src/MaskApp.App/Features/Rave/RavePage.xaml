@@ -140,12 +140,24 @@
                             Wrap="Wrap">
                             <BindableLayout.ItemTemplate>
                                 <DataTemplate x:DataType="builtins:BuiltInAssetAction">
-                                    <Button
+                                    <Border
                                         Margin="0,0,10,10"
-                                        MinimumWidthRequest="132"
-                                        Text="{Binding Label}"
-                                        Command="{Binding SendCommand}"
-                                        Style="{StaticResource NeonBlueButtonStyle}" />
+                                        MinimumWidthRequest="148"
+                                        Style="{StaticResource ActionCardBorderStyle}"
+                                        Stroke="{StaticResource AccentBlueColor}">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding SendCommand}" />
+                                        </Border.GestureRecognizers>
+                                        <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="5">
+                                            <Label Text="{Binding Label}" FontAttributes="Bold" TextColor="{StaticResource AccentBlueColor}" />
+                                            <Label Grid.Row="1" Text="{Binding Caption}" Style="{StaticResource TinyLabelStyle}" />
+                                            <Button
+                                                Grid.Row="2"
+                                                Text="Send"
+                                                Command="{Binding SendCommand}"
+                                                Style="{StaticResource NeonBlueButtonStyle}" />
+                                        </Grid>
+                                    </Border>
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>
                         </FlexLayout>
@@ -157,9 +169,10 @@
                         <Label Text="Connection and send status" Style="{StaticResource SectionTitleLabelStyle}" />
                         <Label Grid.Row="1" Text="{Binding ActiveTransportText}" Style="{StaticResource MutedLabelStyle}" />
                         <Label Grid.Row="2" Text="{Binding ConnectionStatusText}" Style="{StaticResource MutedLabelStyle}" />
-                        <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
                             <Label Text="{Binding SendStatusText}" Style="{StaticResource MutedLabelStyle}" VerticalTextAlignment="Center" />
-                            <Button Grid.Column="1" Text="Connect" Clicked="OnConnectClicked" Style="{StaticResource PrimaryButtonStyle}" />
+                            <Button Grid.Column="1" Text="Text Composer" Clicked="OnOpenTextClicked" Style="{StaticResource NeonBlueButtonStyle}" />
+                            <Button Grid.Column="2" Text="Connect" Clicked="OnConnectClicked" Style="{StaticResource PrimaryButtonStyle}" />
                         </Grid>
                     </Grid>
                 </Border>
@@ -189,7 +202,7 @@
             Grid.Row="1"
             Padding="14"
             BackgroundColor="{StaticResource SurfaceColor}"
-            ColumnDefinitions="*,Auto,Auto"
+            ColumnDefinitions="*,Auto,Auto,Auto"
             ColumnSpacing="10">
             <VerticalStackLayout Spacing="2" VerticalOptions="Center">
                 <Label Text="Festival Lock keeps BLACKOUT available" FontAttributes="Bold" />
@@ -198,11 +211,17 @@
             <Button
                 Grid.Column="1"
                 HeightRequest="56"
+                Text="Text"
+                Clicked="OnOpenTextClicked"
+                Style="{StaticResource NeonBlueButtonStyle}" />
+            <Button
+                Grid.Column="2"
+                HeightRequest="56"
                 Text="Connect"
                 Clicked="OnConnectClicked"
                 Style="{StaticResource PrimaryButtonStyle}" />
             <Button
-                Grid.Column="2"
+                Grid.Column="3"
                 HeightRequest="56"
                 Text="BLACKOUT"
                 Command="{Binding BlackoutCommand}"

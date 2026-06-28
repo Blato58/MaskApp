@@ -14,7 +14,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
     private int currentId = 1;
     private bool isSending;
     private bool isLoadingArchive;
-    private string statusText = "Choose a built-in ID and send it to a connected mask.";
+    private string statusText = "Ready";
     private string lastCommandText = "None";
     private string displayName = "Image 1";
     private string tagsText = string.Empty;
@@ -141,8 +141,8 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
     public string SuggestedSequence => "Send an ID, inspect the physical mask, then tap Favorite, Works, Bad, or Weird. Common status changes autosave.";
 
     public string TransportReadinessText => transport.TransportState == MaskCommandTransportState.Ready
-        ? $"{transport.TransportDisplayName} command transport ready."
-        : $"Command transport unavailable: {transport.TransportStatusText}";
+        ? "Ready"
+        : "Connect to send";
 
     public bool IsSending
     {
@@ -240,7 +240,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
 
     public string FavoriteFacesHintText => HasFavoriteFaces
         ? "Tap a face once to send its stock IMAG/ANIM command."
-        : "Scan built-ins, then tap Star Favorite or Works to build your deck.";
+        : "Scan built-ins, then tap ⭐ or ✅ Works to build your deck.";
 
     public IReadOnlyList<BuiltInAssetListItem> SavedItems
     {
@@ -335,7 +335,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         RefreshSavedItems();
         if (saved)
         {
-            StatusText = $"Saved {record.DisplayName} ({record.HexId}). Metadata only; no frames extracted.";
+            StatusText = "Ready";
         }
     }
 
@@ -350,9 +350,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
 
         if (saved)
         {
-            StatusText = IsFavorite
-                ? $"Favorited {GetCommandName(record)} {record.Id}. Added to Favorite Faces."
-                : $"Removed favorite from {GetCommandName(record)} {record.Id}.";
+            StatusText = "Ready";
         }
     }
 
@@ -372,10 +370,10 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         {
             StatusText = status switch
             {
-                BuiltInAssetStatus.Working => $"Saved {GetCommandName(record)} {record.Id} as Working.",
-                BuiltInAssetStatus.Bad => $"Marked {GetCommandName(record)} {record.Id} as Bad.",
-                BuiltInAssetStatus.Weird => $"Marked {GetCommandName(record)} {record.Id} as Weird.",
-                _ => $"Saved {GetCommandName(record)} {record.Id} as {status}."
+                BuiltInAssetStatus.Working => "Ready",
+                BuiltInAssetStatus.Bad => "Ready",
+                BuiltInAssetStatus.Weird => "Ready",
+                _ => "Ready"
             };
         }
     }
@@ -388,7 +386,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
     {
         if (!CanSend())
         {
-            StatusText = transport.TransportStatusText;
+            StatusText = "Connect to send";
             return;
         }
 
@@ -398,11 +396,11 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
             LastCommandText = command.Kind == MaskCommandKind.Brightness
                 ? $"{command.Kind}: {label}"
                 : $"{command.Kind}: {label} ({CurrentHexId})";
-            StatusText = $"Sending {label}. Needs real-mask test.";
+            StatusText = "Needs real-mask test";
             var result = await transport.SendAsync(command, cancellationToken).ConfigureAwait(false);
             LastSendStatus = result.Succeeded
-                ? $"{result.Message} Needs real-mask test."
-                : result.Message;
+                ? "Sent, confirm on mask"
+                : "Failed";
             StatusText = LastSendStatus;
 
             if (updateArchive)
@@ -483,7 +481,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
     {
         if (!CanSend())
         {
-            StatusText = transport.TransportStatusText;
+            StatusText = "Connect to send";
             return;
         }
 
@@ -491,13 +489,13 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         {
             IsSending = true;
             LastCommandText = $"{GetCommandName(record)}: {record.DisplayName} ({record.HexId})";
-            StatusText = $"Sending {record.DisplayName}. Needs real-mask test.";
+            StatusText = "Needs real-mask test";
 
             var result = await transport.SendAsync(BuiltInAssetCommandFactory.CreateCommand(record), cancellationToken)
                 .ConfigureAwait(false);
             var sendStatus = result.Succeeded
-                ? $"{result.Message} Needs real-mask test."
-                : result.Message;
+                ? "Sent, confirm on mask"
+                : "Failed";
             StatusText = sendStatus;
 
             var updated = record with
@@ -523,7 +521,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
             : BuiltInScannerMode.Animation;
         CurrentId = record.Id;
         LoadMetadataForCurrent();
-        StatusText = $"Loaded {record.DisplayName}. Metadata only.";
+        StatusText = "Ready";
     }
 
     private static string GetTypeLabel(BuiltInAssetRecord record) =>

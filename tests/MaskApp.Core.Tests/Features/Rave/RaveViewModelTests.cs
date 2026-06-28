@@ -50,7 +50,7 @@ public sealed class RaveViewModelTests
 
         Assert.Equal(QuickActionId.Drop, dispatcher.LastActionId);
         Assert.Equal("DROP", viewModel.LastActionText);
-        Assert.Contains("Sent.", viewModel.SendStatusText);
+        Assert.Equal("Sent, confirm on mask", viewModel.SendStatusText);
         Assert.Equal("sent", viewModel.LastPayloadText);
     }
 
@@ -64,7 +64,7 @@ public sealed class RaveViewModelTests
         await viewModel.Actions.Single(action => action.Label == "WHEEL UP").SendCommand.ExecuteAsync();
 
         Assert.Equal(QuickActionId.WheelUp, dispatcher.LastActionId);
-        Assert.Contains("without ACK", viewModel.SendStatusText);
+        Assert.Equal("Sent, confirm on mask", viewModel.SendStatusText);
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public sealed class RaveViewModelTests
 
         Assert.Equal(QuickActionId.TestAnimation1, dispatcher.LastActionId);
         Assert.Equal("Test Anim 1", viewModel.LastActionText);
-        Assert.Contains("Needs real-mask test", viewModel.SendStatusText);
+        Assert.Equal("Sent, confirm on mask", viewModel.SendStatusText);
     }
 
     [Fact]
@@ -104,8 +104,8 @@ public sealed class RaveViewModelTests
 
         await viewModel.Actions.Single(action => action.Label == "WHEEL UP").SendCommand.ExecuteAsync();
 
-        Assert.Equal("Upload failed.", viewModel.SendStatusText);
-        Assert.DoesNotContain("Sent without ACK", viewModel.SendStatusText);
+        Assert.Equal("Failed", viewModel.SendStatusText);
+        Assert.Equal("Failed", viewModel.SendStatusText);
     }
 
     [Fact]
@@ -130,7 +130,7 @@ public sealed class RaveViewModelTests
         await viewModel.Actions.Single(action => action.Label == "BOH").SendCommand.ExecuteAsync();
 
         Assert.Null(dispatcher.LastActionId);
-        Assert.Equal("Text disconnected.", viewModel.SendStatusText);
+        Assert.Equal("Text not ready", viewModel.SendStatusText);
     }
 
     [Fact]

@@ -48,7 +48,7 @@ public sealed class ReactViewModelTests
 
         Assert.Equal(QuickActionId.Lol, dispatcher.LastActionId);
         Assert.Equal("LOL", viewModel.LastActionText);
-        Assert.Equal("Sent LOL. Uploaded.", viewModel.StatusText);
+        Assert.Equal("Sent, confirm on mask", viewModel.StatusText);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public sealed class ReactViewModelTests
             .Cards.Single(card => card.Id == QuickActionId.Lol);
 
         Assert.False(card.SendCommand.CanExecute(null));
-        Assert.Contains("Text reactions unavailable: Connect first.", viewModel.TextReadinessText);
+        Assert.Equal("Text not ready", viewModel.TextReadinessText);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public sealed class ReactViewModelTests
 
         Assert.True(blackout.SendCommand.CanExecute(null));
         Assert.False(random.SendCommand.CanExecute(null));
-        Assert.Contains("BLACKOUT ready.", viewModel.ReadinessText);
+        Assert.Equal("Text not ready", viewModel.ReadinessText);
     }
 
     [Fact]

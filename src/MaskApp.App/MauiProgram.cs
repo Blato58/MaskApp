@@ -41,6 +41,7 @@ public static class MauiProgram
         builder.Services.AddTransient<RavePage>();
         builder.Services.AddTransient<RaveViewModel>();
         builder.Services.AddSingleton<QuickActionCatalog>();
+        builder.Services.AddSingleton<IQuickActionTextSettingsStore, JsonQuickActionTextSettingsStore>();
         builder.Services.AddTransient<IQuickActionDispatcher, QuickActionDispatcher>();
         builder.Services.AddSingleton<IBuiltInAssetArchiveStore, JsonBuiltInAssetArchiveStore>();
 

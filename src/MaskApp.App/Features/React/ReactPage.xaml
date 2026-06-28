@@ -12,13 +12,18 @@
         <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="16">
             <Border Style="{StaticResource PanelBorderStyle}">
                 <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="3">
                             <Label Text="Reaction Deck" Style="{StaticResource PageTitleLabelStyle}" />
                             <Label Text="{Binding ReadinessText}" Style="{StaticResource MutedLabelStyle}" />
                         </VerticalStackLayout>
-                        <ActivityIndicator
+                        <Button
                             Grid.Column="1"
+                            Text="Text Composer"
+                            Clicked="OnOpenTextClicked"
+                            Style="{StaticResource NeonBlueButtonStyle}" />
+                        <ActivityIndicator
+                            Grid.Column="2"
                             IsRunning="{Binding IsSending}"
                             IsVisible="{Binding IsSending}"
                             VerticalOptions="Center" />
@@ -193,6 +198,9 @@
                                     MinimumWidthRequest="148"
                                     Style="{StaticResource ActionCardBorderStyle}"
                                     Stroke="{StaticResource AccentBlueColor}">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding SendCommand}" />
+                                    </Border.GestureRecognizers>
                                     <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="5">
                                         <Label Text="{Binding Label}" FontAttributes="Bold" TextColor="{StaticResource AccentBlueColor}" />
                                         <Label Grid.Row="1" Text="{Binding Caption}" Style="{StaticResource TinyLabelStyle}" />

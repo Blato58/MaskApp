@@ -23,4 +23,9 @@ public partial class RavePage : ContentPage
     {
         await Shell.Current.GoToAsync("//connect");
     }
+
+    private static async void OnOpenTextClicked(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("text");
+    }
 }

@@ -13,6 +13,7 @@ public partial class AppShell : Shell
     public AppShell(IServiceProvider services)
     {
         InitializeComponent();
+        Routing.RegisterRoute("text", typeof(TextPage));
 
         Items.Add(new TabBar
         {
@@ -20,7 +21,6 @@ public partial class AppShell : Shell
             {
                 CreateShellContent<HomePage>("Control", "control", "icon_control.svg", services),
                 CreateShellContent<ReactPage>("React", "react", "icon_react.svg", services),
-                CreateShellContent<TextPage>("Text", "text", "icon_text.svg", services),
                 CreateShellContent<RavePage>("RAVE", "rave", "icon_rave.svg", services),
                 CreateShellContent<BuiltInsPage>("Faces", "builtins", "icon_builtins.svg", services),
                 CreateShellContent<ConnectPage>("Connect", "connect", "icon_connect.svg", services)

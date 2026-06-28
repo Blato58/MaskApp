@@ -20,7 +20,7 @@ public sealed class RaveViewModel : INotifyPropertyChanged
     private bool festivalLock;
     private bool isSending;
     private IReadOnlyList<BuiltInAssetAction> favoriteBuiltIns = [];
-    private string sendStatusText = "Ready for manual offline captions.";
+    private string sendStatusText = "Ready";
     private string maskStatusText;
     private string textStatusText;
     private string lastActionText = "None";
@@ -124,7 +124,7 @@ public sealed class RaveViewModel : INotifyPropertyChanged
         }
     }
 
-    public string ConnectionStatusText => $"Control: {maskStatusText} Text: {textStatusText}";
+    public string ConnectionStatusText => BuildConnectionStatusText();
 
     public int BrightnessCap
     {
@@ -239,14 +239,12 @@ public sealed class RaveViewModel : INotifyPropertyChanged
         try
         {
             IsSending = true;
-            SendStatusText = textTransport.SupportsAcknowledgements
-                ? $"Sending {label} with ACK confirmation..."
-                : $"Sending {label} without ACK confirmation...";
+            SendStatusText = "Ready";
 
             var result = await dispatcher.TriggerAsync(actionId, cancellationToken: cancellationToken).ConfigureAwait(false);
-            SendStatusText = result.Succeeded && !textTransport.SupportsAcknowledgements
-                ? $"{result.Message} Sent without ACK confirmation; confirm on mask."
-                : result.Message;
+            SendStatusText = result.Succeeded
+                ? "Sent, confirm on mask"
+                : "Failed";
             LastPayloadText = result.Status;
         }
         finally
@@ -283,7 +281,7 @@ public sealed class RaveViewModel : INotifyPropertyChanged
     {
         if (!CanSendBrightnessCommand())
         {
-            SendStatusText = maskTransport.TransportStatusText;
+            SendStatusText = "Connect to send";
             return;
         }
 
@@ -293,11 +291,11 @@ public sealed class RaveViewModel : INotifyPropertyChanged
         try
         {
             IsSending = true;
-            SendStatusText = $"Sending {label} command fallback. Needs real-mask test.";
+            SendStatusText = "Needs real-mask test";
             var result = await dispatcher.TriggerAsync(actionId, cancellationToken: cancellationToken).ConfigureAwait(false);
             SendStatusText = result.Succeeded
-                ? $"{result.Message} Needs real-mask test."
-                : result.Message;
+                ? "Sent, confirm on mask"
+                : "Failed";
             LastPayloadText = result.Status;
         }
         finally
@@ -310,7 +308,7 @@ public sealed class RaveViewModel : INotifyPropertyChanged
     {
         if (!CanSendBrightnessCommand())
         {
-            SendStatusText = maskTransport.TransportStatusText;
+            SendStatusText = "Connect to send";
             return;
         }
 
@@ -320,12 +318,12 @@ public sealed class RaveViewModel : INotifyPropertyChanged
         try
         {
             IsSending = true;
-            SendStatusText = $"Sending favorite built-in {record.DisplayName}. Needs real-mask test.";
+            SendStatusText = "Needs real-mask test";
             var result = await maskTransport.SendAsync(BuiltInAssetCommandFactory.CreateCommand(record), cancellationToken)
                 .ConfigureAwait(false);
             SendStatusText = result.Succeeded
-                ? $"{result.Message} Command-only/low-bandwidth; confirm on mask."
-                : result.Message;
+                ? "Sent, confirm on mask"
+                : "Failed";
             LastPayloadText = result.Succeeded ? "sent" : "failed";
         }
         finally
@@ -338,7 +336,7 @@ public sealed class RaveViewModel : INotifyPropertyChanged
     {
         if (!CanSendBrightnessCommand())
         {
-            SendStatusText = "Mask brightness controls are not ready.";
+            SendStatusText = "Connect to send";
             return;
         }
 
@@ -348,12 +346,12 @@ public sealed class RaveViewModel : INotifyPropertyChanged
         try
         {
             IsSending = true;
-            SendStatusText = $"Sending {label}...";
+            SendStatusText = "Ready";
             var result = await dispatcher.TriggerAsync(
                 actionId,
                 actionId == QuickActionId.SetBrightness ? new QuickActionRequest(brightness) : null,
                 cancellationToken).ConfigureAwait(false);
-            SendStatusText = result.Message;
+            SendStatusText = result.Succeeded ? "Sent, confirm on mask" : "Failed";
             if (result.Succeeded && brightness > 1)
             {
                 BrightnessCap = brightness;
@@ -377,10 +375,20 @@ public sealed class RaveViewModel : INotifyPropertyChanged
     {
         if (!textTransport.IsReady)
         {
-            return textTransport.StatusText;
+            return "Text not ready";
         }
 
-        return "Text upload is not ready.";
+        return "Text not ready";
+    }
+
+    private string BuildConnectionStatusText()
+    {
+        if (maskTransport.TransportState == MaskCommandTransportState.Ready && textTransport.IsReady)
+        {
+            return "Ready";
+        }
+
+        return "Connect to send";
     }
 
     private void OnMaskTransportStateChanged(object? sender, MaskCommandTransportStateChangedEventArgs e)

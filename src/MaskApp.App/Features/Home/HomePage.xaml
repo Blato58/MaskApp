@@ -80,7 +80,7 @@
 
                     <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="10">
                         <Button Text="Connect" Clicked="OnOpenConnectClicked" Style="{StaticResource PrimaryButtonStyle}" />
-                        <Button Grid.Column="1" Text="Text Creator" Clicked="OnOpenTextClicked" Style="{StaticResource NeonBlueButtonStyle}" />
+                        <Button Grid.Column="1" Text="Text Composer" Clicked="OnOpenTextClicked" Style="{StaticResource NeonBlueButtonStyle}" />
                     </Grid>
                 </Grid>
             </Border>
@@ -208,6 +208,75 @@
                             </DataTemplate>
                         </BindableLayout.ItemTemplate>
                     </FlexLayout>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Quick caption settings" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Label Text="Used by Control, React, and RAVE quick text." Style="{StaticResource TinyLabelStyle}" />
+                        </VerticalStackLayout>
+                        <Button
+                            Grid.Column="1"
+                            Text="Reset"
+                            Command="{Binding ResetQuickCaptionSettingsCommand}" />
+                    </Grid>
+
+                    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Mode" Style="{StaticResource TinyLabelStyle}" />
+                            <Picker
+                                ItemDisplayBinding="{Binding Label}"
+                                ItemsSource="{Binding QuickCaptionModeOptions}"
+                                SelectedItem="{Binding SelectedQuickCaptionMode, Mode=TwoWay}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1" Spacing="5">
+                            <Label Text="Send mode" Style="{StaticResource TinyLabelStyle}" />
+                            <Picker
+                                ItemDisplayBinding="{Binding Label}"
+                                ItemsSource="{Binding QuickCaptionSendModeOptions}"
+                                SelectedItem="{Binding SelectedQuickCaptionSendMode, Mode=TwoWay}" />
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="{Binding QuickCaptionSpeedText, StringFormat='Speed {0}'}" Style="{StaticResource TinyLabelStyle}" />
+                            <Slider
+                                Minimum="1"
+                                Maximum="100"
+                                Value="{Binding QuickCaptionSpeed, Mode=TwoWay}" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="1" Style="{StaticResource StatusPillBorderStyle}">
+                            <Label Text="Default 100" Style="{StaticResource ChipLabelStyle}" />
+                        </Border>
+                    </Grid>
+
+                    <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="3">
+                            <Label Text="Background preset" Style="{StaticResource TinyLabelStyle}" />
+                            <Picker
+                                ItemDisplayBinding="{Binding Label}"
+                                ItemsSource="{Binding QuickCaptionBackgroundPresetOptions}"
+                                SelectedItem="{Binding SelectedQuickCaptionBackgroundPreset, Mode=TwoWay}" />
+                        </VerticalStackLayout>
+                        <Switch
+                            Grid.Column="1"
+                            IsToggled="{Binding QuickCaptionBackgroundEnabled, Mode=TwoWay}"
+                            VerticalOptions="Center" />
+                    </Grid>
+
+                    <Label
+                        Grid.Row="4"
+                        Text="{Binding QuickCaptionBackgroundNote}"
+                        Style="{StaticResource TinyLabelStyle}" />
+                    <Label
+                        Grid.Row="5"
+                        Text="Default: Flash / Blink, speed 100, Fast write-only."
+                        TextColor="{StaticResource AccentYellowColor}"
+                        Style="{StaticResource TinyLabelStyle}" />
                 </Grid>
             </Border>
         </VerticalStackLayout>

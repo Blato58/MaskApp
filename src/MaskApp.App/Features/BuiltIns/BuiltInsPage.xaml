@@ -44,7 +44,7 @@
                         <Label
                             Grid.Row="2"
                             IsVisible="{Binding HasNoFavoriteFaces}"
-                            Text="Scan built-ins, then tap Star Favorite or Works to build your deck."
+                            Text="Scan built-ins, then tap ⭐ or ✅ Works to build your deck."
                             Style="{StaticResource MutedLabelStyle}" />
                         <FlexLayout
                             Grid.Row="3"
@@ -187,7 +187,7 @@
                             Placeholder="Notes"
                             Text="{Binding Notes, Mode=TwoWay}" />
                         <Grid Grid.Row="4" ColumnDefinitions="*,*,*,*" ColumnSpacing="8">
-                            <Button Text="Star Favorite" Command="{Binding ToggleFavoriteCommand}" Style="{StaticResource NeonBlueButtonStyle}" />
+                            <Button Text="Favorite" Command="{Binding ToggleFavoriteCommand}" Style="{StaticResource NeonBlueButtonStyle}" />
                             <Button Grid.Column="1" Text="Works" Command="{Binding MarkWorkingCommand}" Style="{StaticResource PrimaryButtonStyle}" />
                             <Button Grid.Column="2" Text="Bad" Command="{Binding MarkBadCommand}" Style="{StaticResource DangerButtonStyle}" />
                             <Button Grid.Column="3" Text="Weird" Command="{Binding MarkWeirdCommand}" />

@@ -26,4 +26,9 @@ public partial class ReactPage : ContentPage
             viewModel.SelectedFilter = filter;
         }
     }
+
+    private static async void OnOpenTextClicked(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("text");
+    }
 }
