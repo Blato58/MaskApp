@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using MaskApp.Core.Features.Connect;
@@ -12,6 +11,7 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
     private const int PreviewColumns = 48;
     private const int PreviewRows = 16;
     private const string PreviewOffColor = "#111827";
+    private const int MaxDiagnosticHexLength = 1024;
 
     private readonly ITextUploadTransport transport;
     private string text = "HELLO";
@@ -21,6 +21,7 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
     private string statusText;
     private string lastPayloadHex = "None";
     private string lastCommandText = "None";
+    private IReadOnlyList<TextPreviewCell> previewCells = [];
     private int columnCount;
     private int frameCount;
     private bool isSending;
@@ -64,7 +65,11 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
 
     public IReadOnlyList<TextAnimationModeOption> AnimationModes { get; }
 
-    public ObservableCollection<TextPreviewCell> PreviewCells { get; } = [];
+    public IReadOnlyList<TextPreviewCell> PreviewCells
+    {
+        get => previewCells;
+        private set => SetField(ref previewCells, value);
+    }
 
     public AsyncRelayCommand SendCommand { get; }
 
@@ -250,7 +255,7 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
             Speed);
 
         LastCommandText = $"{package.StartCommand.DisplayName}; {package.ModeCommand.DisplayName}; {package.SpeedCommand.DisplayName}";
-        LastPayloadHex = Convert.ToHexString(package.Payload);
+        LastPayloadHex = TruncateDiagnosticHex(Convert.ToHexString(package.Payload));
         ColumnCount = package.ColumnCount;
         FrameCount = package.Frames.Count;
 
@@ -265,9 +270,17 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
                 ? $"Sending {package.Frames.Count} frame(s) without ACK confirmation..."
                 : $"Sending {package.Frames.Count} frame(s) with ACK confirmation...";
 
-            var result = await transport.UploadAsync(package, options, cancellationToken).ConfigureAwait(false);
+            var result = await transport.UploadAsync(package, options, cancellationToken);
             StatusText = result.Message;
             FrameCount = result.FramesSent;
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText = "Text send cancelled.";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Failed: {GetShortErrorMessage(ex)}";
         }
         finally
         {
@@ -277,20 +290,31 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
 
     private void RefreshPreview()
     {
-        var ledData = TextGlyphRasterizer.Render(Text);
-        ColumnCount = ledData.Length / 2;
-        FrameCount = TextUploadProtocol.SplitFrames(
-            TextUploadProtocol.BuildPayload(ledData, Enumerable.Repeat(SelectedColor.ToLedColor(), ColumnCount)),
-            TextUploadProtocol.DefaultFramePayloadLength).Count;
-
-        PreviewCells.Clear();
-        for (var row = 0; row < PreviewRows; row++)
+        try
         {
-            for (var column = 0; column < PreviewColumns; column++)
+            var ledData = TextGlyphRasterizer.Render(Text);
+            ColumnCount = ledData.Length / 2;
+            FrameCount = CalculateFrameCount(ColumnCount);
+
+            var cells = new TextPreviewCell[PreviewColumns * PreviewRows];
+            var index = 0;
+            for (var row = 0; row < PreviewRows; row++)
             {
-                var isLit = IsLit(ledData, column, row);
-                PreviewCells.Add(new TextPreviewCell(isLit, isLit ? SelectedColor.Hex : PreviewOffColor));
+                for (var column = 0; column < PreviewColumns; column++)
+                {
+                    var isLit = IsLit(ledData, column, row);
+                    cells[index++] = new TextPreviewCell(isLit, isLit ? SelectedColor.Hex : PreviewOffColor);
+                }
             }
+
+            PreviewCells = cells;
+        }
+        catch (Exception ex)
+        {
+            ColumnCount = 0;
+            FrameCount = 0;
+            PreviewCells = BuildBlankPreview();
+            StatusText = $"Preview unavailable: {GetShortErrorMessage(ex)}";
         }
     }
 
@@ -351,6 +375,41 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
         TextUploadTransportState state,
         bool supportsAcknowledgements) =>
         !supportsAcknowledgements && state == TextUploadTransportState.CompatibilityReady;
+
+    private static int CalculateFrameCount(int columnCount)
+    {
+        if (columnCount <= 0)
+        {
+            return 0;
+        }
+
+        var payloadLength = columnCount * 5;
+        return (int)Math.Ceiling(payloadLength / (double)TextUploadProtocol.DefaultFramePayloadLength);
+    }
+
+    private static TextPreviewCell[] BuildBlankPreview()
+    {
+        var cells = new TextPreviewCell[PreviewColumns * PreviewRows];
+        for (var i = 0; i < cells.Length; i++)
+        {
+            cells[i] = new TextPreviewCell(false, PreviewOffColor);
+        }
+
+        return cells;
+    }
+
+    private static string TruncateDiagnosticHex(string value) =>
+        value.Length <= MaxDiagnosticHexLength
+            ? value
+            : string.Concat(value.AsSpan(0, MaxDiagnosticHexLength), "...");
+
+    private static string GetShortErrorMessage(Exception ex)
+    {
+        var message = string.IsNullOrWhiteSpace(ex.Message)
+            ? ex.GetType().Name
+            : ex.Message;
+        return message.Length <= 96 ? message : string.Concat(message.AsSpan(0, 96), "...");
+    }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

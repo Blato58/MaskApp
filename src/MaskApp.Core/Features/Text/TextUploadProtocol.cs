@@ -15,6 +15,22 @@ public static class TextUploadProtocol
         bool useLargeMtu = false)
     {
         var ledData = TextGlyphRasterizer.Render(text);
+        return CreatePackageFromLedData(text, ledData, color, mode, speed, useLargeMtu);
+    }
+
+    public static TextUploadPackage CreatePackageFromLedData(
+        string text,
+        byte[] ledData,
+        TextLedColor color,
+        int mode,
+        int speed,
+        bool useLargeMtu = false)
+    {
+        if (ledData.Length % 2 != 0)
+        {
+            throw new ArgumentException("LED text data must contain two bytes per column.", nameof(ledData));
+        }
+
         var columnCount = ledData.Length / 2;
         var payload = BuildPayload(ledData, Enumerable.Repeat(color, columnCount));
         var framePayloadLength = useLargeMtu ? LargeMtuFramePayloadLength : DefaultFramePayloadLength;

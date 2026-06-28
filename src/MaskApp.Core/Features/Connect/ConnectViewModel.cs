@@ -86,7 +86,7 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
     {
         Devices.Clear();
         StatusText = "Scanning for masks...";
-        await scanner.StartScanningAsync(cancellationToken).ConfigureAwait(false);
+        await scanner.StartScanningAsync(cancellationToken);
     }
 
     private Task StopScanAsync(CancellationToken cancellationToken) => scanner.StopScanningAsync(cancellationToken);

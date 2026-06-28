@@ -1,4 +1,5 @@
 using MaskApp.Core.Features.Text;
+using System.Collections.ObjectModel;
 
 namespace MaskApp.Core.Tests.Features.Text;
 
@@ -14,6 +15,7 @@ public sealed class TextUploadViewModelTests
         Assert.Equal("Simulator (simulated)", viewModel.ActiveTransportText);
         Assert.True(viewModel.SupportsAcknowledgements);
         Assert.Equal(TextUploadTransportState.Simulated, viewModel.TransportState);
+        Assert.IsNotType<ObservableCollection<TextPreviewCell>>(viewModel.PreviewCells);
     }
 
     [Fact]
@@ -154,6 +156,80 @@ public sealed class TextUploadViewModelTests
         Assert.True(transport.LastOptions.CompatibilityWriteOnly);
     }
 
+    [Fact]
+    public void Text_ReplacesPreviewListOnce()
+    {
+        var viewModel = new TextUploadViewModel(new SimulatedTextUploadTransport());
+        var originalPreview = viewModel.PreviewCells;
+
+        viewModel.Text = "DROP";
+
+        Assert.NotSame(originalPreview, viewModel.PreviewCells);
+        Assert.Equal(48 * 16, viewModel.PreviewCells.Count);
+    }
+
+    [Fact]
+    public async Task SendCommand_ReportsUploadExceptionAsStatus()
+    {
+        var transport = new FakeTextUploadTransport
+        {
+            IsReady = true,
+            SupportsAcknowledgements = true,
+            State = TextUploadTransportState.Ready,
+            ExceptionToThrow = new InvalidOperationException("BLE write failed")
+        };
+        var viewModel = new TextUploadViewModel(transport)
+        {
+            Text = "DROP"
+        };
+
+        await viewModel.SendCommand.ExecuteAsync();
+
+        Assert.False(viewModel.IsSending);
+        Assert.Equal("Failed: BLE write failed", viewModel.StatusText);
+    }
+
+    [Fact]
+    public async Task SendCommand_ReportsCancellationAsStatus()
+    {
+        var transport = new FakeTextUploadTransport
+        {
+            IsReady = true,
+            SupportsAcknowledgements = true,
+            State = TextUploadTransportState.Ready,
+            ExceptionToThrow = new OperationCanceledException()
+        };
+        var viewModel = new TextUploadViewModel(transport)
+        {
+            Text = "DROP"
+        };
+
+        await viewModel.SendCommand.ExecuteAsync();
+
+        Assert.False(viewModel.IsSending);
+        Assert.Equal("Text send cancelled.", viewModel.StatusText);
+    }
+
+    [Fact]
+    public async Task SendCommand_TruncatesDiagnosticPayloadHex()
+    {
+        var transport = new FakeTextUploadTransport
+        {
+            IsReady = true,
+            SupportsAcknowledgements = true,
+            State = TextUploadTransportState.Ready
+        };
+        var viewModel = new TextUploadViewModel(transport)
+        {
+            Text = new string('W', TextUploadViewModel.MaxTextLength)
+        };
+
+        await viewModel.SendCommand.ExecuteAsync();
+
+        Assert.EndsWith("...", viewModel.LastPayloadHex);
+        Assert.True(viewModel.LastPayloadHex.Length <= 1027);
+    }
+
     private sealed class FakeTextUploadTransport : ITextUploadTransport
     {
         public event EventHandler<TextUploadTransportStateChangedEventArgs>? StateChanged;
@@ -174,11 +250,18 @@ public sealed class TextUploadViewModelTests
 
         public TextUploadOptions? LastOptions { get; private set; }
 
+        public Exception? ExceptionToThrow { get; init; }
+
         public Task<TextUploadResult> UploadAsync(
             TextUploadPackage package,
             TextUploadOptions options,
             CancellationToken cancellationToken = default)
         {
+            if (ExceptionToThrow is not null)
+            {
+                return Task.FromException<TextUploadResult>(ExceptionToThrow);
+            }
+
             WasCalled = true;
             LastOptions = options;
             return Task.FromResult(TextUploadResult.Success("Uploaded.", package.Frames.Count));

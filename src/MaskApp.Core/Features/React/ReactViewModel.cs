@@ -141,7 +141,7 @@ public sealed class ReactViewModel : INotifyPropertyChanged
 
     public async Task InitializeArchiveAsync(CancellationToken cancellationToken = default)
     {
-        var archive = await archiveStore.LoadAsync(cancellationToken).ConfigureAwait(false);
+        var archive = await archiveStore.LoadAsync(cancellationToken);
         FavoriteBuiltIns = archive.FavoriteDeckRecords()
             .Select(CreateBuiltInAction)
             .ToArray();
@@ -161,10 +161,10 @@ public sealed class ReactViewModel : INotifyPropertyChanged
             LastActionText = card.Label;
             StatusText = "Ready";
 
-            var result = await dispatcher.TriggerAsync(card.Id, cancellationToken: cancellationToken).ConfigureAwait(false);
+            var result = await dispatcher.TriggerAsync(card.Id, cancellationToken: cancellationToken);
             StatusText = result.Succeeded
                 ? "Sent, confirm on mask"
-                : "Failed";
+                : result.Message;
         }
         finally
         {
@@ -245,11 +245,10 @@ public sealed class ReactViewModel : INotifyPropertyChanged
             IsSending = true;
             LastActionText = record.DisplayName;
             StatusText = "Needs real-mask test";
-            var result = await commandTransport.SendAsync(BuiltInAssetCommandFactory.CreateCommand(record), cancellationToken)
-                .ConfigureAwait(false);
+            var result = await commandTransport.SendAsync(BuiltInAssetCommandFactory.CreateCommand(record), cancellationToken);
             StatusText = result.Succeeded
                 ? "Sent, confirm on mask"
-                : "Failed";
+                : result.Message;
         }
         finally
         {

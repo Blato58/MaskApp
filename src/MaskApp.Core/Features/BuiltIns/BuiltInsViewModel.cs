@@ -273,7 +273,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         try
         {
             IsLoadingArchive = true;
-            archive = await archiveStore.LoadAsync(cancellationToken).ConfigureAwait(false);
+            archive = await archiveStore.LoadAsync(cancellationToken);
             LoadMetadataForCurrent();
             RefreshSavedItems();
         }
@@ -331,7 +331,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         lastUpdatedAt = DateTimeOffset.Now;
         var record = BuildCurrentRecord();
         archive = archive.Upsert(record);
-        var saved = await SaveArchiveAsync(cancellationToken).ConfigureAwait(false);
+        var saved = await SaveArchiveAsync(cancellationToken);
         RefreshSavedItems();
         if (saved)
         {
@@ -345,7 +345,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         lastUpdatedAt = DateTimeOffset.Now;
         var record = BuildCurrentRecord();
         archive = archive.Upsert(record);
-        var saved = await SaveArchiveAsync(cancellationToken).ConfigureAwait(false);
+        var saved = await SaveArchiveAsync(cancellationToken);
         RefreshSavedItems();
 
         if (saved)
@@ -363,7 +363,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
 
         var record = BuildCurrentRecord();
         archive = archive.Upsert(record);
-        var saved = await SaveArchiveAsync(cancellationToken).ConfigureAwait(false);
+        var saved = await SaveArchiveAsync(cancellationToken);
         RefreshSavedItems();
 
         if (saved)
@@ -397,7 +397,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
                 ? $"{command.Kind}: {label}"
                 : $"{command.Kind}: {label} ({CurrentHexId})";
             StatusText = "Needs real-mask test";
-            var result = await transport.SendAsync(command, cancellationToken).ConfigureAwait(false);
+            var result = await transport.SendAsync(command, cancellationToken);
             LastSendStatus = result.Succeeded
                 ? "Sent, confirm on mask"
                 : "Failed";
@@ -409,7 +409,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
                 lastUpdatedAt = lastTestedAt;
                 OnPropertyChanged(nameof(LastTestedText));
                 archive = archive.Upsert(BuildCurrentRecord());
-                await SaveArchiveAsync(cancellationToken).ConfigureAwait(false);
+                await SaveArchiveAsync(cancellationToken);
                 RefreshSavedItems();
             }
         }
@@ -491,8 +491,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
             LastCommandText = $"{GetCommandName(record)}: {record.DisplayName} ({record.HexId})";
             StatusText = "Needs real-mask test";
 
-            var result = await transport.SendAsync(BuiltInAssetCommandFactory.CreateCommand(record), cancellationToken)
-                .ConfigureAwait(false);
+            var result = await transport.SendAsync(BuiltInAssetCommandFactory.CreateCommand(record), cancellationToken);
             var sendStatus = result.Succeeded
                 ? "Sent, confirm on mask"
                 : "Failed";
@@ -505,7 +504,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
                 LastSendStatus = sendStatus
             };
             archive = archive.Upsert(updated);
-            await SaveArchiveAsync(cancellationToken).ConfigureAwait(false);
+            await SaveArchiveAsync(cancellationToken);
             RefreshSavedItems();
         }
         finally
@@ -534,7 +533,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
     {
         try
         {
-            await archiveStore.SaveAsync(archive, cancellationToken).ConfigureAwait(false);
+            await archiveStore.SaveAsync(archive, cancellationToken);
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)

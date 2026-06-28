@@ -38,6 +38,25 @@ slice record.
 20. `ANIM 1` changes the mask.
 21. Write down which built-in image/animation IDs are good.
 
+## P0 Text Crash/Freeze Hotfix Checklist
+
+1. Open app.
+2. Tap `LOL` from Control/Home.
+3. Confirm app does not crash.
+4. Tap `LOL` from React.
+5. Confirm app does not crash.
+6. Tap `DROP` from RAVE.
+7. Confirm app does not crash.
+8. Confirm quick caption blinks/flashes instead of slow right-to-left scroll.
+9. Confirm text appears centered/fitted.
+10. Open Text Composer.
+11. Type quickly for 20-30 characters.
+12. Confirm no freeze.
+13. Send short text from Text Composer.
+14. Compare Fast write-only vs ACK mode.
+15. Record whether background color works if present; this hotfix does not add
+    new FC/BC background commands.
+
 ## Built-In Scanner Sequence
 
 Start with the safe IDs before exploring wider ranges:
@@ -74,6 +93,9 @@ up to about `0x45`. Higher IDs should stay experimental until tested.
 | Text `LOL` write-only mode | Not tested |  |
 | React `NOPE` / `LOL` / `SUS` | Not tested |  |
 | RAVE `DROP` / `WHEEL UP` / `HYDRATE` | Not tested |  |
+| Quick caption Flash/Blink mode | Not tested |  |
+| Quick caption centered/fitted layout | Not tested |  |
+| Text Composer fast typing | Not tested |  |
 | RAVE command fallbacks | Not tested |  |
 | Festival Lock keeps BLACKOUT | Not tested |  |
 | Reconnect after RAVE | Not tested |  |

@@ -183,7 +183,7 @@ public sealed class RaveViewModel : INotifyPropertyChanged
 
     public async Task InitializeArchiveAsync(CancellationToken cancellationToken = default)
     {
-        var archive = await archiveStore.LoadAsync(cancellationToken).ConfigureAwait(false);
+        var archive = await archiveStore.LoadAsync(cancellationToken);
         FavoriteBuiltIns = archive.FavoriteDeckRecords()
             .Select(CreateBuiltInAction)
             .ToArray();
@@ -241,10 +241,10 @@ public sealed class RaveViewModel : INotifyPropertyChanged
             IsSending = true;
             SendStatusText = "Ready";
 
-            var result = await dispatcher.TriggerAsync(actionId, cancellationToken: cancellationToken).ConfigureAwait(false);
+            var result = await dispatcher.TriggerAsync(actionId, cancellationToken: cancellationToken);
             SendStatusText = result.Succeeded
                 ? "Sent, confirm on mask"
-                : "Failed";
+                : result.Message;
             LastPayloadText = result.Status;
         }
         finally
@@ -260,7 +260,7 @@ public sealed class RaveViewModel : INotifyPropertyChanged
             restoreBrightness = BrightnessCap;
         }
 
-        await SendBrightnessAsync(QuickActionId.Blackout, "BLACKOUT", 1, cancellationToken).ConfigureAwait(false);
+        await SendBrightnessAsync(QuickActionId.Blackout, "BLACKOUT", 1, cancellationToken);
     }
 
     private Task RestoreAsync(CancellationToken cancellationToken) =>
@@ -292,10 +292,10 @@ public sealed class RaveViewModel : INotifyPropertyChanged
         {
             IsSending = true;
             SendStatusText = "Needs real-mask test";
-            var result = await dispatcher.TriggerAsync(actionId, cancellationToken: cancellationToken).ConfigureAwait(false);
+            var result = await dispatcher.TriggerAsync(actionId, cancellationToken: cancellationToken);
             SendStatusText = result.Succeeded
                 ? "Sent, confirm on mask"
-                : "Failed";
+                : result.Message;
             LastPayloadText = result.Status;
         }
         finally
@@ -319,11 +319,10 @@ public sealed class RaveViewModel : INotifyPropertyChanged
         {
             IsSending = true;
             SendStatusText = "Needs real-mask test";
-            var result = await maskTransport.SendAsync(BuiltInAssetCommandFactory.CreateCommand(record), cancellationToken)
-                .ConfigureAwait(false);
+            var result = await maskTransport.SendAsync(BuiltInAssetCommandFactory.CreateCommand(record), cancellationToken);
             SendStatusText = result.Succeeded
                 ? "Sent, confirm on mask"
-                : "Failed";
+                : result.Message;
             LastPayloadText = result.Succeeded ? "sent" : "failed";
         }
         finally
@@ -350,8 +349,8 @@ public sealed class RaveViewModel : INotifyPropertyChanged
             var result = await dispatcher.TriggerAsync(
                 actionId,
                 actionId == QuickActionId.SetBrightness ? new QuickActionRequest(brightness) : null,
-                cancellationToken).ConfigureAwait(false);
-            SendStatusText = result.Succeeded ? "Sent, confirm on mask" : "Failed";
+                cancellationToken);
+            SendStatusText = result.Succeeded ? "Sent, confirm on mask" : result.Message;
             if (result.Succeeded && brightness > 1)
             {
                 BrightnessCap = brightness;

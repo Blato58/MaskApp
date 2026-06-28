@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using System.Diagnostics;
 
 namespace MaskApp.Core.Features.Connect;
 
@@ -6,12 +7,17 @@ public sealed class AsyncRelayCommand : ICommand
 {
     private readonly Func<CancellationToken, Task> execute;
     private readonly Func<bool>? canExecute;
+    private readonly Action<Exception>? onError;
     private bool isRunning;
 
-    public AsyncRelayCommand(Func<CancellationToken, Task> execute, Func<bool>? canExecute = null)
+    public AsyncRelayCommand(
+        Func<CancellationToken, Task> execute,
+        Func<bool>? canExecute = null,
+        Action<Exception>? onError = null)
     {
         this.execute = execute;
         this.canExecute = canExecute;
+        this.onError = onError;
     }
 
     public event EventHandler? CanExecuteChanged;
@@ -20,7 +26,17 @@ public sealed class AsyncRelayCommand : ICommand
 
     public async void Execute(object? parameter)
     {
-        if (!CanExecute(parameter))
+        await ExecuteInternalAsync(parameter, CancellationToken.None, respectCanExecute: true);
+    }
+
+    public Task ExecuteAsync(CancellationToken cancellationToken = default) =>
+        ExecuteInternalAsync(null, cancellationToken, respectCanExecute: false);
+
+    public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+
+    private async Task ExecuteInternalAsync(object? parameter, CancellationToken cancellationToken, bool respectCanExecute)
+    {
+        if (respectCanExecute && !CanExecute(parameter))
         {
             return;
         }
@@ -30,7 +46,12 @@ public sealed class AsyncRelayCommand : ICommand
 
         try
         {
-            await execute(CancellationToken.None).ConfigureAwait(false);
+            await execute(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            onError?.Invoke(ex);
+            Debug.WriteLine($"Async command failed: {ex}");
         }
         finally
         {
@@ -38,8 +59,4 @@ public sealed class AsyncRelayCommand : ICommand
             RaiseCanExecuteChanged();
         }
     }
-
-    public Task ExecuteAsync(CancellationToken cancellationToken = default) => execute(cancellationToken);
-
-    public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 }

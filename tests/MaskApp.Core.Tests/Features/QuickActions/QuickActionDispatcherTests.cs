@@ -37,6 +37,7 @@ public sealed class QuickActionDispatcherTests
 
         Assert.True(result.Succeeded);
         Assert.Equal("LOL", textTransport.LastPackage?.Text);
+        Assert.Equal(44, textTransport.LastPackage?.ColumnCount);
         Assert.Equal((byte)2, textTransport.LastPackage!.ModeCommand.Plaintext.Span[5]);
         Assert.Equal((byte)100, textTransport.LastPackage.SpeedCommand.Plaintext.Span[6]);
         Assert.False(textTransport.LastOptions?.AckRequired);
@@ -63,6 +64,7 @@ public sealed class QuickActionDispatcherTests
 
         Assert.True(result.Succeeded);
         Assert.Equal((byte)4, textTransport.LastPackage!.ModeCommand.Plaintext.Span[5]);
+        Assert.Equal(44, textTransport.LastPackage.ColumnCount);
         Assert.Equal((byte)44, textTransport.LastPackage.SpeedCommand.Plaintext.Span[6]);
         Assert.True(textTransport.LastOptions?.AckRequired);
         Assert.False(textTransport.LastOptions?.CompatibilityWriteOnly);
@@ -155,6 +157,42 @@ public sealed class QuickActionDispatcherTests
         Assert.Null(commandTransport.LastCommand);
     }
 
+    [Fact]
+    public async Task TriggerAsync_TextReaction_LongCaptionIsCappedToFixedWidth()
+    {
+        var textTransport = new FakeTextUploadTransport();
+        var catalog = new QuickActionCatalog();
+        var dispatcher = new QuickActionDispatcher(
+            catalog,
+            new FakeCommandTransport(),
+            textTransport);
+
+        var result = await dispatcher.TriggerAsync(QuickActionId.TooMuchBass);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(44, textTransport.LastPackage?.ColumnCount);
+        Assert.True(textTransport.LastPackage!.Text.Length < catalog.Get(QuickActionId.TooMuchBass).Caption!.Length);
+    }
+
+    [Fact]
+    public async Task TriggerAsync_TextReaction_UploadExceptionReturnsFailedResult()
+    {
+        var textTransport = new FakeTextUploadTransport
+        {
+            ExceptionToThrow = new InvalidOperationException("write failed")
+        };
+        var dispatcher = new QuickActionDispatcher(
+            new QuickActionCatalog(),
+            new FakeCommandTransport(),
+            textTransport);
+
+        var result = await dispatcher.TriggerAsync(QuickActionId.Drop);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Failed: write failed", result.Message);
+        Assert.True(textTransport.WasCalled);
+    }
+
     private sealed class FakeCommandTransport : IMaskCommandTransport
     {
         public event EventHandler<MaskCommandTransportStateChangedEventArgs>? TransportStateChanged
@@ -206,6 +244,8 @@ public sealed class QuickActionDispatcherTests
 
         public TextUploadOptions? LastOptions { get; private set; }
 
+        public Exception? ExceptionToThrow { get; init; }
+
         public Task<TextUploadResult> UploadAsync(
             TextUploadPackage package,
             TextUploadOptions options,
@@ -214,6 +254,11 @@ public sealed class QuickActionDispatcherTests
             WasCalled = true;
             LastPackage = package;
             LastOptions = options;
+            if (ExceptionToThrow is not null)
+            {
+                return Task.FromException<TextUploadResult>(ExceptionToThrow);
+            }
+
             return Task.FromResult(TextUploadResult.Success("Uploaded.", package.Frames.Count));
         }
     }

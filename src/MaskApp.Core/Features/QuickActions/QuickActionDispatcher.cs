@@ -101,21 +101,43 @@ public sealed class QuickActionDispatcher : IQuickActionDispatcher
             return QuickActionResult.Failed(action.Id, "Text not ready", "ack unavailable");
         }
 
-        var package = TextUploadProtocol.CreatePackage(
-            action.Caption,
+        var layout = QuickCaptionLayout.Create(action.Caption);
+        if (!layout.Succeeded)
+        {
+            return QuickActionResult.Failed(action.Id, "Text not ready", layout.Warning ?? "caption unavailable");
+        }
+
+        var package = TextUploadProtocol.CreatePackageFromLedData(
+            layout.DisplayText,
+            layout.LedData,
             DefaultTextColor,
             settings.ProtocolMode,
             settings.Speed);
         var options = settings.SendMode == QuickCaptionSendMode.FastWriteOnly
             ? TextUploadOptions.WriteOnlyCompatibility
             : TextUploadOptions.RequireAcknowledgements;
-        var result = await textTransport.UploadAsync(package, options, cancellationToken).ConfigureAwait(false);
-        if (result.Succeeded)
-        {
-            return QuickActionResult.Sent(action.Id, "Sent, confirm on mask");
-        }
 
-        return QuickActionResult.Failed(action.Id, "Failed");
+        try
+        {
+            var result = await textTransport.UploadAsync(package, options, cancellationToken).ConfigureAwait(false);
+            if (result.Succeeded)
+            {
+                return layout.WasShortened
+                    ? QuickActionResult.Sent(action.Id, "Sent, confirm on mask")
+                        with { Status = layout.Warning ?? "caption shortened" }
+                    : QuickActionResult.Sent(action.Id, "Sent, confirm on mask");
+            }
+
+            return QuickActionResult.Failed(action.Id, "Failed", result.Message);
+        }
+        catch (OperationCanceledException)
+        {
+            return QuickActionResult.Failed(action.Id, "Text send cancelled.", "cancelled");
+        }
+        catch (Exception ex)
+        {
+            return QuickActionResult.Failed(action.Id, $"Failed: {GetShortErrorMessage(ex)}");
+        }
     }
 
     private Task<QuickActionResult> SendRandomReactionAsync(
@@ -127,5 +149,13 @@ public sealed class QuickActionDispatcher : IQuickActionDispatcher
             .ToArray();
         var selected = candidates[Random.Shared.Next(candidates.Length)];
         return SendTextAsync(selected, cancellationToken);
+    }
+
+    private static string GetShortErrorMessage(Exception ex)
+    {
+        var message = string.IsNullOrWhiteSpace(ex.Message)
+            ? ex.GetType().Name
+            : ex.Message;
+        return message.Length <= 96 ? message : string.Concat(message.AsSpan(0, 96), "...");
     }
 }

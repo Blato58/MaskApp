@@ -348,7 +348,7 @@ public sealed class HomeViewModel : INotifyPropertyChanged
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        var settings = (await quickCaptionSettingsStore.LoadAsync(cancellationToken).ConfigureAwait(false)).Normalize();
+        var settings = (await quickCaptionSettingsStore.LoadAsync(cancellationToken)).Normalize();
         ApplyQuickCaptionSettings(settings);
         settingsLoaded = true;
     }
@@ -372,10 +372,10 @@ public sealed class HomeViewModel : INotifyPropertyChanged
         CancellationToken cancellationToken,
         QuickActionRequest? request = null)
     {
-        var result = await dispatcher.TriggerAsync(actionId, request, cancellationToken).ConfigureAwait(false);
+        var result = await dispatcher.TriggerAsync(actionId, request, cancellationToken);
         LastActionStatus = result.Succeeded
             ? "Sent, confirm on mask"
-            : "Failed";
+            : result.Message;
 
         if (!result.Succeeded)
         {
@@ -430,7 +430,7 @@ public sealed class HomeViewModel : INotifyPropertyChanged
     {
         try
         {
-            await quickCaptionSettingsStore.SaveAsync(settings).ConfigureAwait(false);
+            await quickCaptionSettingsStore.SaveAsync(settings);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {

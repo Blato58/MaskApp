@@ -167,7 +167,7 @@ public sealed class MaskControlViewModel : INotifyPropertyChanged
     private async Task ApplyBrightnessAsync(CancellationToken cancellationToken)
     {
         var targetBrightness = Math.Clamp(Brightness, 1, 100);
-        var result = await SendCommandAsync(MaskCommandBuilder.Brightness(targetBrightness), cancellationToken).ConfigureAwait(false);
+        var result = await SendCommandAsync(MaskCommandBuilder.Brightness(targetBrightness), cancellationToken);
         if (!result.Succeeded)
         {
             return;
@@ -185,7 +185,7 @@ public sealed class MaskControlViewModel : INotifyPropertyChanged
     private async Task TogglePowerAsync(CancellationToken cancellationToken)
     {
         var targetBrightness = IsDimmed ? restoreBrightness : 1;
-        var result = await SendCommandAsync(MaskCommandBuilder.Brightness(targetBrightness), cancellationToken).ConfigureAwait(false);
+        var result = await SendCommandAsync(MaskCommandBuilder.Brightness(targetBrightness), cancellationToken);
         if (!result.Succeeded)
         {
             return;
@@ -198,7 +198,7 @@ public sealed class MaskControlViewModel : INotifyPropertyChanged
 
     private async Task SendEffectAsync(MaskCommand command, CancellationToken cancellationToken)
     {
-        var result = await SendCommandAsync(command, cancellationToken).ConfigureAwait(false);
+        var result = await SendCommandAsync(command, cancellationToken);
         if (result.Succeeded)
         {
             CurrentEffectName = command.DisplayName;
@@ -217,7 +217,7 @@ public sealed class MaskControlViewModel : INotifyPropertyChanged
         LastCommandText = $"{command.Kind}: {command.DisplayName}";
         LastPayloadHex = Convert.ToHexString(command.EncryptedPayload.Span);
 
-        var result = await transport.SendAsync(command, cancellationToken).ConfigureAwait(false);
+        var result = await transport.SendAsync(command, cancellationToken);
         StatusText = result.Message;
         LastTransportStatusText = result.Message;
         if (!result.Succeeded)

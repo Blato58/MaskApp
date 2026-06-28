@@ -104,8 +104,7 @@ public sealed class RaveViewModelTests
 
         await viewModel.Actions.Single(action => action.Label == "WHEEL UP").SendCommand.ExecuteAsync();
 
-        Assert.Equal("Failed", viewModel.SendStatusText);
-        Assert.Equal("Failed", viewModel.SendStatusText);
+        Assert.Equal("Upload failed.", viewModel.SendStatusText);
     }
 
     [Fact]
