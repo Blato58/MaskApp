@@ -64,7 +64,16 @@ Copy the provisioning profile content to the clipboard:
 Create `IOS_KEYCHAIN_PASSWORD` as a random password. It is used only for the
 temporary GitHub Actions keychain.
 
-## Run The Workflow
+## Automatic Master Release
+
+Every push to `master` runs `.github/workflows/ios-ipa.yml`, builds the signed
+IPA, creates or updates a GitHub Release, and updates the GitHub Pages install
+site with the release-backed IPA URL.
+
+For `master` branch pushes, the release tag is generated as
+`ios-v<ApplicationDisplayVersion>-<GitHub run number>`.
+
+## Run The Workflow Manually
 
 1. Open the repository in GitHub.
 2. Go to Actions.
@@ -83,7 +92,8 @@ GitHub Pages is optional and depends on the repository plan/settings. If Pages i
 not available for the repository, the workflow skips the Pages deployment with a
 warning after publishing the release-backed IPA.
 
-Tag pushes also run the workflow for tags matching:
+Pushes to `master` run the full release and Pages publishing path
+automatically. Tag pushes also run the workflow for tags matching:
 
 ```text
 ios-v*
