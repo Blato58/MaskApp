@@ -15,7 +15,7 @@ public sealed record TextUploadOptions
     {
         AckRequired = false,
         CompatibilityWriteOnly = true,
-        InterFrameDelay = TimeSpan.Zero
+        InterFrameDelay = TimeSpan.FromMilliseconds(20)
     };
 
     public bool AckRequired { get; init; } = true;

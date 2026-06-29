@@ -50,7 +50,7 @@ flows on top of them.
   preview rebuilds while typing.
 - Text send failures and cancellations show concise status text.
 - Home, React, and RAVE quick text uses centered/fitted 44-column payloads with
-  zero-delay Fast write-only sends.
+  paced Fast write-only sends.
 - Long quick captions are shortened before upload instead of overflowing.
 
 ## Current evidence
@@ -118,7 +118,7 @@ Out of scope:
   `ConfigureAwait(false)` usage, made text send fail-soft, capped payload hex,
   replaced preview collection mutation, debounced Text Creator preview refresh,
   added 44-column quick-caption layout, and routed quick actions through a
-  centered/fitted zero-delay Fast write-only package path.
+  centered/fitted paced Fast write-only package path.
 - Commands run: Roslyn diagnostics, `dotnet test
   tests\MaskApp.Core.Tests\MaskApp.Core.Tests.csproj`, `dotnet build
   src\MaskApp.App\MaskApp.App.csproj -f net10.0-ios`, `dotnet build
@@ -128,10 +128,11 @@ Out of scope:
   iOS and Android app builds succeeded with 0 warnings/errors; diff check
   passed.
 - Remaining risk: physical mask behavior, ACK/write-only timing, and visual
-  centering still need real iPhone/mask validation. If quick captions are still
-  visibly slow after the zero-delay path, the next decision is whether RAVE
-  quick actions should prefer command-only built-in looks over fresh text upload
-  for true instant use.
+  centering still need real iPhone/mask validation. After physical feedback,
+  the zero-delay path was replaced with 20 ms frame pacing because the real mask
+  did not render text properly after unpaced writes. If quick captions are still
+  visibly slow, the next decision is whether RAVE quick actions should prefer
+  command-only built-in looks over fresh text upload for true instant use.
 
 ## Next slice candidate
 
