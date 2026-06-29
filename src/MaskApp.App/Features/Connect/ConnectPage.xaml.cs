@@ -11,4 +11,13 @@ public partial class ConnectPage : ContentPage
         BindingContext = viewModel;
         MaskControls.BindingContext = maskControlViewModel;
     }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        if (BindingContext is ConnectViewModel viewModel)
+        {
+            await viewModel.InitializeAsync();
+        }
+    }
 }

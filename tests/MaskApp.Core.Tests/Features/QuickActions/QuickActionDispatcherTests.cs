@@ -106,6 +106,44 @@ public sealed class QuickActionDispatcherTests
     }
 
     [Fact]
+    public async Task TriggerAsync_TextReaction_UsesGlobalForegroundColor()
+    {
+        var textTransport = new FakeTextUploadTransport();
+        var dispatcher = new QuickActionDispatcher(
+            new QuickActionCatalog(),
+            new FakeCommandTransport(),
+            textTransport,
+            new InMemoryQuickActionTextSettingsStore(new QuickActionTextSettings
+            {
+                ForegroundPreset = QuickCaptionForegroundPreset.Pink
+            }));
+
+        var result = await dispatcher.TriggerAsync(QuickActionId.Lol);
+
+        Assert.True(result.Succeeded);
+        var package = Assert.IsType<TextUploadPackage>(textTransport.LastPackage);
+        Assert.Equal(new TextLedColor(0xF4, 0x72, 0xB6), ReadFirstLitPayloadColor(package));
+        Assert.Equal(new TextLedColor(0, 0, 0), ReadPayloadColor(package, column: 0));
+    }
+
+    [Fact]
+    public void QuickActionTextSettings_Normalize_PreservesForegroundAndDisablesBackground()
+    {
+        var settings = new QuickActionTextSettings
+        {
+            Speed = 400,
+            ForegroundPreset = QuickCaptionForegroundPreset.Amber,
+            BackgroundEnabled = true,
+            BackgroundPreset = QuickCaptionBackgroundPreset.RedAlert
+        }.Normalize();
+
+        Assert.Equal(100, settings.Speed);
+        Assert.Equal(QuickCaptionForegroundPreset.Amber, settings.ForegroundPreset);
+        Assert.False(settings.BackgroundEnabled);
+        Assert.Equal(QuickCaptionBackgroundPreset.Black, settings.BackgroundPreset);
+    }
+
+    [Fact]
     public async Task TriggerAsync_TextReaction_StableFlashFallbackRemainsAvailable()
     {
         var textTransport = new FakeTextUploadTransport();
@@ -367,5 +405,20 @@ public sealed class QuickActionDispatcherTests
             package.Payload[colorOffset],
             package.Payload[colorOffset + 1],
             package.Payload[colorOffset + 2]);
+    }
+
+    private static TextLedColor ReadFirstLitPayloadColor(TextUploadPackage package)
+    {
+        for (var column = 0; column < package.ColumnCount; column++)
+        {
+            var offset = column * 2;
+            var columnBits = (package.LedData[offset] << 8) | package.LedData[offset + 1];
+            if (columnBits != 0)
+            {
+                return ReadPayloadColor(package, column);
+            }
+        }
+
+        throw new InvalidOperationException("No lit text columns were found.");
     }
 }

@@ -1,4 +1,5 @@
 using MaskApp.Core.Features.Home;
+using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.QuickActions;
 using MaskApp.Core.Features.Text;
@@ -109,16 +110,35 @@ public sealed class HomeViewModelTests
         Assert.Contains("write-only", viewModel.TextAcknowledgementText, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task InitializeAsync_LoadsQuickCaptionForegroundSetting()
+    {
+        var viewModel = CreateViewModel(
+            settingsStore: new InMemoryQuickActionTextSettingsStore(new QuickActionTextSettings
+            {
+                ForegroundPreset = QuickCaptionForegroundPreset.Green
+            }));
+
+        await viewModel.InitializeAsync();
+
+        Assert.Equal(QuickCaptionForegroundPreset.Green, viewModel.SelectedQuickCaptionForegroundPreset.Preset);
+        Assert.Equal("Text color Green", viewModel.QuickCaptionForegroundText);
+    }
+
     private static HomeViewModel CreateViewModel(
         FakeCommandTransport? commandTransport = null,
         FakeTextTransport? textTransport = null,
-        RecordingQuickActionDispatcher? dispatcher = null)
+        RecordingQuickActionDispatcher? dispatcher = null,
+        IQuickActionTextSettingsStore? settingsStore = null,
+        BleAutoConnectCoordinator? autoConnectCoordinator = null)
     {
         return new HomeViewModel(
             new QuickActionCatalog(),
             dispatcher ?? new RecordingQuickActionDispatcher(),
             commandTransport ?? new FakeCommandTransport(),
-            textTransport ?? new FakeTextTransport());
+            textTransport ?? new FakeTextTransport(),
+            settingsStore,
+            autoConnectCoordinator);
     }
 
     private sealed class RecordingQuickActionDispatcher : IQuickActionDispatcher

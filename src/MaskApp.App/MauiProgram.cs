@@ -44,6 +44,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IQuickActionTextSettingsStore, JsonQuickActionTextSettingsStore>();
         builder.Services.AddTransient<IQuickActionDispatcher, QuickActionDispatcher>();
         builder.Services.AddSingleton<IBuiltInAssetArchiveStore, JsonBuiltInAssetArchiveStore>();
+        builder.Services.AddSingleton<IBleAutoConnectSettingsStore, JsonBleAutoConnectSettingsStore>();
 
 #if IOS
         builder.Services.AddSingleton<IosBleAdapter>();
@@ -69,6 +70,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<ITextUploadTransport>(sp =>
             new SerializedTextUploadTransport(sp.GetRequiredService<SimulatedTextUploadTransport>()));
 #endif
+        builder.Services.AddSingleton<BleAutoConnectCoordinator>();
 
 #if DEBUG
         builder.Logging.AddDebug();

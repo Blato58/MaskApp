@@ -15,6 +15,7 @@ public sealed class HomeViewModel : INotifyPropertyChanged
     private readonly IMaskCommandTransport commandTransport;
     private readonly ITextUploadTransport textTransport;
     private readonly IQuickActionTextSettingsStore quickCaptionSettingsStore;
+    private readonly BleAutoConnectCoordinator autoConnectCoordinator;
     private int brightness = 60;
     private string lastActionStatus = "Ready";
     private string currentLookText = "None";
@@ -26,6 +27,7 @@ public sealed class HomeViewModel : INotifyPropertyChanged
     private bool textTransportSupportsAcknowledgements;
     private QuickCaptionModeOption selectedQuickCaptionMode;
     private QuickCaptionSendModeOption selectedQuickCaptionSendMode;
+    private QuickCaptionForegroundPresetOption selectedQuickCaptionForegroundPreset;
     private QuickCaptionBackgroundPresetOption selectedQuickCaptionBackgroundPreset;
     private int quickCaptionSpeed = QuickActionTextSettings.RaveDefaults.Speed;
     private bool quickCaptionBackgroundEnabled;
@@ -36,13 +38,17 @@ public sealed class HomeViewModel : INotifyPropertyChanged
         IQuickActionDispatcher dispatcher,
         IMaskCommandTransport commandTransport,
         ITextUploadTransport textTransport,
-        IQuickActionTextSettingsStore? quickCaptionSettingsStore = null)
+        IQuickActionTextSettingsStore? quickCaptionSettingsStore = null,
+        BleAutoConnectCoordinator? autoConnectCoordinator = null)
     {
         this.catalog = catalog;
         this.dispatcher = dispatcher;
         this.commandTransport = commandTransport;
         this.textTransport = textTransport;
         this.quickCaptionSettingsStore = quickCaptionSettingsStore ?? new InMemoryQuickActionTextSettingsStore();
+        this.autoConnectCoordinator = autoConnectCoordinator ?? new BleAutoConnectCoordinator(
+            new UnavailableBleScanner(),
+            new UnavailableBleConnection());
 
         commandTransportState = commandTransport.TransportState;
         commandTransportStatusText = commandTransport.TransportStatusText;
@@ -63,12 +69,23 @@ public sealed class HomeViewModel : INotifyPropertyChanged
             new QuickCaptionSendModeOption("Fast Flash unstable", QuickCaptionSendMode.FastWriteOnly),
             new QuickCaptionSendModeOption("Reliable ACK", QuickCaptionSendMode.ReliableAcknowledgement)
         ];
+        QuickCaptionForegroundPresetOptions =
+        [
+            CreateForegroundOption("White", QuickCaptionForegroundPreset.White),
+            CreateForegroundOption("Cyan", QuickCaptionForegroundPreset.Cyan),
+            CreateForegroundOption("Pink", QuickCaptionForegroundPreset.Pink),
+            CreateForegroundOption("Amber", QuickCaptionForegroundPreset.Amber),
+            CreateForegroundOption("Green", QuickCaptionForegroundPreset.Green),
+            CreateForegroundOption("Red", QuickCaptionForegroundPreset.Red),
+            CreateForegroundOption("Purple", QuickCaptionForegroundPreset.Purple)
+        ];
         QuickCaptionBackgroundPresetOptions =
         [
             new QuickCaptionBackgroundPresetOption("Black", QuickCaptionBackgroundPreset.Black, "#000000")
         ];
         selectedQuickCaptionMode = QuickCaptionModeOptions[0];
         selectedQuickCaptionSendMode = QuickCaptionSendModeOptions[0];
+        selectedQuickCaptionForegroundPreset = QuickCaptionForegroundPresetOptions[0];
         selectedQuickCaptionBackgroundPreset = QuickCaptionBackgroundPresetOptions[0];
 
         BlackoutCommand = new AsyncRelayCommand(
@@ -88,6 +105,8 @@ public sealed class HomeViewModel : INotifyPropertyChanged
             cancellationToken => TriggerAsync(QuickActionId.RandomReaction, "Random reaction", cancellationToken),
             () => CanUseTextReactions);
         ResetQuickCaptionSettingsCommand = new AsyncRelayCommand(ResetQuickCaptionSettingsAsync);
+        StartAutoConnectCommand = new AsyncRelayCommand(StartAutoConnectAsync, () => this.autoConnectCoordinator.CanAutoConnectNow);
+        ForgetKnownMaskCommand = new AsyncRelayCommand(ForgetKnownMaskAsync, () => this.autoConnectCoordinator.HasKnownDevice);
 
         FavoriteReactions =
         [
@@ -106,6 +125,7 @@ public sealed class HomeViewModel : INotifyPropertyChanged
 
         commandTransport.TransportStateChanged += OnCommandTransportStateChanged;
         textTransport.StateChanged += OnTextTransportStateChanged;
+        this.autoConnectCoordinator.PropertyChanged += OnAutoConnectPropertyChanged;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -125,6 +145,10 @@ public sealed class HomeViewModel : INotifyPropertyChanged
 
     public AsyncRelayCommand ResetQuickCaptionSettingsCommand { get; }
 
+    public AsyncRelayCommand StartAutoConnectCommand { get; }
+
+    public AsyncRelayCommand ForgetKnownMaskCommand { get; }
+
     public IReadOnlyList<HomeQuickActionCard> FavoriteReactions { get; }
 
     public ObservableCollection<HomeQuickActionCard> RecentReactions { get; }
@@ -132,6 +156,8 @@ public sealed class HomeViewModel : INotifyPropertyChanged
     public IReadOnlyList<QuickCaptionModeOption> QuickCaptionModeOptions { get; }
 
     public IReadOnlyList<QuickCaptionSendModeOption> QuickCaptionSendModeOptions { get; }
+
+    public IReadOnlyList<QuickCaptionForegroundPresetOption> QuickCaptionForegroundPresetOptions { get; }
 
     public IReadOnlyList<QuickCaptionBackgroundPresetOption> QuickCaptionBackgroundPresetOptions { get; }
 
@@ -291,6 +317,38 @@ public sealed class HomeViewModel : INotifyPropertyChanged
 
     public string QuickCaptionSpeedText => $"{QuickCaptionSpeed}";
 
+    public bool AutoConnectEnabled
+    {
+        get => autoConnectCoordinator.AutoConnectEnabled;
+        set
+        {
+            if (value != autoConnectCoordinator.AutoConnectEnabled)
+            {
+                _ = SetAutoConnectEnabledAsync(value);
+            }
+        }
+    }
+
+    public bool RememberLastDeviceEnabled
+    {
+        get => autoConnectCoordinator.RememberLastDeviceEnabled;
+        set
+        {
+            if (value != autoConnectCoordinator.RememberLastDeviceEnabled)
+            {
+                _ = SetRememberLastDeviceEnabledAsync(value);
+            }
+        }
+    }
+
+    public string AutoConnectStatusText => autoConnectCoordinator.AutoConnectStatusText;
+
+    public string LastKnownMaskText => autoConnectCoordinator.LastKnownMaskText;
+
+    public bool HasKnownMask => autoConnectCoordinator.HasKnownDevice;
+
+    public bool CanStartAutoConnect => autoConnectCoordinator.CanAutoConnectNow;
+
     public bool QuickCaptionBackgroundEnabled
     {
         get => quickCaptionBackgroundEnabled;
@@ -314,6 +372,21 @@ public sealed class HomeViewModel : INotifyPropertyChanged
             }
         }
     }
+
+    public QuickCaptionForegroundPresetOption SelectedQuickCaptionForegroundPreset
+    {
+        get => selectedQuickCaptionForegroundPreset;
+        set
+        {
+            if (value is not null && SetField(ref selectedQuickCaptionForegroundPreset, value))
+            {
+                OnPropertyChanged(nameof(QuickCaptionForegroundText));
+                PersistQuickCaptionSettings();
+            }
+        }
+    }
+
+    public string QuickCaptionForegroundText => $"Text color {SelectedQuickCaptionForegroundPreset.Label}";
 
     public string QuickCaptionBackgroundNote =>
         "Low-static Flash pre-arms Blink and skips the black reset delay. Stable Flash keeps the reset as fallback; Fast Flash stayed left-aligned or solid on hardware.";
@@ -349,6 +422,8 @@ public sealed class HomeViewModel : INotifyPropertyChanged
     {
         var settings = (await quickCaptionSettingsStore.LoadAsync(cancellationToken)).Normalize();
         ApplyQuickCaptionSettings(settings);
+        await autoConnectCoordinator.InitializeAsync(cancellationToken);
+        await autoConnectCoordinator.StartForegroundAutoConnectAsync(cancellationToken);
         settingsLoaded = true;
     }
 
@@ -400,6 +475,7 @@ public sealed class HomeViewModel : INotifyPropertyChanged
         SelectedQuickCaptionMode = QuickCaptionModeOptions.Single(option => option.Mode == settings.DisplayMode);
         SelectedQuickCaptionSendMode = QuickCaptionSendModeOptions.Single(option => option.SendMode == settings.SendMode);
         QuickCaptionSpeed = settings.Speed;
+        SelectedQuickCaptionForegroundPreset = QuickCaptionForegroundPresetOptions.Single(option => option.Preset == settings.ForegroundPreset);
         QuickCaptionBackgroundEnabled = settings.BackgroundEnabled;
         SelectedQuickCaptionBackgroundPreset = QuickCaptionBackgroundPresetOptions.Single(option => option.Preset == settings.BackgroundPreset);
     }
@@ -416,6 +492,7 @@ public sealed class HomeViewModel : INotifyPropertyChanged
             DisplayMode = SelectedQuickCaptionMode.Mode,
             Speed = QuickCaptionSpeed,
             SendMode = SelectedQuickCaptionSendMode.SendMode,
+            ForegroundPreset = SelectedQuickCaptionForegroundPreset.Preset,
             BackgroundEnabled = QuickCaptionBackgroundEnabled,
             BackgroundPreset = SelectedQuickCaptionBackgroundPreset.Preset
         }.Normalize();
@@ -467,12 +544,66 @@ public sealed class HomeViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(TextTransportText));
     }
 
+    private async Task StartAutoConnectAsync(CancellationToken cancellationToken)
+    {
+        await autoConnectCoordinator.StartForegroundAutoConnectAsync(cancellationToken);
+        LastActionStatus = autoConnectCoordinator.AutoConnectStatusText;
+    }
+
+    private async Task ForgetKnownMaskAsync(CancellationToken cancellationToken)
+    {
+        await autoConnectCoordinator.ForgetKnownDeviceAsync(cancellationToken);
+        LastActionStatus = "Forgot mask";
+    }
+
+    private async Task SetAutoConnectEnabledAsync(bool enabled)
+    {
+        try
+        {
+            await autoConnectCoordinator.SetAutoConnectEnabledAsync(enabled);
+            if (enabled)
+            {
+                await autoConnectCoordinator.StartForegroundAutoConnectAsync();
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            LastActionStatus = "Failed";
+        }
+    }
+
+    private async Task SetRememberLastDeviceEnabledAsync(bool enabled)
+    {
+        try
+        {
+            await autoConnectCoordinator.SetRememberLastDeviceEnabledAsync(enabled);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            LastActionStatus = "Failed";
+        }
+    }
+
+    private void OnAutoConnectPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        OnPropertyChanged(nameof(AutoConnectEnabled));
+        OnPropertyChanged(nameof(RememberLastDeviceEnabled));
+        OnPropertyChanged(nameof(AutoConnectStatusText));
+        OnPropertyChanged(nameof(LastKnownMaskText));
+        OnPropertyChanged(nameof(HasKnownMask));
+        OnPropertyChanged(nameof(CanStartAutoConnect));
+        StartAutoConnectCommand.RaiseCanExecuteChanged();
+        ForgetKnownMaskCommand.RaiseCanExecuteChanged();
+    }
+
     private void RaiseCommandStates()
     {
         BlackoutCommand.RaiseCanExecuteChanged();
         RestoreBrightnessCommand.RaiseCanExecuteChanged();
         ApplyBrightnessCommand.RaiseCanExecuteChanged();
         RandomReactionCommand.RaiseCanExecuteChanged();
+        StartAutoConnectCommand.RaiseCanExecuteChanged();
+        ForgetKnownMaskCommand.RaiseCanExecuteChanged();
         foreach (var reaction in FavoriteReactions.Concat(RecentReactions))
         {
             reaction.TriggerCommand.RaiseCanExecuteChanged();
@@ -493,4 +624,45 @@ public sealed class HomeViewModel : INotifyPropertyChanged
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+    private static QuickCaptionForegroundPresetOption CreateForegroundOption(
+        string label,
+        QuickCaptionForegroundPreset preset) =>
+        new(label, preset, QuickCaptionForegroundPalette.GetHex(preset));
+
+    private sealed class UnavailableBleScanner : IBleScanner
+    {
+        public event EventHandler<DiscoveredMaskDevice>? DeviceDiscovered
+        {
+            add { }
+            remove { }
+        }
+
+        public event EventHandler<BleScannerStateChangedEventArgs>? ScannerStateChanged
+        {
+            add { }
+            remove { }
+        }
+
+        public bool IsScanning => false;
+
+        public Task StartScanningAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task StopScanningAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
+
+    private sealed class UnavailableBleConnection : IBleDeviceConnection
+    {
+        public event EventHandler<BleConnectionStateChangedEventArgs>? ConnectionStateChanged
+        {
+            add { }
+            remove { }
+        }
+
+        public BleConnectionState State => BleConnectionState.Unavailable;
+
+        public Task ConnectAsync(DiscoveredMaskDevice device, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task DisconnectAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
 }

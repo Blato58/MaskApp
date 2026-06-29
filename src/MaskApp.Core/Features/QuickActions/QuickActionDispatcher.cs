@@ -5,7 +5,6 @@ namespace MaskApp.Core.Features.QuickActions;
 
 public sealed class QuickActionDispatcher : IQuickActionDispatcher
 {
-    private static readonly TextLedColor DefaultTextColor = new(0xFF, 0xFF, 0xFF);
     private readonly QuickActionCatalog catalog;
     private readonly IMaskCommandTransport commandTransport;
     private readonly ITextUploadTransport textTransport;
@@ -177,7 +176,7 @@ public sealed class QuickActionDispatcher : IQuickActionDispatcher
             FixedWidthColumns = usesScroll ? null : QuickCaptionLayout.VisibleColumns,
             DisplayMode = displayMode,
             Speed = settings.Speed,
-            TextColor = DefaultTextColor,
+            TextColor = QuickCaptionForegroundPalette.GetColor(settings.ForegroundPreset),
             BackgroundEnabled = settings.BackgroundEnabled,
             BackgroundColor = settings.BackgroundEnabled ? GetBackgroundColor(settings.BackgroundPreset) : null,
             StyleCommandPolicy = settings.BackgroundEnabled ? TextStyleCommandPolicy.FailSoft : TextStyleCommandPolicy.Skip

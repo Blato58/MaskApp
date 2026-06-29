@@ -8,24 +8,32 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
 {
     private readonly IBleScanner scanner;
     private readonly IBleDeviceConnection connection;
+    private readonly BleAutoConnectCoordinator autoConnectCoordinator;
     private DiscoveredMaskDevice? selectedDevice;
     private BleConnectionState connectionState = BleConnectionState.Disconnected;
     private bool isScanning;
     private string statusText = "Ready to scan for masks.";
 
-    public ConnectViewModel(IBleScanner scanner, IBleDeviceConnection connection)
+    public ConnectViewModel(
+        IBleScanner scanner,
+        IBleDeviceConnection connection,
+        BleAutoConnectCoordinator? autoConnectCoordinator = null)
     {
         this.scanner = scanner;
         this.connection = connection;
+        this.autoConnectCoordinator = autoConnectCoordinator ?? new BleAutoConnectCoordinator(scanner, connection);
 
         scanner.DeviceDiscovered += OnDeviceDiscovered;
         scanner.ScannerStateChanged += OnScannerStateChanged;
         connection.ConnectionStateChanged += OnConnectionStateChanged;
+        this.autoConnectCoordinator.PropertyChanged += OnAutoConnectPropertyChanged;
 
         StartScanCommand = new AsyncRelayCommand(StartScanAsync, () => !IsScanning);
         StopScanCommand = new AsyncRelayCommand(StopScanAsync, () => IsScanning);
         ConnectCommand = new AsyncRelayCommand(ConnectAsync, () => SelectedDevice is not null && ConnectionState is not BleConnectionState.Connected);
         DisconnectCommand = new AsyncRelayCommand(DisconnectAsync, () => ConnectionState is BleConnectionState.Connected or BleConnectionState.Connecting);
+        StartAutoConnectCommand = new AsyncRelayCommand(StartAutoConnectAsync, () => this.autoConnectCoordinator.CanAutoConnectNow);
+        ForgetKnownMaskCommand = new AsyncRelayCommand(ForgetKnownMaskAsync, () => this.autoConnectCoordinator.HasKnownDevice);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -39,6 +47,10 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
     public AsyncRelayCommand ConnectCommand { get; }
 
     public AsyncRelayCommand DisconnectCommand { get; }
+
+    public AsyncRelayCommand StartAutoConnectCommand { get; }
+
+    public AsyncRelayCommand ForgetKnownMaskCommand { get; }
 
     public DiscoveredMaskDevice? SelectedDevice
     {
@@ -82,6 +94,44 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
         private set => SetField(ref statusText, value);
     }
 
+    public bool AutoConnectEnabled
+    {
+        get => autoConnectCoordinator.AutoConnectEnabled;
+        set
+        {
+            if (value != autoConnectCoordinator.AutoConnectEnabled)
+            {
+                _ = SetAutoConnectEnabledAsync(value);
+            }
+        }
+    }
+
+    public bool RememberLastDeviceEnabled
+    {
+        get => autoConnectCoordinator.RememberLastDeviceEnabled;
+        set
+        {
+            if (value != autoConnectCoordinator.RememberLastDeviceEnabled)
+            {
+                _ = SetRememberLastDeviceEnabledAsync(value);
+            }
+        }
+    }
+
+    public string AutoConnectStatusText => autoConnectCoordinator.AutoConnectStatusText;
+
+    public string LastKnownMaskText => autoConnectCoordinator.LastKnownMaskText;
+
+    public bool HasKnownMask => autoConnectCoordinator.HasKnownDevice;
+
+    public bool CanStartAutoConnect => autoConnectCoordinator.CanAutoConnectNow;
+
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        await autoConnectCoordinator.InitializeAsync(cancellationToken);
+        await autoConnectCoordinator.StartForegroundAutoConnectAsync(cancellationToken);
+    }
+
     private async Task StartScanAsync(CancellationToken cancellationToken)
     {
         Devices.Clear();
@@ -98,7 +148,7 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
             return Task.CompletedTask;
         }
 
-        return connection.ConnectAsync(SelectedDevice, cancellationToken);
+        return autoConnectCoordinator.ConnectManuallyAsync(SelectedDevice, cancellationToken);
     }
 
     private Task DisconnectAsync(CancellationToken cancellationToken) => connection.DisconnectAsync(cancellationToken);
@@ -126,6 +176,42 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
         StatusText = e.Message;
     }
 
+    private async Task StartAutoConnectAsync(CancellationToken cancellationToken)
+    {
+        await autoConnectCoordinator.StartForegroundAutoConnectAsync(cancellationToken);
+        StatusText = autoConnectCoordinator.AutoConnectStatusText;
+    }
+
+    private async Task ForgetKnownMaskAsync(CancellationToken cancellationToken)
+    {
+        await autoConnectCoordinator.ForgetKnownDeviceAsync(cancellationToken);
+        StatusText = "Forgot remembered mask.";
+    }
+
+    private async Task SetAutoConnectEnabledAsync(bool enabled)
+    {
+        await autoConnectCoordinator.SetAutoConnectEnabledAsync(enabled);
+        if (enabled)
+        {
+            await autoConnectCoordinator.StartForegroundAutoConnectAsync();
+        }
+    }
+
+    private Task SetRememberLastDeviceEnabledAsync(bool enabled) =>
+        autoConnectCoordinator.SetRememberLastDeviceEnabledAsync(enabled);
+
+    private void OnAutoConnectPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        OnPropertyChanged(nameof(AutoConnectEnabled));
+        OnPropertyChanged(nameof(RememberLastDeviceEnabled));
+        OnPropertyChanged(nameof(AutoConnectStatusText));
+        OnPropertyChanged(nameof(LastKnownMaskText));
+        OnPropertyChanged(nameof(HasKnownMask));
+        OnPropertyChanged(nameof(CanStartAutoConnect));
+        StartAutoConnectCommand.RaiseCanExecuteChanged();
+        ForgetKnownMaskCommand.RaiseCanExecuteChanged();
+    }
+
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {
         if (EqualityComparer<T>.Default.Equals(field, value))
@@ -134,9 +220,12 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
         }
 
         field = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        OnPropertyChanged(propertyName);
         return true;
     }
+
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
     private void RaiseCommandStates()
     {
@@ -144,5 +233,7 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
         StopScanCommand.RaiseCanExecuteChanged();
         ConnectCommand.RaiseCanExecuteChanged();
         DisconnectCommand.RaiseCanExecuteChanged();
+        StartAutoConnectCommand.RaiseCanExecuteChanged();
+        ForgetKnownMaskCommand.RaiseCanExecuteChanged();
     }
 }

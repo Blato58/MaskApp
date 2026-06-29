@@ -40,6 +40,46 @@
             </Border>
 
             <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Known mask" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Label Text="{Binding AutoConnectStatusText}" Style="{StaticResource TinyLabelStyle}" />
+                        </VerticalStackLayout>
+                        <Button
+                            Grid.Column="1"
+                            Text="Connect now"
+                            Command="{Binding StartAutoConnectCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}" />
+                    </Grid>
+
+                    <Border Grid.Row="1" Style="{StaticResource CompactPanelBorderStyle}">
+                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="4">
+                            <Label Text="Mask" Style="{StaticResource TinyLabelStyle}" />
+                            <Label Grid.Column="1" Text="{Binding LastKnownMaskText}" FontAttributes="Bold" />
+                            <Label Grid.Row="1" Text="Scope" Style="{StaticResource TinyLabelStyle}" />
+                            <Label Grid.Row="1" Grid.Column="1" Text="Foreground only while the app is open." Style="{StaticResource MutedLabelStyle}" />
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="2" ColumnDefinitions="*,*,Auto" ColumnSpacing="10">
+                        <HorizontalStackLayout Spacing="8">
+                            <Switch IsToggled="{Binding AutoConnectEnabled, Mode=TwoWay}" />
+                            <Label Text="Auto-connect" VerticalTextAlignment="Center" />
+                        </HorizontalStackLayout>
+                        <HorizontalStackLayout Grid.Column="1" Spacing="8">
+                            <Switch IsToggled="{Binding RememberLastDeviceEnabled, Mode=TwoWay}" />
+                            <Label Text="Remember" VerticalTextAlignment="Center" />
+                        </HorizontalStackLayout>
+                        <Button
+                            Grid.Column="2"
+                            Text="Forget"
+                            Command="{Binding ForgetKnownMaskCommand}" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
                 <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                         <Label Text="Nearby masks" Style="{StaticResource SectionTitleLabelStyle}" />

@@ -67,10 +67,14 @@
                             <DataTemplate x:DataType="react:ReactReactionCard">
                                 <Border
                                     Margin="0,0,10,10"
-                                    MinimumWidthRequest="146"
+                                    MinimumHeightRequest="92"
+                                    MinimumWidthRequest="156"
                                     Style="{StaticResource ActionCardBorderStyle}"
                                     Stroke="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}">
-                                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding SendCommand}" />
+                                    </Border.GestureRecognizers>
+                                    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="6">
                                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
                                             <Border
                                                 BackgroundColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}, ConverterParameter=soft}"
@@ -91,14 +95,12 @@
                                             </Border>
                                             <Label Grid.Column="1" Text="{Binding Label}" FontAttributes="Bold" VerticalTextAlignment="Center" />
                                         </Grid>
-                                        <Label Grid.Row="1" Text="{Binding Description}" Style="{StaticResource TinyLabelStyle}" />
-                                        <Button
+                                        <Label Grid.Row="1" Text="{Binding Caption}" FontAttributes="Bold" FontSize="16" VerticalTextAlignment="Center" />
+                                        <Label
                                             Grid.Row="2"
-                                            Text="Send"
-                                            Command="{Binding SendCommand}"
-                                            BorderColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
                                             TextColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
-                                            BackgroundColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}, ConverterParameter=soft}" />
+                                            Text="Tap to send"
+                                            Style="{StaticResource TinyLabelStyle}" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -144,10 +146,14 @@
                                         <DataTemplate x:DataType="react:ReactReactionCard">
                                             <Border
                                                 Margin="0,0,10,10"
-                                                MinimumWidthRequest="138"
+                                                MinimumHeightRequest="86"
+                                                MinimumWidthRequest="148"
                                                 Style="{StaticResource ActionCardBorderStyle}"
                                                 Stroke="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}">
-                                                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="5">
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding SendCommand}" />
+                                                </Border.GestureRecognizers>
+                                                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="5">
                                                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
                                                         <Label
                                                             Text="{Binding Id, Converter={StaticResource QuickActionIconConverter}}"
@@ -161,15 +167,9 @@
                                                         Text="{Binding Caption}"
                                                         TextColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
                                                         FontAttributes="Bold"
-                                                        FontSize="13" />
-                                                    <Label Grid.Row="2" Text="{Binding Description}" Style="{StaticResource TinyLabelStyle}" />
-                                                    <Button
-                                                        Grid.Row="3"
-                                                        Text="Send"
-                                                        Command="{Binding SendCommand}"
-                                                        BorderColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
-                                                        TextColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
-                                                        BackgroundColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}, ConverterParameter=soft}" />
+                                                        FontSize="16"
+                                                        VerticalTextAlignment="Center" />
+                                                    <Label Grid.Row="2" Text="Tap to send" Style="{StaticResource TinyLabelStyle}" />
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>

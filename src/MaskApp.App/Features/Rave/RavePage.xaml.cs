@@ -16,7 +16,7 @@ public partial class RavePage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await viewModel.InitializeArchiveAsync();
+        await viewModel.InitializeAsync();
     }
 
     private static async void OnConnectClicked(object? sender, EventArgs e)

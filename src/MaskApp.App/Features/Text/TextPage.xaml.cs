@@ -10,6 +10,15 @@ public partial class TextPage : ContentPage
         BindingContext = viewModel;
     }
 
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        if (BindingContext is TextUploadViewModel viewModel)
+        {
+            await viewModel.InitializeAsync();
+        }
+    }
+
     private void OnColorClicked(object? sender, EventArgs e)
     {
         if (BindingContext is not TextUploadViewModel viewModel ||

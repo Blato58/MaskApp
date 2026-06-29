@@ -108,15 +108,15 @@ public sealed class RaveViewModelTests
     }
 
     [Fact]
-    public void FestivalLock_HidesSecondaryControlsOnly()
+    public void LiveControls_AreAvailableWithoutFestivalLock()
     {
         var viewModel = CreateViewModel();
 
-        viewModel.FestivalLock = true;
-
-        Assert.False(viewModel.ShowSecondaryControls);
-        Assert.Contains("BLACKOUT", viewModel.FestivalLockStatusText);
+        Assert.Equal("BLACKOUT always available", viewModel.ControlsStatusText);
         Assert.Equal(4, viewModel.CommandFallbackActions.Count);
+        Assert.NotEmpty(viewModel.Actions);
+        Assert.True(viewModel.BlackoutCommand.CanExecute(null));
+        Assert.True(viewModel.ApplyBrightnessCapCommand.CanExecute(null));
     }
 
     [Fact]

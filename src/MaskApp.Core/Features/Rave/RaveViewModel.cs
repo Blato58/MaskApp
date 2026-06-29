@@ -15,9 +15,10 @@ public sealed class RaveViewModel : INotifyPropertyChanged
     private readonly QuickActionCatalog catalog;
     private readonly IQuickActionDispatcher dispatcher;
     private readonly IBuiltInAssetArchiveStore archiveStore;
+    private readonly IQuickActionTextSettingsStore quickCaptionSettingsStore;
+    private readonly BleAutoConnectCoordinator? autoConnectCoordinator;
     private int brightnessCap = 65;
     private int restoreBrightness = 65;
-    private bool festivalLock;
     private bool isSending;
     private IReadOnlyList<BuiltInAssetAction> favoriteBuiltIns = [];
     private string sendStatusText = "Ready";
@@ -25,19 +26,24 @@ public sealed class RaveViewModel : INotifyPropertyChanged
     private string textStatusText;
     private string lastActionText = "None";
     private string lastPayloadText = "None";
+    private string quickCaptionProfileText = "Text: Low-static Flash · white";
 
     public RaveViewModel(
         QuickActionCatalog catalog,
         IQuickActionDispatcher dispatcher,
         IMaskCommandTransport maskTransport,
         ITextUploadTransport textTransport,
-        IBuiltInAssetArchiveStore? archiveStore = null)
+        IBuiltInAssetArchiveStore? archiveStore = null,
+        IQuickActionTextSettingsStore? quickCaptionSettingsStore = null,
+        BleAutoConnectCoordinator? autoConnectCoordinator = null)
     {
         this.catalog = catalog;
         this.dispatcher = dispatcher;
         this.maskTransport = maskTransport;
         this.textTransport = textTransport;
         this.archiveStore = archiveStore ?? new InMemoryBuiltInAssetArchiveStore();
+        this.quickCaptionSettingsStore = quickCaptionSettingsStore ?? new InMemoryQuickActionTextSettingsStore();
+        this.autoConnectCoordinator = autoConnectCoordinator;
         maskStatusText = maskTransport.TransportStatusText;
         textStatusText = textTransport.StatusText;
 
@@ -75,6 +81,10 @@ public sealed class RaveViewModel : INotifyPropertyChanged
 
         maskTransport.TransportStateChanged += OnMaskTransportStateChanged;
         textTransport.StateChanged += OnTextTransportStateChanged;
+        if (this.autoConnectCoordinator is not null)
+        {
+            this.autoConnectCoordinator.PropertyChanged += OnAutoConnectPropertyChanged;
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -126,30 +136,21 @@ public sealed class RaveViewModel : INotifyPropertyChanged
 
     public string ConnectionStatusText => BuildConnectionStatusText();
 
+    public string AutoConnectStatusText => autoConnectCoordinator?.AutoConnectStatusText ?? "Auto-connect: Off";
+
+    public string QuickCaptionProfileText
+    {
+        get => quickCaptionProfileText;
+        private set => SetField(ref quickCaptionProfileText, value);
+    }
+
+    public string ControlsStatusText => "BLACKOUT always available";
+
     public int BrightnessCap
     {
         get => brightnessCap;
         set => SetField(ref brightnessCap, Math.Clamp(value, 1, 100));
     }
-
-    public bool FestivalLock
-    {
-        get => festivalLock;
-        set
-        {
-            if (SetField(ref festivalLock, value))
-            {
-                OnPropertyChanged(nameof(ShowSecondaryControls));
-                OnPropertyChanged(nameof(FestivalLockStatusText));
-            }
-        }
-    }
-
-    public bool ShowSecondaryControls => !FestivalLock;
-
-    public string FestivalLockStatusText => FestivalLock
-        ? "Festival Lock: big buttons and BLACKOUT stay visible."
-        : "Festival Lock off: brightness and diagnostics are visible.";
 
     public bool IsSending
     {
@@ -187,6 +188,18 @@ public sealed class RaveViewModel : INotifyPropertyChanged
         FavoriteBuiltIns = archive.FavoriteDeckRecords()
             .Select(CreateBuiltInAction)
             .ToArray();
+    }
+
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        await InitializeArchiveAsync(cancellationToken);
+        var settings = (await quickCaptionSettingsStore.LoadAsync(cancellationToken)).Normalize();
+        QuickCaptionProfileText = $"Text: {GetSendModeLabel(settings.SendMode)} · {settings.ForegroundPreset.ToString().ToLowerInvariant()}";
+        if (autoConnectCoordinator is not null)
+        {
+            await autoConnectCoordinator.InitializeAsync(cancellationToken);
+            await autoConnectCoordinator.StartForegroundAutoConnectAsync(cancellationToken);
+        }
     }
 
     private RaveAction CreateAction(QuickActionId actionId, string group)
@@ -400,6 +413,18 @@ public sealed class RaveViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(ActiveTransportText));
         RaiseCommandStates();
     }
+
+    private void OnAutoConnectPropertyChanged(object? sender, PropertyChangedEventArgs e) =>
+        OnPropertyChanged(nameof(AutoConnectStatusText));
+
+    private static string GetSendModeLabel(QuickCaptionSendMode sendMode) =>
+        sendMode switch
+        {
+            QuickCaptionSendMode.LowStaticFlash => "Low-static Flash",
+            QuickCaptionSendMode.FastWriteOnly => "Fast Flash unstable",
+            QuickCaptionSendMode.ReliableAcknowledgement => "Reliable ACK",
+            _ => "Stable Flash"
+        };
 
     private void RaiseCommandStates()
     {

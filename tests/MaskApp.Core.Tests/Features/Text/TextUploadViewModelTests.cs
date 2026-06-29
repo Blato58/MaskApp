@@ -1,4 +1,5 @@
 using MaskApp.Core.Features.Text;
+using MaskApp.Core.Features.QuickActions;
 using System.Collections.ObjectModel;
 
 namespace MaskApp.Core.Tests.Features.Text;
@@ -19,7 +20,7 @@ public sealed class TextUploadViewModelTests
         Assert.Equal(TextLayoutMode.FixedWidthCentered, viewModel.SelectedLayoutMode.LayoutMode);
         Assert.Equal(2, viewModel.SelectedAnimationMode.Mode);
         Assert.Equal(50, viewModel.Speed);
-        Assert.Equal("Centered 44 columns, Blink, Speed 50", viewModel.ProfileSummary);
+        Assert.Equal("Centered 44 columns, Blink, Speed 50, White", viewModel.ProfileSummary);
     }
 
     [Fact]
@@ -63,9 +64,42 @@ public sealed class TextUploadViewModelTests
         await viewModel.SendCommand.ExecuteAsync();
 
         Assert.True(transport.WasCalled);
-        Assert.Equal("Centered 44 columns, Blink, Speed 100", viewModel.ProfileSummary);
+        Assert.Equal("Centered 44 columns, Blink, Speed 100, White", viewModel.ProfileSummary);
         Assert.Equal(44, transport.LastPackage?.ColumnCount);
         Assert.Equal((byte)2, transport.LastPackage!.ModeCommand.Plaintext.Span[5]);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_DefaultsSelectedColorFromGlobalSettings()
+    {
+        var viewModel = new TextUploadViewModel(
+            new SimulatedTextUploadTransport(),
+            new InMemoryQuickActionTextSettingsStore(new QuickActionTextSettings
+            {
+                ForegroundPreset = QuickCaptionForegroundPreset.Purple
+            }));
+
+        await viewModel.InitializeAsync();
+
+        Assert.Equal("Purple", viewModel.SelectedColor.Name);
+        Assert.Contains("Purple", viewModel.ProfileSummary);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_DoesNotOverrideManualColorSelection()
+    {
+        var viewModel = new TextUploadViewModel(
+            new SimulatedTextUploadTransport(),
+            new InMemoryQuickActionTextSettingsStore(new QuickActionTextSettings
+            {
+                ForegroundPreset = QuickCaptionForegroundPreset.Pink
+            }));
+        var cyan = viewModel.TextColorOptions.Single(option => option.Name == "Cyan");
+
+        viewModel.SelectColor(cyan);
+        await viewModel.InitializeAsync();
+
+        Assert.Equal("Cyan", viewModel.SelectedColor.Name);
     }
 
     [Fact]

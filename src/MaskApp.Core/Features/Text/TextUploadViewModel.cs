@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using MaskApp.Core.Features.Connect;
+using MaskApp.Core.Features.QuickActions;
 
 namespace MaskApp.Core.Features.Text;
 
@@ -15,6 +16,7 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
     private static readonly TimeSpan PreviewDebounceDelay = TimeSpan.FromMilliseconds(180);
 
     private readonly ITextUploadTransport transport;
+    private readonly IQuickActionTextSettingsStore quickCaptionSettingsStore;
     private readonly SynchronizationContext? synchronizationContext;
     private string text = "HELLO";
     private TextColorOption selectedColor;
@@ -31,11 +33,16 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
     private bool useCompatibilityWriteOnly;
     private bool supportsAcknowledgements;
     private TextUploadTransportState transportState;
+    private bool globalColorInitialized;
+    private bool selectedColorManuallyChanged;
     private CancellationTokenSource? previewRefreshCancellation;
 
-    public TextUploadViewModel(ITextUploadTransport transport)
+    public TextUploadViewModel(
+        ITextUploadTransport transport,
+        IQuickActionTextSettingsStore? quickCaptionSettingsStore = null)
     {
         this.transport = transport;
+        this.quickCaptionSettingsStore = quickCaptionSettingsStore ?? new InMemoryQuickActionTextSettingsStore();
         synchronizationContext = SynchronizationContext.Current;
         TextColorOptions =
         [
@@ -43,7 +50,9 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
             new TextColorOption("White", 0xFF, 0xFF, 0xFF, "#FFFFFF"),
             new TextColorOption("Pink", 0xF4, 0x72, 0xB6, "#F472B6"),
             new TextColorOption("Amber", 0xFA, 0xCC, 0x15, "#FACC15"),
-            new TextColorOption("Green", 0x22, 0xC5, 0x5E, "#22C55E")
+            new TextColorOption("Green", 0x22, 0xC5, 0x5E, "#22C55E"),
+            new TextColorOption("Red", 0xEF, 0x44, 0x44, "#EF4444"),
+            new TextColorOption("Purple", 0xA8, 0x55, 0xF7, "#A855F7")
         ];
         AnimationModes =
         [
@@ -58,7 +67,7 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
             new TextLayoutModeOption("Centered 44-column", TextLayoutMode.FixedWidthCentered)
         ];
 
-        selectedColor = TextColorOptions[0];
+        selectedColor = TextColorOptions.Single(option => option.Name == "White");
         selectedLayoutMode = LayoutModes[1];
         selectedAnimationMode = AnimationModes[1];
         supportsAcknowledgements = transport.SupportsAcknowledgements;
@@ -158,8 +167,8 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
     }
 
     public string ProfileSummary => BuildComposerProfile().Name == TextSendProfile.ComposerCentered.Name
-        ? $"Centered 44 columns, {SelectedAnimationMode.Name}, Speed {Speed}"
-        : $"Variable width, {SelectedAnimationMode.Name}, Speed {Speed}";
+        ? $"Centered 44 columns, {SelectedAnimationMode.Name}, Speed {Speed}, {SelectedColor.Name}"
+        : $"Variable width, {SelectedAnimationMode.Name}, Speed {Speed}, {SelectedColor.Name}";
 
     public string ActiveTransportText =>
         transport.IsSimulated
@@ -268,7 +277,22 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
 
     public void SelectColor(TextColorOption color)
     {
+        selectedColorManuallyChanged = true;
         SelectedColor = color;
+    }
+
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        if (globalColorInitialized || selectedColorManuallyChanged)
+        {
+            globalColorInitialized = true;
+            return;
+        }
+
+        var settings = (await quickCaptionSettingsStore.LoadAsync(cancellationToken)).Normalize();
+        var color = FindColorOption(settings.ForegroundPreset);
+        SelectedColor = color;
+        globalColorInitialized = true;
     }
 
     private async Task SendAsync(CancellationToken cancellationToken)
@@ -471,6 +495,16 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
             Speed = Speed,
             TextColor = SelectedColor.ToLedColor()
         };
+    }
+
+    private TextColorOption FindColorOption(QuickCaptionForegroundPreset preset)
+    {
+        var color = QuickCaptionForegroundPalette.GetColor(preset);
+        return TextColorOptions.FirstOrDefault(option =>
+                option.Red == color.Red &&
+                option.Green == color.Green &&
+                option.Blue == color.Blue)
+            ?? TextColorOptions.Single(option => option.Name == "White");
     }
 
     private static TextDisplayMode ToTextDisplayMode(int mode) =>

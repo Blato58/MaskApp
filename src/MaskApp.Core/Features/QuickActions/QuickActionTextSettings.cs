@@ -10,6 +10,8 @@ public sealed record QuickActionTextSettings
 
     public QuickCaptionSendMode SendMode { get; init; } = QuickCaptionSendMode.LowStaticFlash;
 
+    public QuickCaptionForegroundPreset ForegroundPreset { get; init; } = QuickCaptionForegroundPreset.White;
+
     public bool BackgroundEnabled { get; init; }
 
     public QuickCaptionBackgroundPreset BackgroundPreset { get; init; } = QuickCaptionBackgroundPreset.Black;
@@ -18,6 +20,9 @@ public sealed record QuickActionTextSettings
         this with
         {
             Speed = Math.Clamp(Speed, 1, 100),
+            ForegroundPreset = Enum.IsDefined(ForegroundPreset)
+                ? ForegroundPreset
+                : QuickCaptionForegroundPreset.White,
             BackgroundEnabled = false,
             BackgroundPreset = QuickCaptionBackgroundPreset.Black
         };

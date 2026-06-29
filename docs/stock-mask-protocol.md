@@ -248,6 +248,6 @@ Run this on iPhone with the physical mask:
 10. React page sends `NOPE`, `LOL`, and `SUS`.
 11. RAVE page sends `DROP`, `WHEEL UP`, and `HYDRATE`.
 12. RAVE command fallbacks work.
-13. Festival Lock keeps BLACKOUT available.
+13. Lock-free RAVE keeps BLACKOUT available.
 14. Reconnect does not break RAVE UI.
 15. Write down which built-in image/animation IDs are good.

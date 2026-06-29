@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:home="clr-namespace:MaskApp.Core.Features.Home;assembly=MaskApp.Core"
+    xmlns:quick="clr-namespace:MaskApp.Core.Features.QuickActions;assembly=MaskApp.Core"
     x:DataType="home:HomeViewModel"
     Title="Control"
     BackgroundColor="{StaticResource PageBackgroundColor}">
@@ -81,6 +82,46 @@
                     <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="10">
                         <Button Text="Connect" Clicked="OnOpenConnectClicked" Style="{StaticResource PrimaryButtonStyle}" />
                         <Button Grid.Column="1" Text="Text Composer" Clicked="OnOpenTextClicked" Style="{StaticResource NeonBlueButtonStyle}" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Bluetooth" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Label Text="{Binding AutoConnectStatusText}" Style="{StaticResource TinyLabelStyle}" />
+                        </VerticalStackLayout>
+                        <Button
+                            Grid.Column="1"
+                            Text="Connect now"
+                            Command="{Binding StartAutoConnectCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}" />
+                    </Grid>
+
+                    <Border Grid.Row="1" Style="{StaticResource CompactPanelBorderStyle}">
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="4">
+                            <Label Text="Last mask" Style="{StaticResource TinyLabelStyle}" />
+                            <Label Grid.Column="1" Text="{Binding LastKnownMaskText}" FontAttributes="Bold" />
+                            <Label Grid.Row="1" Text="Foreground only" Style="{StaticResource TinyLabelStyle}" />
+                            <Button
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                Text="Forget"
+                                Command="{Binding ForgetKnownMaskCommand}" />
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <HorizontalStackLayout Spacing="8">
+                            <Switch IsToggled="{Binding AutoConnectEnabled, Mode=TwoWay}" />
+                            <Label Text="Auto-connect on launch" VerticalTextAlignment="Center" />
+                        </HorizontalStackLayout>
+                        <HorizontalStackLayout Grid.Column="1" Spacing="8">
+                            <Switch IsToggled="{Binding RememberLastDeviceEnabled, Mode=TwoWay}" />
+                            <Label Text="Remember mask" VerticalTextAlignment="Center" />
+                        </HorizontalStackLayout>
                     </Grid>
                 </Grid>
             </Border>
@@ -212,7 +253,7 @@
             </Border>
 
             <Border Style="{StaticResource PanelBorderStyle}">
-                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <VerticalStackLayout Spacing="2">
                             <Label Text="Quick caption settings" Style="{StaticResource SectionTitleLabelStyle}" />
@@ -254,13 +295,37 @@
                         </Border>
                     </Grid>
 
+                    <Grid Grid.Row="3" RowDefinitions="Auto,Auto" RowSpacing="8">
+                        <Label Text="{Binding QuickCaptionForegroundText}" Style="{StaticResource TinyLabelStyle}" />
+                        <FlexLayout
+                            Grid.Row="1"
+                            AlignItems="Start"
+                            BindableLayout.ItemsSource="{Binding QuickCaptionForegroundPresetOptions}"
+                            Direction="Row"
+                            Wrap="Wrap">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="quick:QuickCaptionForegroundPresetOption">
+                                    <Button
+                                        Margin="0,0,8,8"
+                                        Padding="12,8"
+                                        BackgroundColor="{Binding Hex}"
+                                        BorderColor="{Binding Hex}"
+                                        Clicked="OnForegroundColorClicked"
+                                        CommandParameter="{Binding .}"
+                                        Text="{Binding Label}"
+                                        TextColor="#05070D" />
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </FlexLayout>
+                    </Grid>
+
                     <Label
-                        Grid.Row="3"
+                        Grid.Row="4"
                         Text="{Binding QuickCaptionBackgroundNote}"
                         Style="{StaticResource TinyLabelStyle}" />
                     <Label
-                        Grid.Row="4"
-                        Text="Default: Centered 44-column, Blink, speed 50, Low-static Flash, no delayed background reset."
+                        Grid.Row="5"
+                        Text="Default: Centered 44-column, Blink, speed 50, Low-static Flash, white text, backgrounds disabled."
                         TextColor="{StaticResource AccentYellowColor}"
                         Style="{StaticResource TinyLabelStyle}" />
                 </Grid>

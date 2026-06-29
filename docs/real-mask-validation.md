@@ -1,6 +1,6 @@
 # Real-Mask Validation Checklist
 
-Last updated: 2026-06-29
+Last updated: 2026-06-30
 
 Use this checklist on iPhone with the physical Shining Mask before the festival.
 Record useful built-in IDs and any failures in `docs/progress.md` or the current
@@ -33,11 +33,35 @@ slice record.
 15. React page sends `NOPE`, `LOL`, and `SUS`.
 16. RAVE page sends `DROP`, `WHEEL UP`, and `HYDRATE`.
 17. RAVE command fallbacks work.
-18. Festival Lock keeps BLACKOUT available.
+18. RAVE keeps BLACKOUT, Connect, Text Composer, brightness, Favorite Faces,
+    and fallbacks visible without Festival Lock.
 19. Reconnect does not break RAVE UI.
 20. `IMAG 1` changes the mask.
 21. `ANIM 1` changes the mask.
 22. Write down which built-in image/animation IDs are good.
+
+## Festival Live Polish Checklist
+
+1. Manual connect to the mask.
+2. Confirm the mask appears as the last known mask in Control and Connect.
+3. Close and reopen the app.
+4. Confirm auto-connect searches for the remembered mask while the app is open.
+5. Confirm auto-connect connects when the mask is nearby.
+6. Disable auto-connect and confirm the app does not auto-connect.
+7. Re-enable auto-connect and confirm Connect now starts foreground search.
+8. Forget mask and confirm remembered mask is cleared.
+9. Set global quick-caption text color to Cyan.
+10. Send `LOL` from React and confirm Cyan appears.
+11. Set global quick-caption text color to Pink.
+12. Send `DROP` from RAVE and confirm Pink appears.
+13. Open Text Composer and confirm the selected/default color follows the
+    global setting.
+14. Manually choose a different Text Composer color and confirm it is used for
+    that send.
+15. Send BLACKOUT from RAVE body controls.
+16. Send BLACKOUT from the RAVE sticky footer.
+17. Send a RAVE Favorite Face.
+18. Confirm Connect page manual scan still works after forget/reconnect.
 
 ## P0 Text Crash/Freeze Hotfix Checklist
 
@@ -109,7 +133,7 @@ Start with the safe IDs before exploring wider ranges:
 - Tap the deck card once and confirm it sends to the mask.
 - Restart the app and confirm the favorite remains.
 - Repeat the Works/Favorite/deck-send sequence for `ANIM`.
-- Confirm RAVE shows Favorite Faces when Festival Lock is off.
+- Confirm RAVE shows Favorite Faces without a Festival Lock toggle.
 - Confirm BLACKOUT remains visible on Faces and RAVE.
 - Confirm the same favorite face sends from React.
 - Confirm BLACKOUT remains visible after switching between Faces, React, RAVE,
@@ -142,6 +166,12 @@ up to about `0x45`. Higher IDs should stay experimental until tested.
 | Background `BC` fail-soft style | Needs retest | Colored background looked bad; recheck explicit black reset clears stale background state. |
 | Text Composer fast typing | Not tested |  |
 | RAVE command fallbacks | Not tested |  |
-| Festival Lock keeps BLACKOUT | Not tested |  |
+| Lock-free RAVE controls | Not tested | Confirm BLACKOUT, Connect, Text Composer, brightness, Favorite Faces, and fallbacks stay visible. |
+| Auto-connect remembered mask | Not tested | Foreground/app-open only. |
+| Auto-connect disabled | Not tested | Confirm disabled toggle prevents app-open auto-connect. |
+| Forget remembered mask | Not tested | Confirm known mask clears in Control and Connect. |
+| Global text color React | Not tested | Confirm selected color appears for `LOL`. |
+| Global text color RAVE | Not tested | Confirm selected color appears for `DROP`. |
+| Text Composer global default | Not tested | Confirm composer default follows global color and manual override still works. |
 | Reconnect after RAVE | Not tested |  |
 | Useful built-in IDs | Not tested |  |

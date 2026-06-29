@@ -41,7 +41,9 @@ public sealed class ConnectViewModelTests
     {
         var scanner = new FakeBleScanner();
         var connection = new FakeBleConnection();
-        var viewModel = new ConnectViewModel(scanner, connection);
+        var store = new InMemoryBleAutoConnectSettingsStore();
+        var coordinator = new BleAutoConnectCoordinator(scanner, connection, store);
+        var viewModel = new ConnectViewModel(scanner, connection, coordinator);
         var device = new DiscoveredMaskDevice("mask-1", "Mask One", -51);
 
         scanner.Discover(device);
@@ -51,6 +53,30 @@ public sealed class ConnectViewModelTests
         Assert.Equal(device, connection.ConnectedDevice);
         Assert.Equal(BleConnectionState.Connected, viewModel.ConnectionState);
         Assert.Equal("Connected to Mask One.", viewModel.StatusText);
+        Assert.True(viewModel.AutoConnectEnabled);
+        Assert.Equal("Mask One", viewModel.LastKnownMaskText);
+        Assert.Equal("mask-1", (await store.LoadAsync()).LastKnownDevice?.Id);
+    }
+
+    [Fact]
+    public async Task ForgetKnownMaskCommand_ClearsRememberedDevice()
+    {
+        var scanner = new FakeBleScanner();
+        var connection = new FakeBleConnection();
+        var store = new InMemoryBleAutoConnectSettingsStore(new BleAutoConnectSettings
+        {
+            AutoConnectEnabled = true,
+            LastKnownDevice = new KnownMaskDevice("mask-1", "Mask One", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow)
+        });
+        var coordinator = new BleAutoConnectCoordinator(scanner, connection, store);
+        var viewModel = new ConnectViewModel(scanner, connection, coordinator);
+        await viewModel.InitializeAsync();
+
+        await viewModel.ForgetKnownMaskCommand.ExecuteAsync();
+
+        Assert.False(viewModel.AutoConnectEnabled);
+        Assert.Equal("No remembered mask", viewModel.LastKnownMaskText);
+        Assert.Null((await store.LoadAsync()).LastKnownDevice);
     }
 
     private sealed class FakeBleScanner : IBleScanner
