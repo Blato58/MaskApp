@@ -223,7 +223,7 @@ jobs:
 
       - name: Restore iOS publish target
         shell: bash
-        run: dotnet restore "$PROJECT_PATH" -p:TargetFramework="$IOS_TARGET_FRAMEWORK" -p:RuntimeIdentifier=ios-arm64
+        run: dotnet restore "$PROJECT_PATH" -r ios-arm64
 
       - name: Install Apple signing assets
         shell: bash

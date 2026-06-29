@@ -82,9 +82,11 @@ site with the release-backed IPA URL.
 For `master` branch pushes, the release tag is generated as
 `ios-v<ApplicationDisplayVersion>-<GitHub run number>`.
 
-The workflow restores the iOS `ios-arm64` target before signing and runs the
+The workflow restores for the `ios-arm64` runtime before signing and runs the
 `Publish signed IPA` step with `--no-restore`, so the publish step does not pay
-for a second restore with the same runtime identifier.
+for a second restore. The restore step does not override `TargetFramework`
+globally, which keeps project references such as `MaskApp.Core` restored for
+their own target frameworks.
 
 ## Run The Workflow Manually
 
