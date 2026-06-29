@@ -59,6 +59,11 @@ slice record.
 
 ## P0 Deterministic Text Profile Checklist
 
+Physical feedback on 2026-06-29: Stable/centered Blink text passed except Fast
+Flash, which still became left-aligned or solid. Text background styling looked
+bad, so text backgrounds should stay black. The best observed profile was Text
+Creator Centered 44-column + Blink at speed 50.
+
 1. Open app and connect.
 2. Select Stable Flash profile.
 3. Send `LOL` from React 5 times.
@@ -116,13 +121,13 @@ up to about `0x45`. Higher IDs should stay experimental until tested.
 | Text `LOL` write-only mode | Not tested |  |
 | React `NOPE` / `LOL` / `SUS` | Not tested |  |
 | RAVE `DROP` / `WHEEL UP` / `HYDRATE` | Not tested |  |
-| Quick caption Flash/Blink mode | Not tested |  |
-| Quick caption centered/fitted layout | Not tested |  |
-| Stable Flash repeated quick sends | Not tested |  |
-| Fast Flash repeated quick sends | Not tested |  |
-| Text Creator centered 44-column + Blink | Not tested |  |
-| Text Creator Scroll right-to-left | Not tested |  |
-| Background `BC` fail-soft style | Not tested |  |
+| Quick caption Flash/Blink mode | Passed with Stable; failed with Fast | Fast Flash could become solid. |
+| Quick caption centered/fitted layout | Passed with Stable; failed with Fast | Fast Flash could become left-aligned. |
+| Stable Flash repeated quick sends | Passed | Checklist otherwise passed; revalidate speed 50 default after follow-up. |
+| Fast Flash repeated quick sends | Failed on real mask | Still produced left-aligned and solid text. Keep unstable. |
+| Text Creator centered 44-column + Blink | Passed | Best observed profile at speed 50. |
+| Text Creator Scroll right-to-left | Passed | Checklist otherwise passed. |
+| Background `BC` fail-soft style | Failed on real mask | Background looked bad; keep text background black. |
 | Text Composer fast typing | Not tested |  |
 | RAVE command fallbacks | Not tested |  |
 | Festival Lock keeps BLACKOUT | Not tested |  |

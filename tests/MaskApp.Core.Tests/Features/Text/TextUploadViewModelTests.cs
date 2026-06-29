@@ -16,6 +16,10 @@ public sealed class TextUploadViewModelTests
         Assert.True(viewModel.SupportsAcknowledgements);
         Assert.Equal(TextUploadTransportState.Simulated, viewModel.TransportState);
         Assert.IsNotType<ObservableCollection<TextPreviewCell>>(viewModel.PreviewCells);
+        Assert.Equal(TextLayoutMode.FixedWidthCentered, viewModel.SelectedLayoutMode.LayoutMode);
+        Assert.Equal(2, viewModel.SelectedAnimationMode.Mode);
+        Assert.Equal(50, viewModel.Speed);
+        Assert.Equal("Centered 44 columns, Blink, Speed 50", viewModel.ProfileSummary);
     }
 
     [Fact]
@@ -26,6 +30,7 @@ public sealed class TextUploadViewModelTests
         {
             Text = "A",
             Speed = 25,
+            SelectedLayoutMode = new TextLayoutModeOption("Scroll / variable width", TextLayoutMode.VariableWidth),
             SelectedAnimationMode = new TextAnimationModeOption("Scroll right-to-left", 3)
         };
 
@@ -250,7 +255,8 @@ public sealed class TextUploadViewModelTests
         };
         var viewModel = new TextUploadViewModel(transport)
         {
-            Text = new string('W', TextUploadViewModel.MaxTextLength)
+            Text = new string('W', TextUploadViewModel.MaxTextLength),
+            SelectedLayoutMode = new TextLayoutModeOption("Scroll / variable width", TextLayoutMode.VariableWidth)
         };
 
         await viewModel.SendCommand.ExecuteAsync();

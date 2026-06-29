@@ -59,8 +59,8 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
         ];
 
         selectedColor = TextColorOptions[0];
-        selectedLayoutMode = LayoutModes[0];
-        selectedAnimationMode = AnimationModes[2];
+        selectedLayoutMode = LayoutModes[1];
+        selectedAnimationMode = AnimationModes[1];
         supportsAcknowledgements = transport.SupportsAcknowledgements;
         transportState = transport.State;
         useCompatibilityWriteOnly = ShouldDefaultToCompatibilityMode(transport.State, transport.SupportsAcknowledgements);

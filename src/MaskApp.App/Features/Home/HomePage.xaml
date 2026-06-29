@@ -212,7 +212,7 @@
             </Border>
 
             <Border Style="{StaticResource PanelBorderStyle}">
-                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <VerticalStackLayout Spacing="2">
                             <Label Text="Quick caption settings" Style="{StaticResource SectionTitleLabelStyle}" />
@@ -254,27 +254,13 @@
                         </Border>
                     </Grid>
 
-                    <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                        <VerticalStackLayout Spacing="3">
-                            <Label Text="Background preset" Style="{StaticResource TinyLabelStyle}" />
-                            <Picker
-                                ItemDisplayBinding="{Binding Label}"
-                                ItemsSource="{Binding QuickCaptionBackgroundPresetOptions}"
-                                SelectedItem="{Binding SelectedQuickCaptionBackgroundPreset, Mode=TwoWay}" />
-                        </VerticalStackLayout>
-                        <Switch
-                            Grid.Column="1"
-                            IsToggled="{Binding QuickCaptionBackgroundEnabled, Mode=TwoWay}"
-                            VerticalOptions="Center" />
-                    </Grid>
-
                     <Label
-                        Grid.Row="4"
+                        Grid.Row="3"
                         Text="{Binding QuickCaptionBackgroundNote}"
                         Style="{StaticResource TinyLabelStyle}" />
                     <Label
-                        Grid.Row="5"
-                        Text="Default: Flash / Blink, speed 100, Stable Flash."
+                        Grid.Row="4"
+                        Text="Default: Centered 44-column, Blink, speed 50, Stable Flash, black background."
                         TextColor="{StaticResource AccentYellowColor}"
                         Style="{StaticResource TinyLabelStyle}" />
                 </Grid>

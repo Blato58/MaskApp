@@ -88,26 +88,13 @@ public static class TextSendPackageFactory
         TextSendProfile profile,
         ICollection<string> warnings)
     {
-        if (!profile.BackgroundEnabled || profile.BackgroundColor is not { } backgroundColor)
+        if (!profile.BackgroundEnabled || profile.BackgroundColor is not { })
         {
             return [];
         }
 
-        if (profile.StyleCommandPolicy == TextStyleCommandPolicy.Skip)
-        {
-            warnings.Add("Style skipped.");
-            return [];
-        }
-
-        warnings.Add("Background style is fail-soft and needs real-mask test.");
-        return
-        [
-            MaskCommandBuilder.TextBackgroundColor(
-                enabled: true,
-                red: backgroundColor.Red,
-                green: backgroundColor.Green,
-                blue: backgroundColor.Blue)
-        ];
+        warnings.Add("Style skipped; background fixed black.");
+        return [];
     }
 
     private static string BuildSummary(

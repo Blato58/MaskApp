@@ -39,7 +39,7 @@ public sealed class QuickActionDispatcherTests
         Assert.Equal("LOL", textTransport.LastPackage?.Text);
         Assert.Equal(44, textTransport.LastPackage?.ColumnCount);
         Assert.Equal((byte)2, textTransport.LastPackage!.ModeCommand.Plaintext.Span[5]);
-        Assert.Equal((byte)100, textTransport.LastPackage.SpeedCommand.Plaintext.Span[6]);
+        Assert.Equal((byte)50, textTransport.LastPackage.SpeedCommand.Plaintext.Span[6]);
         Assert.True(textTransport.LastOptions?.AckRequired);
         Assert.False(textTransport.LastOptions?.CompatibilityWriteOnly);
         Assert.True(textTransport.LastOptions?.ResetDisplayBeforeUpload);
@@ -68,7 +68,7 @@ public sealed class QuickActionDispatcherTests
         Assert.Equal("VIBE CHECK", package.Text);
         Assert.Equal(44, package.ColumnCount);
         Assert.Equal((byte)2, package.ModeCommand.Plaintext.Span[5]);
-        Assert.Equal((byte)100, package.SpeedCommand.Plaintext.Span[6]);
+        Assert.Equal((byte)50, package.SpeedCommand.Plaintext.Span[6]);
         Assert.True(textTransport.LastOptions?.ResetDisplayBeforeUpload);
         Assert.Equal(TimeSpan.Zero, textTransport.LastOptions?.InterFrameDelay);
         Assert.True(textTransport.LastOptions?.RepeatModeAndSpeed);

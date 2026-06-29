@@ -19,7 +19,7 @@ public sealed class TextSendPackageFactoryTests
         Assert.True(plan.Layout.FixedWidth);
         Assert.True(plan.Layout.Centered);
         Assert.Equal((byte)2, plan.Package.ModeCommand.Plaintext.Span[5]);
-        Assert.Equal((byte)100, plan.Package.SpeedCommand.Plaintext.Span[6]);
+        Assert.Equal((byte)50, plan.Package.SpeedCommand.Plaintext.Span[6]);
         Assert.True(plan.Options.AckRequired);
         Assert.True(plan.Options.RepeatModeAndSpeed);
         Assert.Equal(TimeSpan.FromMilliseconds(200), plan.Options.PostUploadDelay);
@@ -79,7 +79,7 @@ public sealed class TextSendPackageFactoryTests
     }
 
     [Fact]
-    public void BackgroundFailSoft_AddsStyleCommandWithoutBlockingPlan()
+    public void BackgroundRequest_IsSkippedSoMaskBackgroundStaysBlack()
     {
         var profile = TextSendProfile.QuickFlashStable with
         {
@@ -90,9 +90,8 @@ public sealed class TextSendPackageFactoryTests
 
         var plan = TextSendPackageFactory.Create("DROP", profile);
 
-        var styleCommand = Assert.Single(plan.Package.StyleCommands);
-        Assert.Equal(MaskCommandKind.TextBackgroundColor, styleCommand.Kind);
-        Assert.True(plan.Options.StyleCommandsFailSoft);
-        Assert.Contains("fail-soft", plan.Summary);
+        Assert.Empty(plan.Package.StyleCommands);
+        Assert.Contains("Style skipped", plan.Summary);
+        Assert.Contains("background fixed black", plan.Summary);
     }
 }

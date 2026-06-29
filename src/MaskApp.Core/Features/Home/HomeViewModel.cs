@@ -59,14 +59,11 @@ public sealed class HomeViewModel : INotifyPropertyChanged
         QuickCaptionSendModeOptions =
         [
             new QuickCaptionSendModeOption("Stable Flash", QuickCaptionSendMode.StableFlash),
-            new QuickCaptionSendModeOption("Fast Flash", QuickCaptionSendMode.FastWriteOnly),
+            new QuickCaptionSendModeOption("Fast Flash (unstable)", QuickCaptionSendMode.FastWriteOnly),
             new QuickCaptionSendModeOption("Reliable ACK", QuickCaptionSendMode.ReliableAcknowledgement)
         ];
         QuickCaptionBackgroundPresetOptions =
         [
-            new QuickCaptionBackgroundPresetOption("RAVE purple", QuickCaptionBackgroundPreset.RavePurple, "#A855F7"),
-            new QuickCaptionBackgroundPresetOption("Red alert", QuickCaptionBackgroundPreset.RedAlert, "#EF4444"),
-            new QuickCaptionBackgroundPresetOption("Deep blue", QuickCaptionBackgroundPreset.DeepBlue, "#1D4ED8"),
             new QuickCaptionBackgroundPresetOption("Black", QuickCaptionBackgroundPreset.Black, "#000000")
         ];
         selectedQuickCaptionMode = QuickCaptionModeOptions[0];
@@ -318,7 +315,7 @@ public sealed class HomeViewModel : INotifyPropertyChanged
     }
 
     public string QuickCaptionBackgroundNote =>
-        "Background presets use fail-soft BC evidence and need real-mask test. Stable Flash repeats speed/mode for deterministic RAVE captions.";
+        "Text background is fixed black after real-mask testing. Stable Flash repeats speed/mode; Fast Flash stayed left-aligned or solid on hardware.";
 
     public bool CanUseControlCommands => CommandTransportState == MaskCommandTransportState.Ready;
 

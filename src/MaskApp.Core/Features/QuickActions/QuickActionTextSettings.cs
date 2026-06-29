@@ -6,18 +6,20 @@ public sealed record QuickActionTextSettings
 
     public QuickCaptionDisplayMode DisplayMode { get; init; } = QuickCaptionDisplayMode.FlashBlink;
 
-    public int Speed { get; init; } = 100;
+    public int Speed { get; init; } = 50;
 
     public QuickCaptionSendMode SendMode { get; init; } = QuickCaptionSendMode.StableFlash;
 
     public bool BackgroundEnabled { get; init; }
 
-    public QuickCaptionBackgroundPreset BackgroundPreset { get; init; } = QuickCaptionBackgroundPreset.RavePurple;
+    public QuickCaptionBackgroundPreset BackgroundPreset { get; init; } = QuickCaptionBackgroundPreset.Black;
 
     public QuickActionTextSettings Normalize() =>
         this with
         {
-            Speed = Math.Clamp(Speed, 1, 100)
+            Speed = Math.Clamp(Speed, 1, 100),
+            BackgroundEnabled = false,
+            BackgroundPreset = QuickCaptionBackgroundPreset.Black
         };
 
     public int ProtocolMode => DisplayMode switch
