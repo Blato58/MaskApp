@@ -14,7 +14,7 @@ public static class TextSendPackageFactory
         var colors = profile.LayoutMode == TextLayoutMode.FixedWidthCentered
             ? QuickCaptionLayout.CreateColumnColors(ledData, profile.TextColor)
             : Enumerable.Repeat(profile.TextColor, ledData.Length / 2).ToArray();
-        var styleCommands = BuildStyleCommands(profile, warnings);
+        var styleCommands = BuildStyleCommands();
         var package = TextUploadProtocol.CreatePackageFromLedData(
             displayText,
             ledData,
@@ -84,17 +84,16 @@ public static class TextSendPackageFactory
                 Description: $"{columns} columns"));
     }
 
-    private static IReadOnlyList<MaskCommand> BuildStyleCommands(
-        TextSendProfile profile,
-        ICollection<string> warnings)
+    private static IReadOnlyList<MaskCommand> BuildStyleCommands()
     {
-        if (!profile.BackgroundEnabled || profile.BackgroundColor is not { })
-        {
-            return [];
-        }
-
-        warnings.Add("Style skipped; background fixed black.");
-        return [];
+        return
+        [
+            MaskCommandBuilder.TextBackgroundColor(
+                enabled: true,
+                red: 0x00,
+                green: 0x00,
+                blue: 0x00)
+        ];
     }
 
     private static string BuildSummary(
@@ -107,7 +106,7 @@ public static class TextSendPackageFactory
         var transport = options.AckRequired ? "ACK" : "write-only";
         var repeat = options.RepeatModeAndSpeed ? " · repeat mode" : string.Empty;
         var warningText = warnings.Count == 0 ? string.Empty : $" · {string.Join("; ", warnings)}";
-        return $"{profile.Name} · {layout.Description} · MODE {profile.ProtocolMode} · SPEED {profile.Speed} · {transport}{repeat}{warningText}";
+        return $"{profile.Name} · {layout.Description} · black background · MODE {profile.ProtocolMode} · SPEED {profile.Speed} · {transport}{repeat}{warningText}";
     }
 
     private static string NormalizeText(string? text)

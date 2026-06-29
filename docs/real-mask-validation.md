@@ -61,8 +61,10 @@ slice record.
 
 Physical feedback on 2026-06-29: Stable/centered Blink text passed except Fast
 Flash, which still became left-aligned or solid. Text background styling looked
-bad, so text backgrounds should stay black. The best observed profile was Text
-Creator Centered 44-column + Blink at speed 50.
+bad, so colored text backgrounds should stay disabled. The app should still send
+an explicit black background reset so stale mask background state is cleared.
+The best observed profile was Text Creator Centered 44-column + Blink at speed
+50.
 
 1. Open app and connect.
 2. Select Stable Flash profile.
@@ -127,7 +129,7 @@ up to about `0x45`. Higher IDs should stay experimental until tested.
 | Fast Flash repeated quick sends | Failed on real mask | Still produced left-aligned and solid text. Keep unstable. |
 | Text Creator centered 44-column + Blink | Passed | Best observed profile at speed 50. |
 | Text Creator Scroll right-to-left | Passed | Checklist otherwise passed. |
-| Background `BC` fail-soft style | Failed on real mask | Background looked bad; keep text background black. |
+| Background `BC` fail-soft style | Needs retest | Colored background looked bad; recheck explicit black reset clears stale background state. |
 | Text Composer fast typing | Not tested |  |
 | RAVE command fallbacks | Not tested |  |
 | Festival Lock keeps BLACKOUT | Not tested |  |

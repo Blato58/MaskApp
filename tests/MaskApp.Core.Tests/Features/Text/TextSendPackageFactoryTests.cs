@@ -24,6 +24,7 @@ public sealed class TextSendPackageFactoryTests
         Assert.True(plan.Options.RepeatModeAndSpeed);
         Assert.Equal(TimeSpan.FromMilliseconds(200), plan.Options.PostUploadDelay);
         Assert.Contains("Stable Flash", plan.Summary);
+        Assert.Contains("black background", plan.Summary);
     }
 
     [Fact]
@@ -79,7 +80,7 @@ public sealed class TextSendPackageFactoryTests
     }
 
     [Fact]
-    public void BackgroundRequest_IsSkippedSoMaskBackgroundStaysBlack()
+    public void TextPlans_SendFailSoftBlackBackgroundReset()
     {
         var profile = TextSendProfile.QuickFlashStable with
         {
@@ -90,8 +91,10 @@ public sealed class TextSendPackageFactoryTests
 
         var plan = TextSendPackageFactory.Create("DROP", profile);
 
-        Assert.Empty(plan.Package.StyleCommands);
-        Assert.Contains("Style skipped", plan.Summary);
-        Assert.Contains("background fixed black", plan.Summary);
+        var command = Assert.Single(plan.Package.StyleCommands);
+        Assert.Equal(MaskCommandKind.TextBackgroundColor, command.Kind);
+        Assert.Equal(Convert.FromHexString("06424301000000000000000000000000"), command.Plaintext.ToArray());
+        Assert.True(plan.Options.StyleCommandsFailSoft);
+        Assert.Contains("black background", plan.Summary);
     }
 }

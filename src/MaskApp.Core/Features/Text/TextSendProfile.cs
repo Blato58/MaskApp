@@ -126,7 +126,7 @@ public sealed record TextSendProfile
             CommandDelay = CommandDelay,
             RepeatModeAndSpeed = RepeatModeAndSpeed,
             ForceModeAndSpeed = true,
-            StyleCommandsFailSoft = StyleCommandPolicy == TextStyleCommandPolicy.FailSoft,
+            StyleCommandsFailSoft = true,
             PostUploadQuietPeriod = PostUploadQuietPeriod
         };
     }
