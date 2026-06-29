@@ -11,6 +11,13 @@ public sealed record TextUploadOptions
         InterFrameDelay = TimeSpan.FromMilliseconds(40)
     };
 
+    public static TextUploadOptions FastWriteOnly { get; } = new()
+    {
+        AckRequired = false,
+        CompatibilityWriteOnly = true,
+        InterFrameDelay = TimeSpan.Zero
+    };
+
     public bool AckRequired { get; init; } = true;
 
     public bool CompatibilityWriteOnly { get; init; }

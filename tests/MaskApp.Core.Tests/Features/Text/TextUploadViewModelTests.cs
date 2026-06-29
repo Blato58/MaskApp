@@ -157,13 +157,17 @@ public sealed class TextUploadViewModelTests
     }
 
     [Fact]
-    public void Text_ReplacesPreviewListOnce()
+    public async Task Text_ReplacesPreviewListAfterDebounce()
     {
         var viewModel = new TextUploadViewModel(new SimulatedTextUploadTransport());
         var originalPreview = viewModel.PreviewCells;
 
         viewModel.Text = "DROP";
+        var previewBeforeDebounce = viewModel.PreviewCells;
 
+        await Task.Delay(250);
+
+        Assert.Same(originalPreview, previewBeforeDebounce);
         Assert.NotSame(originalPreview, viewModel.PreviewCells);
         Assert.Equal(48 * 16, viewModel.PreviewCells.Count);
     }

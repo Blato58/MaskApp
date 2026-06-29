@@ -12,8 +12,10 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
     private const int PreviewRows = 16;
     private const string PreviewOffColor = "#111827";
     private const int MaxDiagnosticHexLength = 1024;
+    private static readonly TimeSpan PreviewDebounceDelay = TimeSpan.FromMilliseconds(180);
 
     private readonly ITextUploadTransport transport;
+    private readonly SynchronizationContext? synchronizationContext;
     private string text = "HELLO";
     private TextColorOption selectedColor;
     private TextAnimationModeOption selectedAnimationMode;
@@ -28,10 +30,12 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
     private bool useCompatibilityWriteOnly;
     private bool supportsAcknowledgements;
     private TextUploadTransportState transportState;
+    private CancellationTokenSource? previewRefreshCancellation;
 
     public TextUploadViewModel(ITextUploadTransport transport)
     {
         this.transport = transport;
+        synchronizationContext = SynchronizationContext.Current;
         TextColorOptions =
         [
             new TextColorOption("Cyan", 0x52, 0xE3, 0xFF, "#52E3FF"),
@@ -85,7 +89,7 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
 
             if (SetField(ref text, clampedValue))
             {
-                RefreshPreview();
+                SchedulePreviewRefresh();
                 OnPropertyChanged(nameof(CharacterCountText));
                 SendCommand.RaiseCanExecuteChanged();
             }
@@ -101,7 +105,7 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
         {
             if (value is not null && SetField(ref selectedColor, value))
             {
-                RefreshPreview();
+                SchedulePreviewRefresh();
             }
         }
     }
@@ -316,6 +320,51 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
             PreviewCells = BuildBlankPreview();
             StatusText = $"Preview unavailable: {GetShortErrorMessage(ex)}";
         }
+    }
+
+    private void SchedulePreviewRefresh()
+    {
+        previewRefreshCancellation?.Cancel();
+        var cancellation = new CancellationTokenSource();
+        previewRefreshCancellation = cancellation;
+        _ = RefreshPreviewAfterDelayAsync(cancellation);
+    }
+
+    private async Task RefreshPreviewAfterDelayAsync(CancellationTokenSource cancellation)
+    {
+        try
+        {
+            await Task.Delay(PreviewDebounceDelay, cancellation.Token).ConfigureAwait(false);
+            if (cancellation.IsCancellationRequested)
+            {
+                return;
+            }
+
+            RunOnCapturedContext(RefreshPreview);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            if (ReferenceEquals(previewRefreshCancellation, cancellation))
+            {
+                previewRefreshCancellation = null;
+            }
+
+            cancellation.Dispose();
+        }
+    }
+
+    private void RunOnCapturedContext(Action action)
+    {
+        if (synchronizationContext is null)
+        {
+            action();
+            return;
+        }
+
+        synchronizationContext.Post(_ => action(), null);
     }
 
     private static bool IsLit(byte[] ledData, int column, int row)

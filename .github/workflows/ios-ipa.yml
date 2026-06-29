@@ -29,6 +29,11 @@ on:
         required: false
         type: boolean
         default: false
+      send_update_notification:
+        description: "Send an ntfy update notification after publishing a release-backed IPA"
+        required: false
+        type: boolean
+        default: true
   push:
     branches:
       - master
@@ -173,6 +178,7 @@ jobs:
           release_notes="${{ github.event_name == 'workflow_dispatch' && inputs.release_notes || 'Internal iOS build.' }}"
           publish_release="${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish_release) || (github.event_name == 'workflow_dispatch' && inputs.publish_pages) }}"
           publish_pages="${{ (github.event_name == 'push' && github.ref == 'refs/heads/master') || (github.event_name == 'workflow_dispatch' && inputs.publish_pages) }}"
+          send_update_notification="${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.send_update_notification) }}"
 
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             release_tag="${GITHUB_REF_NAME}"
@@ -184,6 +190,8 @@ jobs:
           ipa_file_name="${safe_app_name}-${DISPLAY_VERSION}-${BUILD_NUMBER}.ipa"
           owner_lower="$(printf '%s' "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
           source_json_url="https://${owner_lower}.github.io/${REPO_NAME}/apps.json"
+          install_page_url="https://${owner_lower}.github.io/${REPO_NAME}/"
+          release_url="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${release_tag}"
 
           {
             echo "RELEASE_NOTES<<EOF"
@@ -191,14 +199,18 @@ jobs:
             echo "EOF"
             echo "PUBLISH_RELEASE=$publish_release"
             echo "PUBLISH_PAGES=$publish_pages"
+            echo "SEND_UPDATE_NOTIFICATION=$send_update_notification"
             echo "RELEASE_TAG=$release_tag"
+            echo "RELEASE_URL=$release_url"
             echo "IPA_FILE_NAME=$ipa_file_name"
             echo "SOURCE_JSON_URL=$source_json_url"
+            echo "INSTALL_PAGE_URL=$install_page_url"
           } >> "$GITHUB_ENV"
 
           echo "Release tag: $release_tag"
           echo "Publish release: $publish_release"
           echo "Publish Pages: $publish_pages"
+          echo "Send update notification: $send_update_notification"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -353,6 +365,14 @@ jobs:
       - name: Deploy Pages
         if: env.PUBLISH_PAGES == 'true' && env.PAGES_AVAILABLE == 'true'
         uses: actions/deploy-pages@v5
+
+      - name: Send update notification
+        if: env.PUBLISH_RELEASE == 'true' && env.SEND_UPDATE_NOTIFICATION == 'true'
+        shell: bash
+        env:
+          NTFY_UPDATE_TOPIC_URL: ${{ secrets.NTFY_UPDATE_TOPIC_URL }}
+          NTFY_UPDATE_TOKEN: ${{ secrets.NTFY_UPDATE_TOKEN }}
+        run: bash build/scripts/send-ntfy-update-notification.sh
 
       - name: Clean up signing keychain
         if: always()

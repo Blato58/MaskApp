@@ -114,7 +114,7 @@ public sealed class QuickActionDispatcher : IQuickActionDispatcher
             settings.ProtocolMode,
             settings.Speed);
         var options = settings.SendMode == QuickCaptionSendMode.FastWriteOnly
-            ? TextUploadOptions.WriteOnlyCompatibility
+            ? TextUploadOptions.FastWriteOnly
             : TextUploadOptions.RequireAcknowledgements;
 
         try

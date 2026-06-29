@@ -34,6 +34,8 @@ IOS_P12_PASSWORD
 IOS_PROVISION_PROFILE_BASE64
 IOS_KEYCHAIN_PASSWORD
 IOS_CODESIGN_KEY
+NTFY_UPDATE_TOPIC_URL
+NTFY_UPDATE_TOKEN
 ```
 
 `IOS_BUILD_CERTIFICATE_BASE64` is the Base64 text of the `.p12` file.
@@ -46,6 +48,13 @@ Apple Distribution: Your Name (TEAMID)
 
 The workflow prints available code signing identities if the provided name is
 wrong. It does not print secret values.
+
+`NTFY_UPDATE_TOPIC_URL` is optional. When it is set, successful release-backed
+IPA publishes send a push notification through ntfy so a subscribed phone or
+channel can see that an update is ready. Use the full publish URL for the topic,
+for example `https://ntfy.sh/your-private-topic` or a self-hosted ntfy URL.
+`NTFY_UPDATE_TOKEN` is optional and is sent as a bearer token for protected
+topics.
 
 ## Convert Files To Base64 On Windows
 
@@ -83,10 +92,14 @@ For `master` branch pushes, the release tag is generated as
 6. Optionally set `display_version` and `build_number`.
 7. Enable `publish_release` to create or update a GitHub Release.
 8. Enable `publish_pages` to update `apps.json` and the install page.
+9. Leave `send_update_notification` enabled to notify the ntfy topic after the
+   release is published, or disable it for quiet test builds.
 
 If `build_number` is empty, the workflow uses the GitHub Actions run number.
 If `publish_pages` is enabled, the workflow also publishes a release because the
 phone source needs a stable IPA URL.
+If `NTFY_UPDATE_TOPIC_URL` is not configured, the notification step emits a
+warning and the release remains successful.
 
 GitHub Pages is optional and depends on the repository plan/settings. If Pages is
 not available for the repository, the workflow skips the Pages deployment with a
@@ -101,6 +114,22 @@ v*
 ```
 
 Tag runs publish a release asset using the pushed tag as the release tag.
+
+## Update Notifications
+
+The workflow can notify an ntfy topic each time a release-backed IPA update is
+published. This is a webhook-only notification path; it does not add app push
+entitlements, APNs or Firebase registration, notification permissions, a mobile
+backend, or in-app notification handling.
+
+The notification is sent after the GitHub Release is created or updated. When
+GitHub Pages is published successfully, tapping the notification opens the
+install page. Otherwise it opens the GitHub Release page.
+
+For automatic `master` pushes and matching release tags, update notifications
+are enabled by default. For manual workflow runs, keep
+`send_update_notification` enabled when you want the ntfy subscriber to receive
+the update alert.
 
 ## Install Or Update On iPhone
 
@@ -149,7 +178,7 @@ Do not put secrets or signing files in this JSON file.
 ## Security Notes
 
 - Never commit `.p12`, `.mobileprovision`, passwords, Base64 secrets, keychains,
-  keystores, or production signing material.
+  keystores, ntfy tokens, or production signing material.
 - Do not upload signing certificates to random third-party signing services.
 - Use GitHub repository or organization secrets for signing inputs.
 - If signing material was ever committed, removing it from current history

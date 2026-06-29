@@ -42,6 +42,7 @@ public sealed class QuickActionDispatcherTests
         Assert.Equal((byte)100, textTransport.LastPackage.SpeedCommand.Plaintext.Span[6]);
         Assert.False(textTransport.LastOptions?.AckRequired);
         Assert.True(textTransport.LastOptions?.CompatibilityWriteOnly);
+        Assert.Equal(TimeSpan.Zero, textTransport.LastOptions?.InterFrameDelay);
         Assert.Equal("Sent, confirm on mask", result.Message);
     }
 
