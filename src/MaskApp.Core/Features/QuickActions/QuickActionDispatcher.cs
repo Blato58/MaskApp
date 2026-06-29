@@ -152,6 +152,7 @@ public sealed class QuickActionDispatcher : IQuickActionDispatcher
     {
         var profile = settings.SendMode switch
         {
+            QuickCaptionSendMode.LowStaticFlash => TextSendProfile.QuickFlashLowStatic,
             QuickCaptionSendMode.FastWriteOnly => TextSendProfile.QuickFlashFast,
             QuickCaptionSendMode.ReliableAcknowledgement => TextSendProfile.QuickFlashStable with
             {

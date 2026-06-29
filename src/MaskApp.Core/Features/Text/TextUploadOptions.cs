@@ -43,7 +43,13 @@ public sealed record TextUploadOptions
 
     public bool RepeatModeAndSpeed { get; init; }
 
+    public bool RepeatModeCommand { get; init; }
+
     public bool ForceModeAndSpeed { get; init; } = true;
+
+    public bool PreArmModeAndSpeed { get; init; }
+
+    public bool ApplyModeBeforeSpeedAfterUpload { get; init; }
 
     public bool StyleCommandsFailSoft { get; init; } = true;
 

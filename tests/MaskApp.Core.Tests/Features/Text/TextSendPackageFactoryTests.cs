@@ -5,6 +5,27 @@ namespace MaskApp.Core.Tests.Features.Text;
 
 public sealed class TextSendPackageFactoryTests
 {
+    [Fact]
+    public void QuickFlashLowStatic_UsesCenteredBlinkWithoutResetDelay()
+    {
+        var plan = TextSendPackageFactory.Create("LOL", TextSendProfile.QuickFlashLowStatic);
+
+        Assert.Equal(44, plan.Package.ColumnCount);
+        Assert.True(plan.Layout.FixedWidth);
+        Assert.True(plan.Layout.Centered);
+        Assert.Equal((byte)2, plan.Package.ModeCommand.Plaintext.Span[5]);
+        Assert.Equal((byte)50, plan.Package.SpeedCommand.Plaintext.Span[6]);
+        Assert.False(plan.Options.ResetDisplayBeforeUpload);
+        Assert.True(plan.Options.PreArmModeAndSpeed);
+        Assert.True(plan.Options.ApplyModeBeforeSpeedAfterUpload);
+        Assert.True(plan.Options.RepeatModeCommand);
+        Assert.False(plan.Options.RepeatModeAndSpeed);
+        Assert.True(plan.Options.PostUploadDelay < TextSendProfile.QuickFlashStable.CreateOptions(true).PostUploadDelay);
+        Assert.Empty(plan.Package.StyleCommands);
+        Assert.Contains("Low-static Flash", plan.Summary);
+        Assert.Contains("no background reset", plan.Summary);
+    }
+
     [Theory]
     [InlineData("LOL")]
     [InlineData("DROP")]
@@ -38,7 +59,7 @@ public sealed class TextSendPackageFactoryTests
         Assert.Equal(TimeSpan.FromMilliseconds(100), plan.Options.PostUploadDelay);
         Assert.Equal(TimeSpan.FromMilliseconds(20), plan.Options.CommandDelay);
         Assert.False(plan.Options.RepeatModeAndSpeed);
-        Assert.Contains("Fast Flash", plan.Summary);
+        Assert.Contains("Fast Flash unstable", plan.Summary);
     }
 
     [Fact]
@@ -96,5 +117,40 @@ public sealed class TextSendPackageFactoryTests
         Assert.Equal(Convert.FromHexString("06424301000000000000000000000000"), command.Plaintext.ToArray());
         Assert.True(plan.Options.StyleCommandsFailSoft);
         Assert.Contains("black background", plan.Summary);
+    }
+
+    [Fact]
+    public void LowStaticSequence_SendsModeBeforeAnyStyleAfterUpload()
+    {
+        var plan = TextSendPackageFactory.Create("DROP", TextSendProfile.QuickFlashLowStatic);
+
+        var preUpload = TextUploadCommandSequence.CreatePreUploadSteps(plan.Package, plan.Options);
+        var postUpload = TextUploadCommandSequence.CreatePostUploadSteps(plan.Package, plan.Options);
+
+        Assert.Collection(
+            preUpload,
+            step => Assert.Equal(MaskCommandKind.TextSpeed, step.Command.Kind),
+            step => Assert.Equal(MaskCommandKind.TextMode, step.Command.Kind));
+        Assert.Collection(
+            postUpload,
+            step => Assert.Equal(MaskCommandKind.TextMode, step.Command.Kind),
+            step => Assert.Equal(MaskCommandKind.TextSpeed, step.Command.Kind),
+            step => Assert.Equal(MaskCommandKind.TextMode, step.Command.Kind));
+    }
+
+    [Fact]
+    public void StableFlashSequence_KeepsBlackResetBeforeRepeatedSpeedAndMode()
+    {
+        var plan = TextSendPackageFactory.Create("DROP", TextSendProfile.QuickFlashStable);
+
+        var postUpload = TextUploadCommandSequence.CreatePostUploadSteps(plan.Package, plan.Options);
+
+        Assert.Collection(
+            postUpload,
+            step => Assert.Equal(MaskCommandKind.TextBackgroundColor, step.Command.Kind),
+            step => Assert.Equal(MaskCommandKind.TextSpeed, step.Command.Kind),
+            step => Assert.Equal(MaskCommandKind.TextMode, step.Command.Kind),
+            step => Assert.Equal(MaskCommandKind.TextSpeed, step.Command.Kind),
+            step => Assert.Equal(MaskCommandKind.TextMode, step.Command.Kind));
     }
 }

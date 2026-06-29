@@ -2,9 +2,30 @@ namespace MaskApp.Core.Features.Text;
 
 public sealed record TextSendProfile
 {
+    public static TextSendProfile QuickFlashLowStatic { get; } = new()
+    {
+        Name = "Low-static Flash",
+        Intent = TextSendIntent.QuickCaption,
+        LayoutMode = TextLayoutMode.FixedWidthCentered,
+        DisplayMode = TextDisplayMode.Blink,
+        Reliability = TextSendReliability.StableAuto,
+        Speed = 50,
+        FixedWidthColumns = QuickCaptionLayout.VisibleColumns,
+        TextColor = new TextLedColor(0xFF, 0xFF, 0xFF),
+        InterFrameDelay = TimeSpan.FromMilliseconds(40),
+        PostUploadDelay = TimeSpan.FromMilliseconds(20),
+        CommandDelay = TimeSpan.FromMilliseconds(20),
+        PostUploadQuietPeriod = TimeSpan.FromMilliseconds(40),
+        ResetDisplayBeforeUpload = false,
+        PreArmModeAndSpeed = true,
+        ApplyModeBeforeSpeedAfterUpload = true,
+        RepeatModeCommand = true,
+        SendBlackBackgroundReset = false
+    };
+
     public static TextSendProfile QuickFlashFast { get; } = new()
     {
-        Name = "Fast Flash",
+        Name = "Fast Flash unstable",
         Intent = TextSendIntent.QuickCaption,
         LayoutMode = TextLayoutMode.FixedWidthCentered,
         DisplayMode = TextDisplayMode.Blink,
@@ -98,7 +119,15 @@ public sealed record TextSendProfile
 
     public bool RepeatModeAndSpeed { get; init; }
 
+    public bool RepeatModeCommand { get; init; }
+
     public bool ResetDisplayBeforeUpload { get; init; } = true;
+
+    public bool PreArmModeAndSpeed { get; init; }
+
+    public bool ApplyModeBeforeSpeedAfterUpload { get; init; }
+
+    public bool SendBlackBackgroundReset { get; init; } = true;
 
     public bool UseLargeMtu { get; init; }
 
@@ -125,7 +154,10 @@ public sealed record TextSendProfile
             PostUploadDelay = PostUploadDelay,
             CommandDelay = CommandDelay,
             RepeatModeAndSpeed = RepeatModeAndSpeed,
+            RepeatModeCommand = RepeatModeCommand,
             ForceModeAndSpeed = true,
+            PreArmModeAndSpeed = PreArmModeAndSpeed,
+            ApplyModeBeforeSpeedAfterUpload = ApplyModeBeforeSpeedAfterUpload,
             StyleCommandsFailSoft = true,
             PostUploadQuietPeriod = PostUploadQuietPeriod
         };

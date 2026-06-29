@@ -198,6 +198,7 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
         }
 
         await ResetTextDisplayIfRequestedAsync(options, cancellationToken).ConfigureAwait(false);
+        await SendPreUploadCommandsAsync(package, options, cancellationToken).ConfigureAwait(false);
 
         if (options.CompatibilityWriteOnly || !options.AckRequired)
         {
@@ -317,36 +318,38 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
         await DelayTextWriteAsync(options.PostUploadDelay, cancellationToken).ConfigureAwait(false);
 
         var styleSkipped = false;
-        foreach (var styleCommand in package.StyleCommands)
+        var steps = TextUploadCommandSequence.CreatePostUploadSteps(package, options);
+        for (var i = 0; i < steps.Count; i++)
         {
+            var step = steps[i];
             try
             {
-                WriteEncryptedCommand(styleCommand);
+                WriteEncryptedCommand(step.Command);
             }
-            catch when (options.StyleCommandsFailSoft)
+            catch when (step.FailSoft)
             {
                 styleSkipped = true;
             }
 
-            await DelayTextWriteAsync(options.CommandDelay, cancellationToken).ConfigureAwait(false);
-        }
-
-        if (options.ForceModeAndSpeed)
-        {
-            WriteEncryptedCommand(package.SpeedCommand);
-            await DelayTextWriteAsync(options.CommandDelay, cancellationToken).ConfigureAwait(false);
-            WriteEncryptedCommand(package.ModeCommand);
-
-            if (options.RepeatModeAndSpeed)
+            if (i < steps.Count - 1)
             {
                 await DelayTextWriteAsync(options.CommandDelay, cancellationToken).ConfigureAwait(false);
-                WriteEncryptedCommand(package.SpeedCommand);
-                await DelayTextWriteAsync(options.CommandDelay, cancellationToken).ConfigureAwait(false);
-                WriteEncryptedCommand(package.ModeCommand);
             }
         }
 
         return styleSkipped ? " Style skipped." : string.Empty;
+    }
+
+    private async Task SendPreUploadCommandsAsync(
+        TextUploadPackage package,
+        TextUploadOptions options,
+        CancellationToken cancellationToken)
+    {
+        foreach (var step in TextUploadCommandSequence.CreatePreUploadSteps(package, options))
+        {
+            WriteEncryptedCommand(step.Command);
+            await DelayTextWriteAsync(options.CommandDelay, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private async Task<bool> EnsurePermissionsAsync(CancellationToken cancellationToken)

@@ -260,7 +260,7 @@
                         Style="{StaticResource TinyLabelStyle}" />
                     <Label
                         Grid.Row="4"
-                        Text="Default: Centered 44-column, Blink, speed 50, Stable Flash, black background."
+                        Text="Default: Centered 44-column, Blink, speed 50, Low-static Flash, no delayed background reset."
                         TextColor="{StaticResource AccentYellowColor}"
                         Style="{StaticResource TinyLabelStyle}" />
                 </Grid>

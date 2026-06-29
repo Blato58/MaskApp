@@ -42,13 +42,15 @@ public sealed class QuickActionDispatcherTests
         Assert.Equal((byte)50, textTransport.LastPackage.SpeedCommand.Plaintext.Span[6]);
         Assert.True(textTransport.LastOptions?.AckRequired);
         Assert.False(textTransport.LastOptions?.CompatibilityWriteOnly);
-        Assert.True(textTransport.LastOptions?.ResetDisplayBeforeUpload);
-        Assert.Equal(TimeSpan.FromMilliseconds(40), textTransport.LastOptions?.DisplayResetDelay);
+        Assert.False(textTransport.LastOptions?.ResetDisplayBeforeUpload);
+        Assert.True(textTransport.LastOptions?.PreArmModeAndSpeed);
+        Assert.True(textTransport.LastOptions?.ApplyModeBeforeSpeedAfterUpload);
         Assert.Equal(TimeSpan.Zero, textTransport.LastOptions?.InterFrameDelay);
-        Assert.Equal(TimeSpan.FromMilliseconds(200), textTransport.LastOptions?.PostUploadDelay);
-        Assert.Equal(TimeSpan.FromMilliseconds(60), textTransport.LastOptions?.CommandDelay);
-        Assert.True(textTransport.LastOptions?.RepeatModeAndSpeed);
-        Assert.Contains("Stable Flash", result.Message);
+        Assert.Equal(TimeSpan.FromMilliseconds(20), textTransport.LastOptions?.PostUploadDelay);
+        Assert.Equal(TimeSpan.FromMilliseconds(20), textTransport.LastOptions?.CommandDelay);
+        Assert.False(textTransport.LastOptions?.RepeatModeAndSpeed);
+        Assert.True(textTransport.LastOptions?.RepeatModeCommand);
+        Assert.Contains("Low-static Flash", result.Message);
         Assert.Contains("44 centered", result.Status);
     }
 
@@ -69,9 +71,9 @@ public sealed class QuickActionDispatcherTests
         Assert.Equal(44, package.ColumnCount);
         Assert.Equal((byte)2, package.ModeCommand.Plaintext.Span[5]);
         Assert.Equal((byte)50, package.SpeedCommand.Plaintext.Span[6]);
-        Assert.True(textTransport.LastOptions?.ResetDisplayBeforeUpload);
+        Assert.False(textTransport.LastOptions?.ResetDisplayBeforeUpload);
         Assert.Equal(TimeSpan.Zero, textTransport.LastOptions?.InterFrameDelay);
-        Assert.True(textTransport.LastOptions?.RepeatModeAndSpeed);
+        Assert.True(textTransport.LastOptions?.RepeatModeCommand);
         Assert.True(HasLitPixelInRows(package.LedData, startRow: 0, endRow: 6));
         Assert.True(HasLitPixelInRows(package.LedData, startRow: 9, endRow: 15));
         Assert.Equal(new TextLedColor(0, 0, 0), ReadPayloadColor(package, column: 0));
@@ -101,6 +103,28 @@ public sealed class QuickActionDispatcherTests
         Assert.True(textTransport.LastOptions?.AckRequired);
         Assert.False(textTransport.LastOptions?.CompatibilityWriteOnly);
         Assert.Contains("Reliable ACK", result.Status);
+    }
+
+    [Fact]
+    public async Task TriggerAsync_TextReaction_StableFlashFallbackRemainsAvailable()
+    {
+        var textTransport = new FakeTextUploadTransport();
+        var dispatcher = new QuickActionDispatcher(
+            new QuickActionCatalog(),
+            new FakeCommandTransport(),
+            textTransport,
+            new InMemoryQuickActionTextSettingsStore(new QuickActionTextSettings
+            {
+                SendMode = QuickCaptionSendMode.StableFlash
+            }));
+
+        var result = await dispatcher.TriggerAsync(QuickActionId.Drop);
+
+        Assert.True(result.Succeeded);
+        Assert.True(textTransport.LastOptions?.ResetDisplayBeforeUpload);
+        Assert.Equal(TimeSpan.FromMilliseconds(200), textTransport.LastOptions?.PostUploadDelay);
+        Assert.True(textTransport.LastOptions?.RepeatModeAndSpeed);
+        Assert.Contains("Stable Flash", result.Status);
     }
 
     [Fact]

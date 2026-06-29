@@ -19,24 +19,25 @@ slice record.
 1. Confirm Faces is visible as a root tab without using More.
 2. Confirm Text Composer is reachable from Control, React, and RAVE.
 3. Confirm Quick Caption Mode defaults to Flash / Blink.
-4. Scan finds mask.
-5. Connect succeeds.
-6. Disconnection/reconnect path is understandable.
-7. BLACKOUT sends `LIGHT 1`.
-8. Brightness cap sends expected brightness.
-9. Send `LOL` from React.
-10. Send `DROP` from RAVE.
-11. Confirm quick captions do not slow right-to-left scroll by default.
-12. Text short caption `LOL` sends in ACK mode if notifications work.
-13. Text short caption sends in write-only mode if ACK is missing.
-14. React page sends `NOPE`, `LOL`, and `SUS`.
-15. RAVE page sends `DROP`, `WHEEL UP`, and `HYDRATE`.
-16. RAVE command fallbacks work.
-17. Festival Lock keeps BLACKOUT available.
-18. Reconnect does not break RAVE UI.
-19. `IMAG 1` changes the mask.
-20. `ANIM 1` changes the mask.
-21. Write down which built-in image/animation IDs are good.
+4. Confirm Quick Caption Send mode defaults to Low-static Flash.
+5. Scan finds mask.
+6. Connect succeeds.
+7. Disconnection/reconnect path is understandable.
+8. BLACKOUT sends `LIGHT 1`.
+9. Brightness cap sends expected brightness.
+10. Send `LOL` from React.
+11. Send `DROP` from RAVE.
+12. Confirm quick captions do not slow right-to-left scroll by default.
+13. Text short caption `LOL` sends in ACK mode if notifications work.
+14. Text short caption sends in write-only mode if ACK is missing.
+15. React page sends `NOPE`, `LOL`, and `SUS`.
+16. RAVE page sends `DROP`, `WHEEL UP`, and `HYDRATE`.
+17. RAVE command fallbacks work.
+18. Festival Lock keeps BLACKOUT available.
+19. Reconnect does not break RAVE UI.
+20. `IMAG 1` changes the mask.
+21. `ANIM 1` changes the mask.
+22. Write down which built-in image/animation IDs are good.
 
 ## P0 Text Crash/Freeze Hotfix Checklist
 
@@ -61,31 +62,39 @@ slice record.
 
 Physical feedback on 2026-06-29: Stable/centered Blink text passed except Fast
 Flash, which still became left-aligned or solid. Text background styling looked
-bad, so colored text backgrounds should stay disabled. The app should still send
-an explicit black background reset so stale mask background state is cleared.
-The best observed profile was Text Creator Centered 44-column + Blink at speed
-50.
+bad, so colored text backgrounds should stay disabled. Follow-up feedback showed
+the remaining issue is not cold start: every quick-caption send had about 300 ms
+of static display before Blink began. Low-static Flash now avoids the per-send
+display reset/black `BC` delay, pre-arms `SPEED 50` and `MODE 2`, and sends
+post-upload `MODE 2` immediately.
 
 1. Open app and connect.
-2. Select Stable Flash profile.
-3. Send `LOL` from React 5 times.
-4. Confirm all 5 are centered.
-5. Confirm all 5 flash/blink.
-6. Send `DROP` from RAVE 5 times.
-7. Confirm all 5 are centered.
-8. Confirm all 5 flash/blink.
-9. Switch to Fast Flash.
-10. Repeat `LOL` and `DROP` 5 times.
-11. Record if any send becomes solid or left-aligned.
-12. Open Text Creator.
-13. Choose Centered 44-column + Blink.
-14. Send `TEST`.
-15. Confirm centered/blink.
-16. Choose Scroll right-to-left.
-17. Send `TEST SCROLL`.
-18. Confirm scrolling is intentional.
-19. Test background color if enabled.
-20. Record the best festival profile.
+2. Select or confirm Low-static Flash profile.
+3. Send `LOL` from React 10 times.
+4. Confirm all 10 are centered.
+5. Confirm Blink begins immediately or much faster than the old ~300 ms static
+   pre-roll.
+6. Send `DROP` from RAVE 10 times.
+7. Confirm all 10 are centered.
+8. Confirm Blink begins immediately or much faster than the old ~300 ms static
+   pre-roll.
+9. Compare Stable Flash fallback with `LOL` and `DROP`.
+10. Confirm Stable Flash remains centered/blink if Low-static is less reliable.
+11. Switch to Fast Flash unstable.
+12. Repeat `LOL` and `DROP` 5 times.
+13. Record if any send becomes solid or left-aligned.
+14. Open Text Composer.
+15. Choose Centered 44-column + Blink.
+16. Send `TEST`.
+17. Confirm centered/blink.
+18. Choose Scroll right-to-left.
+19. Send `TEST SCROLL`.
+20. Confirm scrolling is intentional.
+21. Send BLACKOUT.
+22. Confirm BLACKOUT still works.
+23. Send a built-in face fallback.
+24. Confirm the built-in face fallback still works.
+25. Record the best festival profile.
 
 ## Built-In Scanner Sequence
 
@@ -126,6 +135,7 @@ up to about `0x45`. Higher IDs should stay experimental until tested.
 | Quick caption Flash/Blink mode | Passed with Stable; failed with Fast | Fast Flash could become solid. |
 | Quick caption centered/fitted layout | Passed with Stable; failed with Fast | Fast Flash could become left-aligned. |
 | Stable Flash repeated quick sends | Passed | Checklist otherwise passed; revalidate speed 50 default after follow-up. |
+| Low-static Flash repeated quick sends | Not tested | Confirm blink starts immediately or noticeably faster than the old ~300 ms static pre-roll. |
 | Fast Flash repeated quick sends | Failed on real mask | Still produced left-aligned and solid text. Keep unstable. |
 | Text Creator centered 44-column + Blink | Passed | Best observed profile at speed 50. |
 | Text Creator Scroll right-to-left | Passed | Checklist otherwise passed. |

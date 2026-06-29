@@ -58,8 +58,9 @@ public sealed class HomeViewModel : INotifyPropertyChanged
         ];
         QuickCaptionSendModeOptions =
         [
+            new QuickCaptionSendModeOption("Low-static Flash", QuickCaptionSendMode.LowStaticFlash),
             new QuickCaptionSendModeOption("Stable Flash", QuickCaptionSendMode.StableFlash),
-            new QuickCaptionSendModeOption("Fast Flash (unstable)", QuickCaptionSendMode.FastWriteOnly),
+            new QuickCaptionSendModeOption("Fast Flash unstable", QuickCaptionSendMode.FastWriteOnly),
             new QuickCaptionSendModeOption("Reliable ACK", QuickCaptionSendMode.ReliableAcknowledgement)
         ];
         QuickCaptionBackgroundPresetOptions =
@@ -315,7 +316,7 @@ public sealed class HomeViewModel : INotifyPropertyChanged
     }
 
     public string QuickCaptionBackgroundNote =>
-        "Text background is fixed black after real-mask testing. Stable Flash repeats speed/mode; Fast Flash stayed left-aligned or solid on hardware.";
+        "Low-static Flash pre-arms Blink and skips the black reset delay. Stable Flash keeps the reset as fallback; Fast Flash stayed left-aligned or solid on hardware.";
 
     public bool CanUseControlCommands => CommandTransportState == MaskCommandTransportState.Ready;
 
