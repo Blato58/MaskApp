@@ -58,15 +58,25 @@ public static class TextGlyphRasterizer
 
     public static byte[] Render(string text)
     {
+        return Render(text, TopPadding);
+    }
+
+    public static byte[] Render(string text, int topPadding)
+    {
         if (string.IsNullOrEmpty(text))
         {
             return [];
         }
 
+        if (topPadding < 0 || topPadding + GlyphHeight > 16)
+        {
+            throw new ArgumentOutOfRangeException(nameof(topPadding), "Glyphs must fit inside the 16-row mask text area.");
+        }
+
         var columns = new List<ushort>();
         foreach (var character in text)
         {
-            AppendGlyph(columns, character);
+            AppendGlyph(columns, character, topPadding);
             columns.Add(0);
         }
 
@@ -80,7 +90,7 @@ public static class TextGlyphRasterizer
         return data;
     }
 
-    private static void AppendGlyph(ICollection<ushort> columns, char character)
+    private static void AppendGlyph(ICollection<ushort> columns, char character, int topPadding)
     {
         var normalized = char.ToUpperInvariant(character);
         if (!Glyphs.TryGetValue(normalized, out var glyph))
@@ -95,7 +105,7 @@ public static class TextGlyphRasterizer
             {
                 if (glyph[row][column] == '1')
                 {
-                    bits |= (ushort)(1 << (15 - (TopPadding + row)));
+                    bits |= (ushort)(1 << (15 - (topPadding + row)));
                 }
             }
 

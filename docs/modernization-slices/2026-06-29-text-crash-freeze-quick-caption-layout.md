@@ -51,6 +51,10 @@ flows on top of them.
 - Text send failures and cancellations show concise status text.
 - Home, React, and RAVE quick text uses centered/fitted 44-column payloads with
   paced Fast write-only sends.
+- Over-wide two-word quick captions such as `VIBE CHECK` render as two centered
+  rows instead of shortening to the first word.
+- Blank quick-caption columns upload black/off color bytes so padding should not
+  appear as a lit rectangle on the physical mask.
 - Long quick captions are shortened before upload instead of overflowing.
 
 ## Current evidence
@@ -118,7 +122,8 @@ Out of scope:
   `ConfigureAwait(false)` usage, made text send fail-soft, capped payload hex,
   replaced preview collection mutation, debounced Text Creator preview refresh,
   added 44-column quick-caption layout, and routed quick actions through a
-  centered/fitted paced Fast write-only package path.
+  centered/fitted paced Fast write-only package path. Follow-up artifact work
+  added two-line quick-caption layout plus black/off blank-column colors.
 - Commands run: Roslyn diagnostics, `dotnet test
   tests\MaskApp.Core.Tests\MaskApp.Core.Tests.csproj`, `dotnet build
   src\MaskApp.App\MaskApp.App.csproj -f net10.0-ios`, `dotnet build
@@ -132,7 +137,9 @@ Out of scope:
   the zero-delay path was replaced with 20 ms frame pacing because the real mask
   did not render text properly after unpaced writes. If quick captions are still
   visibly slow, the next decision is whether RAVE quick actions should prefer
-  command-only built-in looks over fresh text upload for true instant use.
+  command-only built-in looks over fresh text upload for true instant use. The
+  `VIBE CHECK` two-line and black/off padding fix still needs real-mask
+  confirmation.
 
 ## Next slice candidate
 

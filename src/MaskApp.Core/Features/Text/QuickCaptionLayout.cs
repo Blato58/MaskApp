@@ -4,6 +4,9 @@ public static class QuickCaptionLayout
 {
     public const int VisibleColumns = 44;
     public const int VisibleRows = 16;
+    private const int TwoLineTopRow = 0;
+    private const int TwoLineBottomRow = 9;
+    private static readonly TextLedColor BlankColumnColor = new(0x00, 0x00, 0x00);
 
     public static QuickCaptionLayoutResult Create(string? caption, int visibleColumns = VisibleColumns)
     {
@@ -24,14 +27,13 @@ public static class QuickCaptionLayout
             return QuickCaptionLayoutResult.Failed(caption ?? string.Empty, "Caption could not be fitted.");
         }
 
-        var ledData = TextGlyphRasterizer.Render(displayText);
+        var ledData = BuildLedData(displayText, visibleColumns);
         var columnCount = ledData.Length / 2;
         if (columnCount > visibleColumns)
         {
             return QuickCaptionLayoutResult.Failed(caption ?? string.Empty, "Caption is too wide.");
         }
 
-        var centeredLedData = CenterLedData(ledData, visibleColumns);
         var warning = wasShortened ? "Caption shortened to fit." : null;
         return QuickCaptionLayoutResult.Success(
             caption ?? string.Empty,
@@ -39,7 +41,7 @@ public static class QuickCaptionLayout
             wasShortened,
             warning,
             visibleColumns,
-            centeredLedData);
+            ledData);
     }
 
     public static TextUploadPackage CreatePackage(
@@ -58,10 +60,29 @@ public static class QuickCaptionLayout
         return TextUploadProtocol.CreatePackageFromLedData(
             layout.DisplayText,
             layout.LedData,
-            color,
+            CreateColumnColors(layout.LedData, color),
             mode,
             speed,
             useLargeMtu);
+    }
+
+    public static IReadOnlyList<TextLedColor> CreateColumnColors(byte[] ledData, TextLedColor litColumnColor)
+    {
+        if (ledData.Length % 2 != 0)
+        {
+            throw new ArgumentException("LED text data must contain two bytes per column.", nameof(ledData));
+        }
+
+        var colors = new TextLedColor[ledData.Length / 2];
+        for (var column = 0; column < colors.Length; column++)
+        {
+            var offset = column * 2;
+            colors[column] = (ledData[offset] | ledData[offset + 1]) == 0
+                ? BlankColumnColor
+                : litColumnColor;
+        }
+
+        return colors;
     }
 
     private static string NormalizeCaption(string? caption)
@@ -98,6 +119,11 @@ public static class QuickCaptionLayout
     {
         wasShortened = false;
         if (MeasureColumns(caption) <= visibleColumns)
+        {
+            return caption;
+        }
+
+        if (CanRenderAsTwoLines(caption, visibleColumns))
         {
             return caption;
         }
@@ -142,6 +168,45 @@ public static class QuickCaptionLayout
     }
 
     private static int MeasureColumns(string text) => TextGlyphRasterizer.Render(text).Length / 2;
+
+    private static byte[] BuildLedData(string text, int visibleColumns)
+    {
+        if (MeasureColumns(text) <= visibleColumns)
+        {
+            return CenterLedData(TextGlyphRasterizer.Render(text), visibleColumns);
+        }
+
+        var lines = SplitTwoLineCaption(text, visibleColumns);
+        if (lines is null)
+        {
+            return CenterLedData(TextGlyphRasterizer.Render(text), visibleColumns);
+        }
+
+        var topLine = CenterLedData(TextGlyphRasterizer.Render(lines.Value.Top, TwoLineTopRow), visibleColumns);
+        var bottomLine = CenterLedData(TextGlyphRasterizer.Render(lines.Value.Bottom, TwoLineBottomRow), visibleColumns);
+        for (var i = 0; i < topLine.Length; i++)
+        {
+            topLine[i] |= bottomLine[i];
+        }
+
+        return topLine;
+    }
+
+    private static bool CanRenderAsTwoLines(string caption, int visibleColumns) =>
+        SplitTwoLineCaption(caption, visibleColumns) is not null;
+
+    private static (string Top, string Bottom)? SplitTwoLineCaption(string caption, int visibleColumns)
+    {
+        var words = caption.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (words.Length != 2)
+        {
+            return null;
+        }
+
+        return MeasureColumns(words[0]) <= visibleColumns && MeasureColumns(words[1]) <= visibleColumns
+            ? (words[0], words[1])
+            : null;
+    }
 
     private static byte[] CenterLedData(byte[] ledData, int visibleColumns)
     {

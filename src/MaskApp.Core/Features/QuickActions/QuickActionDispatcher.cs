@@ -110,7 +110,7 @@ public sealed class QuickActionDispatcher : IQuickActionDispatcher
         var package = TextUploadProtocol.CreatePackageFromLedData(
             layout.DisplayText,
             layout.LedData,
-            DefaultTextColor,
+            QuickCaptionLayout.CreateColumnColors(layout.LedData, DefaultTextColor),
             settings.ProtocolMode,
             settings.Speed);
         var options = settings.SendMode == QuickCaptionSendMode.FastWriteOnly

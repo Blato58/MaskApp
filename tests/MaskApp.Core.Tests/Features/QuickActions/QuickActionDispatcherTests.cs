@@ -47,6 +47,30 @@ public sealed class QuickActionDispatcherTests
     }
 
     [Fact]
+    public async Task TriggerAsync_VibeCheck_UsesTwoLineLayoutAndBlackBlankColumns()
+    {
+        var textTransport = new FakeTextUploadTransport();
+        var dispatcher = new QuickActionDispatcher(
+            new QuickActionCatalog(),
+            new FakeCommandTransport(),
+            textTransport);
+
+        var result = await dispatcher.TriggerAsync(QuickActionId.VibeCheck);
+
+        Assert.True(result.Succeeded);
+        var package = Assert.IsType<TextUploadPackage>(textTransport.LastPackage);
+        Assert.Equal("VIBE CHECK", package.Text);
+        Assert.Equal(44, package.ColumnCount);
+        Assert.Equal((byte)2, package.ModeCommand.Plaintext.Span[5]);
+        Assert.Equal((byte)100, package.SpeedCommand.Plaintext.Span[6]);
+        Assert.Equal(TimeSpan.FromMilliseconds(20), textTransport.LastOptions?.InterFrameDelay);
+        Assert.True(HasLitPixelInRows(package.LedData, startRow: 0, endRow: 6));
+        Assert.True(HasLitPixelInRows(package.LedData, startRow: 9, endRow: 15));
+        Assert.Equal(new TextLedColor(0, 0, 0), ReadPayloadColor(package, column: 0));
+        Assert.Equal(new TextLedColor(0, 0, 0), ReadPayloadColor(package, column: package.ColumnCount - 1));
+    }
+
+    [Fact]
     public async Task TriggerAsync_TextReaction_UsesReliableAckWhenConfigured()
     {
         var textTransport = new FakeTextUploadTransport();
@@ -262,5 +286,32 @@ public sealed class QuickActionDispatcherTests
 
             return Task.FromResult(TextUploadResult.Success("Uploaded.", package.Frames.Count));
         }
+    }
+
+    private static bool HasLitPixelInRows(byte[] ledData, int startRow, int endRow)
+    {
+        for (var column = 0; column < ledData.Length / 2; column++)
+        {
+            var offset = column * 2;
+            var columnBits = (ledData[offset] << 8) | ledData[offset + 1];
+            for (var row = startRow; row <= endRow; row++)
+            {
+                if ((columnBits & (1 << (15 - row))) != 0)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static TextLedColor ReadPayloadColor(TextUploadPackage package, int column)
+    {
+        var colorOffset = package.LedData.Length + (column * 3);
+        return new TextLedColor(
+            package.Payload[colorOffset],
+            package.Payload[colorOffset + 1],
+            package.Payload[colorOffset + 2]);
     }
 }

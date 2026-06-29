@@ -31,8 +31,35 @@ public static class TextUploadProtocol
             throw new ArgumentException("LED text data must contain two bytes per column.", nameof(ledData));
         }
 
+        return CreatePackageFromLedData(
+            text,
+            ledData,
+            Enumerable.Repeat(color, ledData.Length / 2).ToArray(),
+            mode,
+            speed,
+            useLargeMtu);
+    }
+
+    public static TextUploadPackage CreatePackageFromLedData(
+        string text,
+        byte[] ledData,
+        IReadOnlyList<TextLedColor> colors,
+        int mode,
+        int speed,
+        bool useLargeMtu = false)
+    {
+        if (ledData.Length % 2 != 0)
+        {
+            throw new ArgumentException("LED text data must contain two bytes per column.", nameof(ledData));
+        }
+
         var columnCount = ledData.Length / 2;
-        var payload = BuildPayload(ledData, Enumerable.Repeat(color, columnCount));
+        if (colors.Count != columnCount)
+        {
+            throw new ArgumentException("The color count must match the LED column count.", nameof(colors));
+        }
+
+        var payload = BuildPayload(ledData, colors);
         var framePayloadLength = useLargeMtu ? LargeMtuFramePayloadLength : DefaultFramePayloadLength;
         var frames = SplitFrames(payload, framePayloadLength);
 
