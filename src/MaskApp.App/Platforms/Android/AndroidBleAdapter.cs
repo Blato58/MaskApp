@@ -247,10 +247,9 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
                 return TextUploadResult.Failure($"Text upload finish failed: {finishAck}.", framesSent);
             }
 
-            WriteEncryptedCommand(package.ModeCommand);
-            WriteEncryptedCommand(package.SpeedCommand);
+            var postUploadStatus = await SendPostUploadCommandsAsync(package, options, cancellationToken).ConfigureAwait(false);
 
-            return TextUploadResult.Success($"Sent text upload ({framesSent} frame(s)).", framesSent);
+            return TextUploadResult.Success($"Sent text upload ({framesSent} frame(s)).{postUploadStatus}", framesSent);
         }
         catch (System.OperationCanceledException)
         {
@@ -282,13 +281,10 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
             }
 
             WriteEncryptedCommand(package.FinishCommand);
-            await DelayBetweenTextWritesAsync(options, cancellationToken).ConfigureAwait(false);
-            WriteEncryptedCommand(package.ModeCommand);
-            await DelayBetweenTextWritesAsync(options, cancellationToken).ConfigureAwait(false);
-            WriteEncryptedCommand(package.SpeedCommand);
+            var postUploadStatus = await SendPostUploadCommandsAsync(package, options, cancellationToken).ConfigureAwait(false);
 
             return TextUploadResult.Success(
-                $"Sent text upload without ACK confirmation ({framesSent} frame(s)).",
+                $"Sent text upload without ACK confirmation ({framesSent} frame(s)).{postUploadStatus}",
                 framesSent);
         }
         catch (System.OperationCanceledException)
@@ -311,6 +307,46 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
 
         WriteEncryptedCommand(MaskCommandBuilder.TextMode(1));
         await DelayTextWriteAsync(options.DisplayResetDelay, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<string> SendPostUploadCommandsAsync(
+        TextUploadPackage package,
+        TextUploadOptions options,
+        CancellationToken cancellationToken)
+    {
+        await DelayTextWriteAsync(options.PostUploadDelay, cancellationToken).ConfigureAwait(false);
+
+        var styleSkipped = false;
+        foreach (var styleCommand in package.StyleCommands)
+        {
+            try
+            {
+                WriteEncryptedCommand(styleCommand);
+            }
+            catch when (options.StyleCommandsFailSoft)
+            {
+                styleSkipped = true;
+            }
+
+            await DelayTextWriteAsync(options.CommandDelay, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (options.ForceModeAndSpeed)
+        {
+            WriteEncryptedCommand(package.SpeedCommand);
+            await DelayTextWriteAsync(options.CommandDelay, cancellationToken).ConfigureAwait(false);
+            WriteEncryptedCommand(package.ModeCommand);
+
+            if (options.RepeatModeAndSpeed)
+            {
+                await DelayTextWriteAsync(options.CommandDelay, cancellationToken).ConfigureAwait(false);
+                WriteEncryptedCommand(package.SpeedCommand);
+                await DelayTextWriteAsync(options.CommandDelay, cancellationToken).ConfigureAwait(false);
+                WriteEncryptedCommand(package.ModeCommand);
+            }
+        }
+
+        return styleSkipped ? " Style skipped." : string.Empty;
     }
 
     private async Task<bool> EnsurePermissionsAsync(CancellationToken cancellationToken)

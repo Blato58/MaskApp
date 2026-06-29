@@ -162,9 +162,7 @@ public sealed class ReactViewModel : INotifyPropertyChanged
             StatusText = "Ready";
 
             var result = await dispatcher.TriggerAsync(card.Id, cancellationToken: cancellationToken);
-            StatusText = result.Succeeded
-                ? "Sent, confirm on mask"
-                : result.Message;
+            StatusText = result.Message;
         }
         finally
         {

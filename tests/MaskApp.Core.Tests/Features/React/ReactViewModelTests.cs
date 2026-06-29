@@ -48,7 +48,7 @@ public sealed class ReactViewModelTests
 
         Assert.Equal(QuickActionId.Lol, dispatcher.LastActionId);
         Assert.Equal("LOL", viewModel.LastActionText);
-        Assert.Equal("Sent, confirm on mask", viewModel.StatusText);
+        Assert.Equal("Uploaded.", viewModel.StatusText);
     }
 
     [Fact]

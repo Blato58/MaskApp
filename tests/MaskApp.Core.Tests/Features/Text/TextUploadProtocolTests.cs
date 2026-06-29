@@ -120,6 +120,10 @@ public sealed class TextUploadProtocolTests
         Assert.True(options.ResetDisplayBeforeUpload);
         Assert.Equal(TimeSpan.FromMilliseconds(20), options.DisplayResetDelay);
         Assert.Equal(TimeSpan.FromMilliseconds(20), options.InterFrameDelay);
+        Assert.Equal(TimeSpan.FromMilliseconds(100), options.PostUploadDelay);
+        Assert.Equal(TimeSpan.FromMilliseconds(20), options.CommandDelay);
+        Assert.True(options.ForceModeAndSpeed);
+        Assert.False(options.RepeatModeAndSpeed);
         Assert.Equal(TimeSpan.FromMilliseconds(40), options.PostUploadQuietPeriod);
     }
 }

@@ -8,7 +8,7 @@ public sealed record QuickActionTextSettings
 
     public int Speed { get; init; } = 100;
 
-    public QuickCaptionSendMode SendMode { get; init; } = QuickCaptionSendMode.FastWriteOnly;
+    public QuickCaptionSendMode SendMode { get; init; } = QuickCaptionSendMode.StableFlash;
 
     public bool BackgroundEnabled { get; init; }
 

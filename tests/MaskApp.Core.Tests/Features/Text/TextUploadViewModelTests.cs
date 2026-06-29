@@ -34,8 +34,33 @@ public sealed class TextUploadViewModelTests
         Assert.NotNull(transport.LastPackage);
         Assert.Equal("A", transport.LastPackage.Text);
         Assert.Equal(2, viewModel.FrameCount);
-        Assert.Contains("Simulated text upload complete", viewModel.StatusText);
+        Assert.Contains("Composer Scroll", viewModel.StatusText);
         Assert.NotEqual("None", viewModel.LastPayloadHex);
+    }
+
+    [Fact]
+    public async Task SendCommand_CenteredLayoutUsesComposerCenteredPlan()
+    {
+        var transport = new FakeTextUploadTransport
+        {
+            IsReady = true,
+            SupportsAcknowledgements = true,
+            State = TextUploadTransportState.Ready
+        };
+        var viewModel = new TextUploadViewModel(transport)
+        {
+            Text = "TEST",
+            SelectedLayoutMode = new TextLayoutModeOption("Centered 44-column", TextLayoutMode.FixedWidthCentered),
+            SelectedAnimationMode = new TextAnimationModeOption("Blink", 2),
+            Speed = 100
+        };
+
+        await viewModel.SendCommand.ExecuteAsync();
+
+        Assert.True(transport.WasCalled);
+        Assert.Equal("Centered 44 columns, Blink, Speed 100", viewModel.ProfileSummary);
+        Assert.Equal(44, transport.LastPackage?.ColumnCount);
+        Assert.Equal((byte)2, transport.LastPackage!.ModeCommand.Plaintext.Span[5]);
     }
 
     [Fact]
@@ -254,6 +279,8 @@ public sealed class TextUploadViewModelTests
 
         public TextUploadOptions? LastOptions { get; private set; }
 
+        public TextUploadPackage? LastPackage { get; private set; }
+
         public Exception? ExceptionToThrow { get; init; }
 
         public Task<TextUploadResult> UploadAsync(
@@ -268,6 +295,7 @@ public sealed class TextUploadViewModelTests
 
             WasCalled = true;
             LastOptions = options;
+            LastPackage = package;
             return Task.FromResult(TextUploadResult.Success("Uploaded.", package.Frames.Count));
         }
 

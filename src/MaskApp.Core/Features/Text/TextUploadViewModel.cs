@@ -18,6 +18,7 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
     private readonly SynchronizationContext? synchronizationContext;
     private string text = "HELLO";
     private TextColorOption selectedColor;
+    private TextLayoutModeOption selectedLayoutMode;
     private TextAnimationModeOption selectedAnimationMode;
     private int speed = 50;
     private string statusText;
@@ -51,8 +52,14 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
             new TextAnimationModeOption("Scroll right-to-left", 3),
             new TextAnimationModeOption("Scroll left-to-right", 4)
         ];
+        LayoutModes =
+        [
+            new TextLayoutModeOption("Scroll / variable width", TextLayoutMode.VariableWidth),
+            new TextLayoutModeOption("Centered 44-column", TextLayoutMode.FixedWidthCentered)
+        ];
 
         selectedColor = TextColorOptions[0];
+        selectedLayoutMode = LayoutModes[0];
         selectedAnimationMode = AnimationModes[2];
         supportsAcknowledgements = transport.SupportsAcknowledgements;
         transportState = transport.State;
@@ -66,6 +73,8 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public IReadOnlyList<TextColorOption> TextColorOptions { get; }
+
+    public IReadOnlyList<TextLayoutModeOption> LayoutModes { get; }
 
     public IReadOnlyList<TextAnimationModeOption> AnimationModes { get; }
 
@@ -106,6 +115,20 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
             if (value is not null && SetField(ref selectedColor, value))
             {
                 SchedulePreviewRefresh();
+                OnPropertyChanged(nameof(ProfileSummary));
+            }
+        }
+    }
+
+    public TextLayoutModeOption SelectedLayoutMode
+    {
+        get => selectedLayoutMode;
+        set
+        {
+            if (value is not null && SetField(ref selectedLayoutMode, value))
+            {
+                SchedulePreviewRefresh();
+                OnPropertyChanged(nameof(ProfileSummary));
             }
         }
     }
@@ -115,9 +138,9 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
         get => selectedAnimationMode;
         set
         {
-            if (value is not null)
+            if (value is not null && SetField(ref selectedAnimationMode, value))
             {
-                SetField(ref selectedAnimationMode, value);
+                OnPropertyChanged(nameof(ProfileSummary));
             }
         }
     }
@@ -125,8 +148,18 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
     public int Speed
     {
         get => speed;
-        set => SetField(ref speed, Math.Clamp(value, 1, 100));
+        set
+        {
+            if (SetField(ref speed, Math.Clamp(value, 1, 100)))
+            {
+                OnPropertyChanged(nameof(ProfileSummary));
+            }
+        }
     }
+
+    public string ProfileSummary => BuildComposerProfile().Name == TextSendProfile.ComposerCentered.Name
+        ? $"Centered 44 columns, {SelectedAnimationMode.Name}, Speed {Speed}"
+        : $"Variable width, {SelectedAnimationMode.Name}, Speed {Speed}";
 
     public string ActiveTransportText =>
         transport.IsSimulated
@@ -252,30 +285,24 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
             return;
         }
 
-        var package = TextUploadProtocol.CreatePackage(
+        var plan = TextSendPackageFactory.Create(
             Text,
-            SelectedColor.ToLedColor(),
-            SelectedAnimationMode.Mode,
-            Speed);
+            BuildComposerProfile(),
+            transport.SupportsAcknowledgements);
+        var package = plan.Package;
 
-        LastCommandText = $"{package.StartCommand.DisplayName}; {package.ModeCommand.DisplayName}; {package.SpeedCommand.DisplayName}";
+        LastCommandText = $"{plan.Summary}; {package.StartCommand.DisplayName}; {package.SpeedCommand.DisplayName}; {package.ModeCommand.DisplayName}";
         LastPayloadHex = TruncateDiagnosticHex(Convert.ToHexString(package.Payload));
         ColumnCount = package.ColumnCount;
         FrameCount = package.Frames.Count;
 
-        var options = UseCompatibilityWriteOnly
-            ? TextUploadOptions.WriteOnlyCompatibility
-            : TextUploadOptions.RequireAcknowledgements;
-
         try
         {
             IsSending = true;
-            StatusText = UseCompatibilityWriteOnly
-                ? $"Sending {package.Frames.Count} frame(s) without ACK confirmation..."
-                : $"Sending {package.Frames.Count} frame(s) with ACK confirmation...";
+            StatusText = $"Sending {plan.Summary}...";
 
-            var result = await transport.UploadAsync(package, options, cancellationToken);
-            StatusText = result.Message;
+            var result = await transport.UploadAsync(package, plan.Options, cancellationToken);
+            StatusText = result.Succeeded ? plan.Summary : result.Message;
             FrameCount = result.FramesSent;
         }
         catch (OperationCanceledException)
@@ -296,7 +323,11 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
     {
         try
         {
-            var ledData = TextGlyphRasterizer.Render(Text);
+            var plan = TextSendPackageFactory.Create(
+                Text,
+                BuildComposerProfile(),
+                transport.SupportsAcknowledgements);
+            var ledData = plan.Package.LedData;
             ColumnCount = ledData.Length / 2;
             FrameCount = CalculateFrameCount(ColumnCount);
 
@@ -424,6 +455,32 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
         TextUploadTransportState state,
         bool supportsAcknowledgements) =>
         !supportsAcknowledgements && state == TextUploadTransportState.CompatibilityReady;
+
+    private TextSendProfile BuildComposerProfile()
+    {
+        var baseProfile = SelectedLayoutMode.LayoutMode == TextLayoutMode.FixedWidthCentered
+            ? TextSendProfile.ComposerCentered
+            : TextSendProfile.ComposerScroll;
+
+        return baseProfile with
+        {
+            DisplayMode = ToTextDisplayMode(SelectedAnimationMode.Mode),
+            Reliability = UseCompatibilityWriteOnly
+                ? TextSendReliability.WriteOnlyCompatibility
+                : TextSendReliability.ReliableAcknowledgement,
+            Speed = Speed,
+            TextColor = SelectedColor.ToLedColor()
+        };
+    }
+
+    private static TextDisplayMode ToTextDisplayMode(int mode) =>
+        mode switch
+        {
+            1 => TextDisplayMode.Off,
+            2 => TextDisplayMode.Blink,
+            4 => TextDisplayMode.ScrollLeftToRight,
+            _ => TextDisplayMode.ScrollRightToLeft
+        };
 
     private static int CalculateFrameCount(int columnCount)
     {

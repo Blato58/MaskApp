@@ -40,13 +40,16 @@ public sealed class QuickActionDispatcherTests
         Assert.Equal(44, textTransport.LastPackage?.ColumnCount);
         Assert.Equal((byte)2, textTransport.LastPackage!.ModeCommand.Plaintext.Span[5]);
         Assert.Equal((byte)100, textTransport.LastPackage.SpeedCommand.Plaintext.Span[6]);
-        Assert.False(textTransport.LastOptions?.AckRequired);
-        Assert.True(textTransport.LastOptions?.CompatibilityWriteOnly);
+        Assert.True(textTransport.LastOptions?.AckRequired);
+        Assert.False(textTransport.LastOptions?.CompatibilityWriteOnly);
         Assert.True(textTransport.LastOptions?.ResetDisplayBeforeUpload);
-        Assert.Equal(TimeSpan.FromMilliseconds(20), textTransport.LastOptions?.DisplayResetDelay);
-        Assert.Equal(TimeSpan.FromMilliseconds(20), textTransport.LastOptions?.InterFrameDelay);
-        Assert.Equal(TimeSpan.FromMilliseconds(40), textTransport.LastOptions?.PostUploadQuietPeriod);
-        Assert.Equal("Sent, confirm on mask", result.Message);
+        Assert.Equal(TimeSpan.FromMilliseconds(40), textTransport.LastOptions?.DisplayResetDelay);
+        Assert.Equal(TimeSpan.Zero, textTransport.LastOptions?.InterFrameDelay);
+        Assert.Equal(TimeSpan.FromMilliseconds(200), textTransport.LastOptions?.PostUploadDelay);
+        Assert.Equal(TimeSpan.FromMilliseconds(60), textTransport.LastOptions?.CommandDelay);
+        Assert.True(textTransport.LastOptions?.RepeatModeAndSpeed);
+        Assert.Contains("Stable Flash", result.Message);
+        Assert.Contains("44 centered", result.Status);
     }
 
     [Fact]
@@ -67,7 +70,8 @@ public sealed class QuickActionDispatcherTests
         Assert.Equal((byte)2, package.ModeCommand.Plaintext.Span[5]);
         Assert.Equal((byte)100, package.SpeedCommand.Plaintext.Span[6]);
         Assert.True(textTransport.LastOptions?.ResetDisplayBeforeUpload);
-        Assert.Equal(TimeSpan.FromMilliseconds(20), textTransport.LastOptions?.InterFrameDelay);
+        Assert.Equal(TimeSpan.Zero, textTransport.LastOptions?.InterFrameDelay);
+        Assert.True(textTransport.LastOptions?.RepeatModeAndSpeed);
         Assert.True(HasLitPixelInRows(package.LedData, startRow: 0, endRow: 6));
         Assert.True(HasLitPixelInRows(package.LedData, startRow: 9, endRow: 15));
         Assert.Equal(new TextLedColor(0, 0, 0), ReadPayloadColor(package, column: 0));
@@ -84,7 +88,6 @@ public sealed class QuickActionDispatcherTests
             textTransport,
             new InMemoryQuickActionTextSettingsStore(new QuickActionTextSettings
             {
-                DisplayMode = QuickCaptionDisplayMode.ScrollLeftToRight,
                 Speed = 44,
                 SendMode = QuickCaptionSendMode.ReliableAcknowledgement
             }));
@@ -92,11 +95,34 @@ public sealed class QuickActionDispatcherTests
         var result = await dispatcher.TriggerAsync(QuickActionId.Drop);
 
         Assert.True(result.Succeeded);
-        Assert.Equal((byte)4, textTransport.LastPackage!.ModeCommand.Plaintext.Span[5]);
+        Assert.Equal((byte)2, textTransport.LastPackage!.ModeCommand.Plaintext.Span[5]);
         Assert.Equal(44, textTransport.LastPackage.ColumnCount);
         Assert.Equal((byte)44, textTransport.LastPackage.SpeedCommand.Plaintext.Span[6]);
         Assert.True(textTransport.LastOptions?.AckRequired);
         Assert.False(textTransport.LastOptions?.CompatibilityWriteOnly);
+        Assert.Contains("Reliable ACK", result.Status);
+    }
+
+    [Fact]
+    public async Task TriggerAsync_TextReaction_ExplicitScrollUsesVariableWidth()
+    {
+        var textTransport = new FakeTextUploadTransport();
+        var dispatcher = new QuickActionDispatcher(
+            new QuickActionCatalog(),
+            new FakeCommandTransport(),
+            textTransport,
+            new InMemoryQuickActionTextSettingsStore(new QuickActionTextSettings
+            {
+                DisplayMode = QuickCaptionDisplayMode.ScrollLeftToRight,
+                SendMode = QuickCaptionSendMode.StableFlash
+            }));
+
+        var result = await dispatcher.TriggerAsync(QuickActionId.Drop);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal((byte)4, textTransport.LastPackage!.ModeCommand.Plaintext.Span[5]);
+        Assert.True(textTransport.LastPackage.ColumnCount < 44);
+        Assert.Contains("Stable Scroll", result.Status);
     }
 
     [Fact]

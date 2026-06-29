@@ -37,7 +37,7 @@
             </Border>
 
             <Border Style="{StaticResource PanelBorderStyle}">
-                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <Label Text="Mode and speed" Style="{StaticResource SectionTitleLabelStyle}" />
                         <ActivityIndicator
@@ -47,11 +47,17 @@
                     </Grid>
                     <Picker
                         Grid.Row="1"
+                        Title="Layout"
+                        ItemsSource="{Binding LayoutModes}"
+                        ItemDisplayBinding="{Binding Name, x:DataType=text:TextLayoutModeOption}"
+                        SelectedItem="{Binding SelectedLayoutMode, Mode=TwoWay}" />
+                    <Picker
+                        Grid.Row="2"
                         Title="Animation"
                         ItemsSource="{Binding AnimationModes}"
                         ItemDisplayBinding="{Binding Name, x:DataType=text:TextAnimationModeOption}"
                         SelectedItem="{Binding SelectedAnimationMode, Mode=TwoWay}" />
-                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <Slider
                             Minimum="1"
                             Maximum="100"
@@ -62,7 +68,7 @@
                             Style="{StaticResource MetricLabelStyle}"
                             VerticalTextAlignment="Center" />
                     </Grid>
-                    <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+                    <Grid Grid.Row="4" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8">
                         <Button BackgroundColor="#52E3FF" BorderColor="#52E3FF" Clicked="OnColorClicked" CommandParameter="Cyan" HeightRequest="42" Text="" WidthRequest="46" />
                         <Button Grid.Column="1" BackgroundColor="#FFFFFF" BorderColor="#D1D5DB" BorderWidth="1" Clicked="OnColorClicked" CommandParameter="White" HeightRequest="42" Text="" WidthRequest="46" />
                         <Button Grid.Column="2" BackgroundColor="#F472B6" BorderColor="#F472B6" Clicked="OnColorClicked" CommandParameter="Pink" HeightRequest="42" Text="" WidthRequest="46" />
@@ -108,6 +114,7 @@
                     <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="3">
                             <Label Text="{Binding ActiveTransportText}" Style="{StaticResource MutedLabelStyle}" />
+                            <Label Text="{Binding ProfileSummary}" TextColor="{StaticResource AccentYellowColor}" Style="{StaticResource TinyLabelStyle}" />
                             <Label Text="{Binding AcknowledgementModeText}" Style="{StaticResource TinyLabelStyle}" />
                         </VerticalStackLayout>
                         <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">

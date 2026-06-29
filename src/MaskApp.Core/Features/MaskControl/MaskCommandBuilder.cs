@@ -34,6 +34,26 @@ public static class MaskCommandBuilder
         return Build(MaskCommandKind.TextSpeed, $"Text speed {clampedSpeed}", "SPEED", (byte)clampedSpeed);
     }
 
+    public static MaskCommand TextForegroundColor(bool enabled, byte red, byte green, byte blue) =>
+        Build(
+            MaskCommandKind.TextForegroundColor,
+            enabled ? "Text foreground color" : "Text foreground color off",
+            "FC",
+            enabled ? (byte)1 : (byte)0,
+            red,
+            green,
+            blue);
+
+    public static MaskCommand TextBackgroundColor(bool enabled, byte red, byte green, byte blue) =>
+        Build(
+            MaskCommandKind.TextBackgroundColor,
+            enabled ? "Text background color" : "Text background color off",
+            "BC",
+            enabled ? (byte)1 : (byte)0,
+            red,
+            green,
+            blue);
+
     private static MaskCommand Build(MaskCommandKind kind, string displayName, string commandName, params byte[] arguments)
     {
         var commandBytes = Encoding.ASCII.GetBytes(commandName);

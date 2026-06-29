@@ -48,7 +48,7 @@ public sealed class HomeViewModelTests
 
         Assert.Equal(QuickActionId.Blackout, dispatcher.LastActionId);
         Assert.Null(dispatcher.LastRequest);
-        Assert.Equal("Sent, confirm on mask", viewModel.LastActionStatus);
+        Assert.Equal("Sent.", viewModel.LastActionStatus);
         Assert.Equal("Blackout", viewModel.CurrentLookText);
     }
 

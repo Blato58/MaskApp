@@ -12,10 +12,11 @@ public static class TextUploadProtocol
         TextLedColor color,
         int mode,
         int speed,
-        bool useLargeMtu = false)
+        bool useLargeMtu = false,
+        IReadOnlyList<MaskCommand>? styleCommands = null)
     {
         var ledData = TextGlyphRasterizer.Render(text);
-        return CreatePackageFromLedData(text, ledData, color, mode, speed, useLargeMtu);
+        return CreatePackageFromLedData(text, ledData, color, mode, speed, useLargeMtu, styleCommands);
     }
 
     public static TextUploadPackage CreatePackageFromLedData(
@@ -24,7 +25,8 @@ public static class TextUploadProtocol
         TextLedColor color,
         int mode,
         int speed,
-        bool useLargeMtu = false)
+        bool useLargeMtu = false,
+        IReadOnlyList<MaskCommand>? styleCommands = null)
     {
         if (ledData.Length % 2 != 0)
         {
@@ -37,7 +39,8 @@ public static class TextUploadProtocol
             Enumerable.Repeat(color, ledData.Length / 2).ToArray(),
             mode,
             speed,
-            useLargeMtu);
+            useLargeMtu,
+            styleCommands);
     }
 
     public static TextUploadPackage CreatePackageFromLedData(
@@ -46,7 +49,8 @@ public static class TextUploadProtocol
         IReadOnlyList<TextLedColor> colors,
         int mode,
         int speed,
-        bool useLargeMtu = false)
+        bool useLargeMtu = false,
+        IReadOnlyList<MaskCommand>? styleCommands = null)
     {
         if (ledData.Length % 2 != 0)
         {
@@ -72,7 +76,8 @@ public static class TextUploadProtocol
             BuildStartCommand(payload.Length, ledData.Length),
             BuildFinishCommand(),
             MaskCommandBuilder.TextMode(mode),
-            MaskCommandBuilder.TextSpeed(speed));
+            MaskCommandBuilder.TextSpeed(speed),
+            styleCommands);
     }
 
     public static byte[] BuildPayload(ReadOnlySpan<byte> ledData, IEnumerable<TextLedColor> colors)

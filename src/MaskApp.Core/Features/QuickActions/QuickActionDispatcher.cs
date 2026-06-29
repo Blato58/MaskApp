@@ -101,31 +101,28 @@ public sealed class QuickActionDispatcher : IQuickActionDispatcher
             return QuickActionResult.Failed(action.Id, "Text not ready", "ack unavailable");
         }
 
-        var layout = QuickCaptionLayout.Create(action.Caption);
-        if (!layout.Succeeded)
+        TextSendPlan plan;
+        try
         {
-            return QuickActionResult.Failed(action.Id, "Text not ready", layout.Warning ?? "caption unavailable");
+            plan = TextSendPackageFactory.Create(
+                action.Caption,
+                CreateQuickCaptionProfile(settings),
+                textTransport.SupportsAcknowledgements);
         }
-
-        var package = TextUploadProtocol.CreatePackageFromLedData(
-            layout.DisplayText,
-            layout.LedData,
-            QuickCaptionLayout.CreateColumnColors(layout.LedData, DefaultTextColor),
-            settings.ProtocolMode,
-            settings.Speed);
-        var options = settings.SendMode == QuickCaptionSendMode.FastWriteOnly
-            ? TextUploadOptions.FastWriteOnly
-            : TextUploadOptions.RequireAcknowledgements;
+        catch (ArgumentException ex)
+        {
+            return QuickActionResult.Failed(action.Id, "Text not ready", ex.Message);
+        }
 
         try
         {
-            var result = await textTransport.UploadAsync(package, options, cancellationToken).ConfigureAwait(false);
+            var result = await textTransport.UploadAsync(plan.Package, plan.Options, cancellationToken).ConfigureAwait(false);
             if (result.Succeeded)
             {
-                return layout.WasShortened
-                    ? QuickActionResult.Sent(action.Id, "Sent, confirm on mask")
-                        with { Status = layout.Warning ?? "caption shortened" }
-                    : QuickActionResult.Sent(action.Id, "Sent, confirm on mask");
+                var status = string.Equals(result.Message, "Uploaded.", StringComparison.Ordinal)
+                    ? plan.Summary
+                    : $"{plan.Summary} · {result.Message}";
+                return QuickActionResult.Sent(action.Id, status) with { Status = status };
             }
 
             return QuickActionResult.Failed(action.Id, "Failed", result.Message);
@@ -150,6 +147,50 @@ public sealed class QuickActionDispatcher : IQuickActionDispatcher
         var selected = candidates[Random.Shared.Next(candidates.Length)];
         return SendTextAsync(selected, cancellationToken);
     }
+
+    private static TextSendProfile CreateQuickCaptionProfile(QuickActionTextSettings settings)
+    {
+        var profile = settings.SendMode switch
+        {
+            QuickCaptionSendMode.FastWriteOnly => TextSendProfile.QuickFlashFast,
+            QuickCaptionSendMode.ReliableAcknowledgement => TextSendProfile.QuickFlashStable with
+            {
+                Name = "Reliable ACK",
+                Reliability = TextSendReliability.ReliableAcknowledgement
+            },
+            _ => TextSendProfile.QuickFlashStable
+        };
+
+        var displayMode = settings.DisplayMode switch
+        {
+            QuickCaptionDisplayMode.ScrollRightToLeft => TextDisplayMode.ScrollRightToLeft,
+            QuickCaptionDisplayMode.ScrollLeftToRight => TextDisplayMode.ScrollLeftToRight,
+            _ => TextDisplayMode.Blink
+        };
+        var usesScroll = displayMode is TextDisplayMode.ScrollRightToLeft or TextDisplayMode.ScrollLeftToRight;
+
+        return profile with
+        {
+            Name = usesScroll ? profile.Name.Replace("Flash", "Scroll", StringComparison.Ordinal) : profile.Name,
+            LayoutMode = usesScroll ? TextLayoutMode.VariableWidth : TextLayoutMode.FixedWidthCentered,
+            FixedWidthColumns = usesScroll ? null : QuickCaptionLayout.VisibleColumns,
+            DisplayMode = displayMode,
+            Speed = settings.Speed,
+            TextColor = DefaultTextColor,
+            BackgroundEnabled = settings.BackgroundEnabled,
+            BackgroundColor = settings.BackgroundEnabled ? GetBackgroundColor(settings.BackgroundPreset) : null,
+            StyleCommandPolicy = settings.BackgroundEnabled ? TextStyleCommandPolicy.FailSoft : TextStyleCommandPolicy.Skip
+        };
+    }
+
+    private static TextLedColor GetBackgroundColor(QuickCaptionBackgroundPreset preset) =>
+        preset switch
+        {
+            QuickCaptionBackgroundPreset.RedAlert => new TextLedColor(0xEF, 0x44, 0x44),
+            QuickCaptionBackgroundPreset.DeepBlue => new TextLedColor(0x1D, 0x4E, 0xD8),
+            QuickCaptionBackgroundPreset.Black => new TextLedColor(0x00, 0x00, 0x00),
+            _ => new TextLedColor(0xA8, 0x55, 0xF7)
+        };
 
     private static string GetShortErrorMessage(Exception ex)
     {

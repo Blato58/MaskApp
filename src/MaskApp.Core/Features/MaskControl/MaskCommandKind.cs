@@ -8,5 +8,7 @@ public enum MaskCommandKind
     TextUploadStart,
     TextUploadFinish,
     TextMode,
-    TextSpeed
+    TextSpeed,
+    TextForegroundColor,
+    TextBackgroundColor
 }

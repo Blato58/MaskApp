@@ -274,7 +274,7 @@
                         Style="{StaticResource TinyLabelStyle}" />
                     <Label
                         Grid.Row="5"
-                        Text="Default: Flash / Blink, speed 100, Fast write-only."
+                        Text="Default: Flash / Blink, speed 100, Stable Flash."
                         TextColor="{StaticResource AccentYellowColor}"
                         Style="{StaticResource TinyLabelStyle}" />
                 </Grid>

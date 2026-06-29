@@ -13,7 +13,8 @@ public sealed class TextUploadPackage
         MaskCommand startCommand,
         MaskCommand finishCommand,
         MaskCommand modeCommand,
-        MaskCommand speedCommand)
+        MaskCommand speedCommand,
+        IReadOnlyList<MaskCommand>? styleCommands = null)
     {
         Text = text;
         ColumnCount = columnCount;
@@ -24,6 +25,7 @@ public sealed class TextUploadPackage
         FinishCommand = finishCommand;
         ModeCommand = modeCommand;
         SpeedCommand = speedCommand;
+        StyleCommands = styleCommands?.ToArray() ?? [];
     }
 
     public string Text { get; }
@@ -43,4 +45,6 @@ public sealed class TextUploadPackage
     public MaskCommand ModeCommand { get; }
 
     public MaskCommand SpeedCommand { get; }
+
+    public IReadOnlyList<MaskCommand> StyleCommands { get; }
 }

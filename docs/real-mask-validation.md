@@ -1,6 +1,6 @@
 # Real-Mask Validation Checklist
 
-Last updated: 2026-06-27
+Last updated: 2026-06-29
 
 Use this checklist on iPhone with the physical Shining Mask before the festival.
 Record useful built-in IDs and any failures in `docs/progress.md` or the current
@@ -57,6 +57,29 @@ slice record.
 15. Record whether background color works if present; this hotfix does not add
     new FC/BC background commands.
 
+## P0 Deterministic Text Profile Checklist
+
+1. Open app and connect.
+2. Select Stable Flash profile.
+3. Send `LOL` from React 5 times.
+4. Confirm all 5 are centered.
+5. Confirm all 5 flash/blink.
+6. Send `DROP` from RAVE 5 times.
+7. Confirm all 5 are centered.
+8. Confirm all 5 flash/blink.
+9. Switch to Fast Flash.
+10. Repeat `LOL` and `DROP` 5 times.
+11. Record if any send becomes solid or left-aligned.
+12. Open Text Creator.
+13. Choose Centered 44-column + Blink.
+14. Send `TEST`.
+15. Confirm centered/blink.
+16. Choose Scroll right-to-left.
+17. Send `TEST SCROLL`.
+18. Confirm scrolling is intentional.
+19. Test background color if enabled.
+20. Record the best festival profile.
+
 ## Built-In Scanner Sequence
 
 Start with the safe IDs before exploring wider ranges:
@@ -95,6 +118,11 @@ up to about `0x45`. Higher IDs should stay experimental until tested.
 | RAVE `DROP` / `WHEEL UP` / `HYDRATE` | Not tested |  |
 | Quick caption Flash/Blink mode | Not tested |  |
 | Quick caption centered/fitted layout | Not tested |  |
+| Stable Flash repeated quick sends | Not tested |  |
+| Fast Flash repeated quick sends | Not tested |  |
+| Text Creator centered 44-column + Blink | Not tested |  |
+| Text Creator Scroll right-to-left | Not tested |  |
+| Background `BC` fail-soft style | Not tested |  |
 | Text Composer fast typing | Not tested |  |
 | RAVE command fallbacks | Not tested |  |
 | Festival Lock keeps BLACKOUT | Not tested |  |

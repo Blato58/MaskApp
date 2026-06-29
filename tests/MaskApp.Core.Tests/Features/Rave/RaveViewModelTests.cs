@@ -50,7 +50,7 @@ public sealed class RaveViewModelTests
 
         Assert.Equal(QuickActionId.Drop, dispatcher.LastActionId);
         Assert.Equal("DROP", viewModel.LastActionText);
-        Assert.Equal("Sent, confirm on mask", viewModel.SendStatusText);
+        Assert.Equal("Sent.", viewModel.SendStatusText);
         Assert.Equal("sent", viewModel.LastPayloadText);
     }
 
@@ -64,7 +64,7 @@ public sealed class RaveViewModelTests
         await viewModel.Actions.Single(action => action.Label == "WHEEL UP").SendCommand.ExecuteAsync();
 
         Assert.Equal(QuickActionId.WheelUp, dispatcher.LastActionId);
-        Assert.Equal("Sent, confirm on mask", viewModel.SendStatusText);
+        Assert.Equal("Sent.", viewModel.SendStatusText);
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public sealed class RaveViewModelTests
 
         Assert.Equal(QuickActionId.TestAnimation1, dispatcher.LastActionId);
         Assert.Equal("Test Anim 1", viewModel.LastActionText);
-        Assert.Equal("Sent, confirm on mask", viewModel.SendStatusText);
+        Assert.Equal("Sent.", viewModel.SendStatusText);
     }
 
     [Fact]

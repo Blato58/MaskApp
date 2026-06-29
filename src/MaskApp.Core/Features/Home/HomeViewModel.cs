@@ -58,7 +58,8 @@ public sealed class HomeViewModel : INotifyPropertyChanged
         ];
         QuickCaptionSendModeOptions =
         [
-            new QuickCaptionSendModeOption("Fast write-only", QuickCaptionSendMode.FastWriteOnly),
+            new QuickCaptionSendModeOption("Stable Flash", QuickCaptionSendMode.StableFlash),
+            new QuickCaptionSendModeOption("Fast Flash", QuickCaptionSendMode.FastWriteOnly),
             new QuickCaptionSendModeOption("Reliable ACK", QuickCaptionSendMode.ReliableAcknowledgement)
         ];
         QuickCaptionBackgroundPresetOptions =
@@ -317,7 +318,7 @@ public sealed class HomeViewModel : INotifyPropertyChanged
     }
 
     public string QuickCaptionBackgroundNote =>
-        "Background presets use BC/FC evidence and need real-mask test. Captions still send if style commands are unavailable.";
+        "Background presets use fail-soft BC evidence and need real-mask test. Stable Flash repeats speed/mode for deterministic RAVE captions.";
 
     public bool CanUseControlCommands => CommandTransportState == MaskCommandTransportState.Ready;
 
@@ -373,9 +374,7 @@ public sealed class HomeViewModel : INotifyPropertyChanged
         QuickActionRequest? request = null)
     {
         var result = await dispatcher.TriggerAsync(actionId, request, cancellationToken);
-        LastActionStatus = result.Succeeded
-            ? "Sent, confirm on mask"
-            : result.Message;
+        LastActionStatus = result.Message;
 
         if (!result.Succeeded)
         {
