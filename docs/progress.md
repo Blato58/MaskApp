@@ -121,7 +121,7 @@ Capability confidence and physical validation status are defined in
 - [x] Quick-caption repeated-send stabilization: text uploads now pass through a shared serialized transport, request a pre-upload `MODE 1` reset, and keep the Fast write-only 20 ms inter-frame delay; core tests cover serialization and quick-action option shape.
 - [x] Deterministic text-send profile slice validated with `dotnet test tests\MaskApp.Core.Tests\MaskApp.Core.Tests.csproj` (133 tests), `dotnet build src\MaskApp.App\MaskApp.App.csproj -f net10.0-ios` (0 warnings, 0 errors), `dotnet build src\MaskApp.App\MaskApp.App.csproj -f net10.0-android` (0 warnings, 0 errors), and `git diff --check`. Stable Flash is the default quick-caption profile until physical testing proves Fast Flash reliable.
 - [x] Android BLE adapter compile validation for scan/connect, command writes, and text upload transport wiring.
-- [~] iOS CI distribution scripts validated locally; signed IPA build awaits GitHub Actions secrets and macOS runner execution.
+- [~] iOS CI distribution scripts validated locally; signed IPA build awaits GitHub Actions secrets and macOS runner execution. `Publish signed IPA` now uses the pre-restored `ios-arm64` target with `--no-restore`; live timing improvement requires a GitHub Actions run.
 - [x] iOS update notification helper syntax and docs validated locally; live ntfy delivery awaits a GitHub Actions run with `NTFY_UPDATE_TOPIC_URL`.
 - [ ] iOS simulator launch smoke test.
 - [ ] iOS physical-device BLE scan/connect validation.

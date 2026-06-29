@@ -221,9 +221,9 @@ jobs:
         shell: bash
         run: dotnet workload install maui-ios android
 
-      - name: Restore iOS target
+      - name: Restore iOS publish target
         shell: bash
-        run: dotnet restore "$PROJECT_PATH" -p:TargetFramework="$IOS_TARGET_FRAMEWORK"
+        run: dotnet restore "$PROJECT_PATH" -p:TargetFramework="$IOS_TARGET_FRAMEWORK" -p:RuntimeIdentifier=ios-arm64
 
       - name: Install Apple signing assets
         shell: bash
@@ -249,6 +249,7 @@ jobs:
 
           publish_args=(
             "$PROJECT_PATH"
+            --no-restore
             -f "$IOS_TARGET_FRAMEWORK"
             -c Release
             -p:ArchiveOnBuild=true
