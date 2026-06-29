@@ -109,4 +109,17 @@ public sealed class TextUploadProtocolTests
         Assert.Equal(Convert.FromHexString("06535045454419000000000000000000"), package.SpeedCommand.Plaintext.ToArray());
         Assert.Equal(Convert.FromHexString("715837946F17DFFDBDEF98FAB3F47A51"), package.SpeedCommand.EncryptedPayload.ToArray());
     }
+
+    [Fact]
+    public void FastWriteOnly_KeepsTwentyMillisecondPacingAndResetsDisplay()
+    {
+        var options = TextUploadOptions.FastWriteOnly;
+
+        Assert.False(options.AckRequired);
+        Assert.True(options.CompatibilityWriteOnly);
+        Assert.True(options.ResetDisplayBeforeUpload);
+        Assert.Equal(TimeSpan.FromMilliseconds(20), options.DisplayResetDelay);
+        Assert.Equal(TimeSpan.FromMilliseconds(20), options.InterFrameDelay);
+        Assert.Equal(TimeSpan.FromMilliseconds(40), options.PostUploadQuietPeriod);
+    }
 }

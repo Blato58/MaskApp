@@ -8,6 +8,7 @@ public sealed record TextUploadOptions
     {
         AckRequired = false,
         CompatibilityWriteOnly = true,
+        DisplayResetDelay = TimeSpan.FromMilliseconds(40),
         InterFrameDelay = TimeSpan.FromMilliseconds(40)
     };
 
@@ -22,5 +23,11 @@ public sealed record TextUploadOptions
 
     public bool CompatibilityWriteOnly { get; init; }
 
+    public bool ResetDisplayBeforeUpload { get; init; } = true;
+
+    public TimeSpan DisplayResetDelay { get; init; } = TimeSpan.FromMilliseconds(20);
+
     public TimeSpan InterFrameDelay { get; init; } = TimeSpan.Zero;
+
+    public TimeSpan PostUploadQuietPeriod { get; init; } = TimeSpan.FromMilliseconds(40);
 }

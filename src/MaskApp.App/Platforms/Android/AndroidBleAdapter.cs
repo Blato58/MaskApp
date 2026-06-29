@@ -197,6 +197,8 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
             return TextUploadResult.Failure(StatusText, 0);
         }
 
+        await ResetTextDisplayIfRequestedAsync(options, cancellationToken).ConfigureAwait(false);
+
         if (options.CompatibilityWriteOnly || !options.AckRequired)
         {
             return await UploadWriteOnlyAsync(package, options, cancellationToken).ConfigureAwait(false);
@@ -282,6 +284,7 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
             WriteEncryptedCommand(package.FinishCommand);
             await DelayBetweenTextWritesAsync(options, cancellationToken).ConfigureAwait(false);
             WriteEncryptedCommand(package.ModeCommand);
+            await DelayBetweenTextWritesAsync(options, cancellationToken).ConfigureAwait(false);
             WriteEncryptedCommand(package.SpeedCommand);
 
             return TextUploadResult.Success(
@@ -297,6 +300,17 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
             logger.LogDebug(ex, "Failed to upload Android text payload without ACK confirmation.");
             return TextUploadResult.Failure(ex.Message, 0);
         }
+    }
+
+    private async Task ResetTextDisplayIfRequestedAsync(TextUploadOptions options, CancellationToken cancellationToken)
+    {
+        if (!options.ResetDisplayBeforeUpload)
+        {
+            return;
+        }
+
+        WriteEncryptedCommand(MaskCommandBuilder.TextMode(1));
+        await DelayTextWriteAsync(options.DisplayResetDelay, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<bool> EnsurePermissionsAsync(CancellationToken cancellationToken)
@@ -678,8 +692,11 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
     }
 
     private static Task DelayBetweenTextWritesAsync(TextUploadOptions options, CancellationToken cancellationToken) =>
-        options.InterFrameDelay > TimeSpan.Zero
-            ? Task.Delay(options.InterFrameDelay, cancellationToken)
+        DelayTextWriteAsync(options.InterFrameDelay, cancellationToken);
+
+    private static Task DelayTextWriteAsync(TimeSpan delay, CancellationToken cancellationToken) =>
+        delay > TimeSpan.Zero
+            ? Task.Delay(delay, cancellationToken)
             : Task.CompletedTask;
 
     private static bool CanNotify(BluetoothGattCharacteristic characteristic) =>

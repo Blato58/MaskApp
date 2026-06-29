@@ -174,6 +174,8 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
             return TextUploadResult.Failure(StatusText, 0);
         }
 
+        await ResetTextDisplayIfRequestedAsync(options, cancellationToken).ConfigureAwait(false);
+
         if (options.CompatibilityWriteOnly || !options.AckRequired)
         {
             return await UploadWriteOnlyAsync(package, options, cancellationToken).ConfigureAwait(false);
@@ -261,6 +263,7 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
             WriteEncryptedCommand(package.FinishCommand);
             await DelayBetweenTextWritesAsync(options, cancellationToken).ConfigureAwait(false);
             WriteEncryptedCommand(package.ModeCommand);
+            await DelayBetweenTextWritesAsync(options, cancellationToken).ConfigureAwait(false);
             WriteEncryptedCommand(package.SpeedCommand);
 
             return TextUploadResult.Success(
@@ -278,6 +281,17 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
 #endif
             return TextUploadResult.Failure(ex.Message, 0);
         }
+    }
+
+    private async Task ResetTextDisplayIfRequestedAsync(TextUploadOptions options, CancellationToken cancellationToken)
+    {
+        if (!options.ResetDisplayBeforeUpload)
+        {
+            return;
+        }
+
+        WriteEncryptedCommand(MaskCommandBuilder.TextMode(1));
+        await DelayTextWriteAsync(options.DisplayResetDelay, cancellationToken).ConfigureAwait(false);
     }
 
     private void WriteEncryptedCommand(MaskCommand command)
@@ -575,8 +589,11 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
     }
 
     private static Task DelayBetweenTextWritesAsync(TextUploadOptions options, CancellationToken cancellationToken) =>
-        options.InterFrameDelay > TimeSpan.Zero
-            ? Task.Delay(options.InterFrameDelay, cancellationToken)
+        DelayTextWriteAsync(options.InterFrameDelay, cancellationToken);
+
+    private static Task DelayTextWriteAsync(TimeSpan delay, CancellationToken cancellationToken) =>
+        delay > TimeSpan.Zero
+            ? Task.Delay(delay, cancellationToken)
             : Task.CompletedTask;
 
     private static byte[] BuildAdvertisementPacket(NSData manufacturerData)

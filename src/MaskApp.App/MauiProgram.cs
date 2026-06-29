@@ -50,13 +50,15 @@ public static class MauiProgram
         builder.Services.AddSingleton<IBleScanner>(sp => sp.GetRequiredService<IosBleAdapter>());
         builder.Services.AddSingleton<IBleDeviceConnection>(sp => sp.GetRequiredService<IosBleAdapter>());
         builder.Services.AddSingleton<IMaskCommandTransport>(sp => sp.GetRequiredService<IosBleAdapter>());
-        builder.Services.AddSingleton<ITextUploadTransport>(sp => sp.GetRequiredService<IosBleAdapter>());
+        builder.Services.AddSingleton<ITextUploadTransport>(sp =>
+            new SerializedTextUploadTransport(sp.GetRequiredService<IosBleAdapter>()));
 #elif ANDROID
         builder.Services.AddSingleton<AndroidBleAdapter>();
         builder.Services.AddSingleton<IBleScanner>(sp => sp.GetRequiredService<AndroidBleAdapter>());
         builder.Services.AddSingleton<IBleDeviceConnection>(sp => sp.GetRequiredService<AndroidBleAdapter>());
         builder.Services.AddSingleton<IMaskCommandTransport>(sp => sp.GetRequiredService<AndroidBleAdapter>());
-        builder.Services.AddSingleton<ITextUploadTransport>(sp => sp.GetRequiredService<AndroidBleAdapter>());
+        builder.Services.AddSingleton<ITextUploadTransport>(sp =>
+            new SerializedTextUploadTransport(sp.GetRequiredService<AndroidBleAdapter>()));
 #else
         builder.Services.AddSingleton<UnavailableBleAdapter>();
         builder.Services.AddSingleton<IBleScanner>(sp => sp.GetRequiredService<UnavailableBleAdapter>());
@@ -64,7 +66,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<SimulatedMaskCommandTransport>();
         builder.Services.AddSingleton<IMaskCommandTransport>(sp => sp.GetRequiredService<SimulatedMaskCommandTransport>());
         builder.Services.AddSingleton<SimulatedTextUploadTransport>();
-        builder.Services.AddSingleton<ITextUploadTransport>(sp => sp.GetRequiredService<SimulatedTextUploadTransport>());
+        builder.Services.AddSingleton<ITextUploadTransport>(sp =>
+            new SerializedTextUploadTransport(sp.GetRequiredService<SimulatedTextUploadTransport>()));
 #endif
 
 #if DEBUG

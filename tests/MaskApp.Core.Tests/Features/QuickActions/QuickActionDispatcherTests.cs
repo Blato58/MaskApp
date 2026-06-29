@@ -42,7 +42,10 @@ public sealed class QuickActionDispatcherTests
         Assert.Equal((byte)100, textTransport.LastPackage.SpeedCommand.Plaintext.Span[6]);
         Assert.False(textTransport.LastOptions?.AckRequired);
         Assert.True(textTransport.LastOptions?.CompatibilityWriteOnly);
+        Assert.True(textTransport.LastOptions?.ResetDisplayBeforeUpload);
+        Assert.Equal(TimeSpan.FromMilliseconds(20), textTransport.LastOptions?.DisplayResetDelay);
         Assert.Equal(TimeSpan.FromMilliseconds(20), textTransport.LastOptions?.InterFrameDelay);
+        Assert.Equal(TimeSpan.FromMilliseconds(40), textTransport.LastOptions?.PostUploadQuietPeriod);
         Assert.Equal("Sent, confirm on mask", result.Message);
     }
 
@@ -63,6 +66,7 @@ public sealed class QuickActionDispatcherTests
         Assert.Equal(44, package.ColumnCount);
         Assert.Equal((byte)2, package.ModeCommand.Plaintext.Span[5]);
         Assert.Equal((byte)100, package.SpeedCommand.Plaintext.Span[6]);
+        Assert.True(textTransport.LastOptions?.ResetDisplayBeforeUpload);
         Assert.Equal(TimeSpan.FromMilliseconds(20), textTransport.LastOptions?.InterFrameDelay);
         Assert.True(HasLitPixelInRows(package.LedData, startRow: 0, endRow: 6));
         Assert.True(HasLitPixelInRows(package.LedData, startRow: 9, endRow: 15));

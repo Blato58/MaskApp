@@ -55,6 +55,8 @@ flows on top of them.
   rows instead of shortening to the first word.
 - Blank quick-caption columns upload black/off color bytes so padding should not
   appear as a lit rectangle on the physical mask.
+- Repeated text sends now serialize through the shared text transport and reset
+  text mode before upload to reduce intermittent right-shift on the mask.
 - Long quick captions are shortened before upload instead of overflowing.
 
 ## Current evidence
@@ -90,7 +92,8 @@ Out of scope:
 - Core: command execution, Text upload view model, quick-caption layout,
   quick-action dispatcher, Home/React/RAVE status flows.
 - App UI: Text preview binding now consumes a replacement list.
-- Platform adapters: no platform adapter behavior changed.
+- Platform adapters: text uploads can send a pre-upload text-mode reset before
+  starting a new bitmap payload.
 - Docs: progress, real-mask checklist, and this slice record.
 
 ## Test plan
@@ -123,13 +126,15 @@ Out of scope:
   replaced preview collection mutation, debounced Text Creator preview refresh,
   added 44-column quick-caption layout, and routed quick actions through a
   centered/fitted paced Fast write-only package path. Follow-up artifact work
-  added two-line quick-caption layout plus black/off blank-column colors.
+  added two-line quick-caption layout plus black/off blank-column colors, then
+  stabilized repeated sends with serialized uploads and a pre-upload `MODE 1`
+  reset while keeping 20 ms Fast write-only frame pacing.
 - Commands run: Roslyn diagnostics, `dotnet test
   tests\MaskApp.Core.Tests\MaskApp.Core.Tests.csproj`, `dotnet build
   src\MaskApp.App\MaskApp.App.csproj -f net10.0-ios`, `dotnet build
   src\MaskApp.App\MaskApp.App.csproj -f net10.0-android`, and `git diff
   --check`.
-- Result: 116 core tests passed; Roslyn diagnostics found 0 warnings/errors;
+- Result: 121 core tests passed; Roslyn diagnostics found 0 warnings/errors;
   iOS and Android app builds succeeded with 0 warnings/errors; diff check
   passed.
 - Remaining risk: physical mask behavior, ACK/write-only timing, and visual
@@ -138,8 +143,8 @@ Out of scope:
   did not render text properly after unpaced writes. If quick captions are still
   visibly slow, the next decision is whether RAVE quick actions should prefer
   command-only built-in looks over fresh text upload for true instant use. The
-  `VIBE CHECK` two-line and black/off padding fix still needs real-mask
-  confirmation.
+  `VIBE CHECK` two-line, black/off padding, and repeated-send stabilization
+  still need real-mask confirmation.
 
 ## Next slice candidate
 
