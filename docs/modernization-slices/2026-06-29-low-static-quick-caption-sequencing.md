@@ -86,7 +86,7 @@ Out of scope:
   action settings and dispatcher.
 - App UI: Control quick-caption send-mode labels and default copy.
 - Platform adapters: iOS and Android upload sequencing.
-- Docs: progress, real-mask validation checklist, and this slice record.
+- Docs: progress and this slice record.
 
 ## Test plan
 

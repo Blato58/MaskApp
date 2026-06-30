@@ -89,7 +89,7 @@ Out of scope:
 - App UI: Control quick-caption default label, Text Creator layout picker and
   profile summary.
 - Platform adapters: iOS and Android post-`DATCP` command sequencing.
-- Docs: progress, real-mask validation checklist, and this slice record.
+- Docs: progress and this slice record.
 
 ## Test plan
 
@@ -102,8 +102,6 @@ Out of scope:
 
 ## Deferred validation
 
-- Run the deterministic text profile checklist in
-  `docs/real-mask-validation.md`.
 - Record whether Stable Flash or Fast Flash is the best festival profile.
 - Confirm background `BC` behavior before treating it as product-ready styling.
 

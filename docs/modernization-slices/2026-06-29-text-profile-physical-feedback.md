@@ -79,7 +79,7 @@ Out of scope:
   defaults, and black background reset command planning.
 - App UI: quick-caption settings copy and background-control removal.
 - Platform adapters: unchanged.
-- Docs: progress, real-mask checklist, and this slice record.
+- Docs: progress and this slice record.
 
 ## Test plan
 

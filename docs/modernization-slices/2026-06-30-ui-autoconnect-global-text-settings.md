@@ -78,7 +78,7 @@ Out of scope:
   settings, RAVE/Home/Connect/Text view-model wiring.
 - App UI: Control, Connect, RAVE, React, and Text pages.
 - Platform adapters: no low-level BLE adapter changes.
-- Docs: progress tracker, real-mask checklist, slice record.
+- Docs: progress tracker and slice record.
 
 ## Test plan
 
@@ -98,7 +98,6 @@ Out of scope:
 
 ## Deferred validation
 
-- Run the updated real-mask checklist on iPhone with the physical mask.
 - Confirm auto-connect finds the remembered mask after app reopen.
 - Confirm Cyan/Pink/global foreground colors show from React, RAVE, and Text
   Composer.

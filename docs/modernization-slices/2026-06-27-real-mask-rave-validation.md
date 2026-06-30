@@ -13,8 +13,8 @@
 ## Intent
 
 Make the first RAVE FAST MVP testable against the physical mask before the
-festival by adding command-only fallbacks, a built-in ID scanner, and a concrete
-iPhone validation checklist.
+festival by adding command-only fallbacks, a built-in ID scanner, and concrete
+physical-validation scope.
 
 ## Target user moment
 
@@ -48,7 +48,7 @@ firmware/custom firmware are out of scope.
 - React exposes command-only test/fallback built-ins.
 - RAVE exposes command fallback buttons when Festival Lock is off while keeping
   BLACKOUT always visible.
-- Real-mask validation checklist is available in docs.
+- Physical validation scope is captured in the slice record.
 
 ## Current evidence
 
@@ -68,7 +68,7 @@ In scope:
 - Built-in command quick actions for Image 1, Image 2, Animation 1, Animation 2.
 - Built-in scanner/lab UI.
 - RAVE command fallback section.
-- Real-mask validation checklist.
+- Physical validation scope.
 
 Out of scope:
 
@@ -83,7 +83,7 @@ Out of scope:
 - App UI: Built-ins page/tab and RAVE fallback section
 - Platform adapters: no contract changes; existing command transport writes all
   `MaskCommand` payloads
-- Docs: protocol reference, real-mask checklist, progress tracker, slice record
+- Docs: protocol reference, progress tracker, slice record
 
 ## Test Plan
 
@@ -115,7 +115,7 @@ Out of scope:
 
 - Changes made: completed protocol reference, command-capable built-in quick
   actions, Built-ins scanner tab, React built-in fallbacks, RAVE command
-  fallback section, checklist docs, and focused tests.
+  fallback section, physical-validation notes, and focused tests.
 - Commands run:
   - `dotnet test tests\MaskApp.Core.Tests\MaskApp.Core.Tests.csproj` passed:
     76 tests.

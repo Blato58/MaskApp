@@ -94,7 +94,7 @@ Out of scope:
 - App UI: Text preview binding now consumes a replacement list.
 - Platform adapters: text uploads can send a pre-upload text-mode reset before
   starting a new bitmap payload.
-- Docs: progress, real-mask checklist, and this slice record.
+- Docs: progress and this slice record.
 
 ## Test plan
 
@@ -108,7 +108,6 @@ Out of scope:
 
 ## Deferred validation
 
-- Run the real-mask checklist in `docs/real-mask-validation.md` on iPhone.
 - Compare Fast write-only and Reliable ACK send modes on the physical mask.
 - Confirm centered/fitted text display and Flash/Blink mode visually.
 

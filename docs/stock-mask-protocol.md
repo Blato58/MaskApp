@@ -231,23 +231,3 @@ Use this order:
 7. Keep audio visualizer, Drop Detector, Voice Mouth, Bass Face, GIF-ish
    playback, and real-time effects in Labs until deterministic real-mask tests
    pass.
-
-## Real-Mask Validation Checklist
-
-Run this on iPhone with the physical mask:
-
-1. Scan finds mask.
-2. Connect succeeds.
-3. Disconnection/reconnect path is understandable.
-4. BLACKOUT sends `LIGHT 1`.
-5. Brightness cap sends expected brightness.
-6. `IMAG 1` changes the mask.
-7. `ANIM 1` changes the mask.
-8. Text short caption `LOL` sends in ACK mode if notifications work.
-9. Text short caption sends in write-only mode if ACK is missing.
-10. React page sends `NOPE`, `LOL`, and `SUS`.
-11. RAVE page sends `DROP`, `WHEEL UP`, and `HYDRATE`.
-12. RAVE command fallbacks work.
-13. Lock-free RAVE keeps BLACKOUT available.
-14. Reconnect does not break RAVE UI.
-15. Write down which built-in image/animation IDs are good.

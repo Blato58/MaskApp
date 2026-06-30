@@ -106,5 +106,5 @@ Out of scope:
 
 ## Next slice candidate
 
-- Run the physical real-mask checklist and record results before adding gallery
-  scanner or persistence.
+- Complete physical real-mask validation before adding gallery scanner or
+  persistence.

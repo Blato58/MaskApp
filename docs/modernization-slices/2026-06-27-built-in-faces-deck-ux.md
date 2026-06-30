@@ -70,7 +70,7 @@ In scope:
 - One-tap scanner status/favorite autosave.
 - Deck card IMAG/ANIM send.
 - React/RAVE favorite face integration.
-- Docs and physical validation checklist.
+- Docs and physical validation notes.
 
 Out of scope:
 
@@ -86,7 +86,7 @@ Out of scope:
 - Core: archive deck query, built-in card model, BuiltIns/React/RAVE view models.
 - App UI: Faces page, React label, RAVE favorite faces label, shell tab title.
 - Platform adapters: unchanged.
-- Docs: progress tracker, real-mask validation checklist, this slice record.
+- Docs: progress tracker and this slice record.
 
 ## Test plan
 
@@ -99,7 +99,7 @@ Out of scope:
 
 ## Deferred validation
 
-- Run the real-mask Faces checklist on iPhone.
+- Validate Faces on iPhone with the physical mask.
 - Record useful IMAG/ANIM IDs and failures in `docs/progress.md`.
 
 ## Overclaim check

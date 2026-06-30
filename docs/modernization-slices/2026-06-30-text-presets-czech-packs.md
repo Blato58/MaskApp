@@ -84,7 +84,7 @@ Out of scope:
   and view-model preset surfaces.
 - App UI: Text Composer, React, RAVE, and Control XAML.
 - Platform adapters: unchanged; preset sends use existing `ITextUploadTransport`.
-- Docs: progress, real-mask checklist, and this slice record.
+- Docs: progress and this slice record.
 
 ## Test plan
 
@@ -131,4 +131,4 @@ Out of scope:
 
 ## Next slice candidate
 
-- Run the updated physical mask checklist and record preset send behavior.
+- Record preset send behavior on the physical mask.

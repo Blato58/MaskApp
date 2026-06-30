@@ -72,7 +72,6 @@ Use `.github/workflows/ios-ipa.yml` for CI-based signed iOS IPA distribution. Se
 - Before protocol, BLE, Text, Image, Rhythm, RAVE, or DIY-slot work, read `docs/stock-mask-protocol.md` and treat it as community reverse-engineered evidence, not manufacturer documentation.
 - Start from `docs/android-source-map.md` and the relevant Java files before porting a feature.
 - Check `docs/progress.md` before starting a slice and update it when the slice, platform adapter, or validation status changes.
-- For physical iPhone/mask checks, use `docs/real-mask-validation.md` and record results in `docs/progress.md`.
 - Every slice should state how it moves MaskApp toward the wearable face controller vision, which product pillar it serves, and what physical validation status applies.
 - Do not overclaim mask capability. Treat Drop Detector, Voice Mouth, Bass Face, GIF-ish playback, fast DIY sequencing, and real-time effects as Labs/Experimental until physically verified on a real mask.
 - Firmware and custom firmware work are out of scope unless the user explicitly requests it.
