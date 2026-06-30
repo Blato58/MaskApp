@@ -5,6 +5,7 @@ using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.QuickActions;
 using MaskApp.Core.Features.Text;
+using MaskApp.Core.Features.TextPresets;
 
 namespace MaskApp.Core.Features.Home;
 
@@ -15,6 +16,8 @@ public sealed class HomeViewModel : INotifyPropertyChanged
     private readonly IMaskCommandTransport commandTransport;
     private readonly ITextUploadTransport textTransport;
     private readonly IQuickActionTextSettingsStore quickCaptionSettingsStore;
+    private readonly ITextPresetStore textPresetStore;
+    private readonly ITextPresetDispatcher textPresetDispatcher;
     private readonly BleAutoConnectCoordinator autoConnectCoordinator;
     private int brightness = 60;
     private string lastActionStatus = "Ready";
@@ -32,6 +35,7 @@ public sealed class HomeViewModel : INotifyPropertyChanged
     private int quickCaptionSpeed = QuickActionTextSettings.RaveDefaults.Speed;
     private bool quickCaptionBackgroundEnabled;
     private bool settingsLoaded;
+    private IReadOnlyList<TextPresetCard> favoriteTextPresets = [];
 
     public HomeViewModel(
         QuickActionCatalog catalog,
@@ -39,6 +43,8 @@ public sealed class HomeViewModel : INotifyPropertyChanged
         IMaskCommandTransport commandTransport,
         ITextUploadTransport textTransport,
         IQuickActionTextSettingsStore? quickCaptionSettingsStore = null,
+        ITextPresetStore? textPresetStore = null,
+        ITextPresetDispatcher? textPresetDispatcher = null,
         BleAutoConnectCoordinator? autoConnectCoordinator = null)
     {
         this.catalog = catalog;
@@ -46,6 +52,8 @@ public sealed class HomeViewModel : INotifyPropertyChanged
         this.commandTransport = commandTransport;
         this.textTransport = textTransport;
         this.quickCaptionSettingsStore = quickCaptionSettingsStore ?? new InMemoryQuickActionTextSettingsStore();
+        this.textPresetStore = textPresetStore ?? new InMemoryTextPresetStore();
+        this.textPresetDispatcher = textPresetDispatcher ?? new TextPresetDispatcher(textTransport, this.textPresetStore);
         this.autoConnectCoordinator = autoConnectCoordinator ?? new BleAutoConnectCoordinator(
             new UnavailableBleScanner(),
             new UnavailableBleConnection());
@@ -152,6 +160,20 @@ public sealed class HomeViewModel : INotifyPropertyChanged
     public IReadOnlyList<HomeQuickActionCard> FavoriteReactions { get; }
 
     public ObservableCollection<HomeQuickActionCard> RecentReactions { get; }
+
+    public IReadOnlyList<TextPresetCard> FavoriteTextPresets
+    {
+        get => favoriteTextPresets;
+        private set
+        {
+            if (SetField(ref favoriteTextPresets, value))
+            {
+                OnPropertyChanged(nameof(HasFavoriteTextPresets));
+            }
+        }
+    }
+
+    public bool HasFavoriteTextPresets => FavoriteTextPresets.Count > 0;
 
     public IReadOnlyList<QuickCaptionModeOption> QuickCaptionModeOptions { get; }
 
@@ -422,9 +444,21 @@ public sealed class HomeViewModel : INotifyPropertyChanged
     {
         var settings = (await quickCaptionSettingsStore.LoadAsync(cancellationToken)).Normalize();
         ApplyQuickCaptionSettings(settings);
+        await InitializeTextPresetsAsync(cancellationToken);
         await autoConnectCoordinator.InitializeAsync(cancellationToken);
         await autoConnectCoordinator.StartForegroundAutoConnectAsync(cancellationToken);
         settingsLoaded = true;
+    }
+
+    public async Task InitializeTextPresetsAsync(CancellationToken cancellationToken = default)
+    {
+        var state = await textPresetStore.LoadAsync(cancellationToken);
+        FavoriteTextPresets = state.Presets
+            .Where(preset => preset.ShowInControl)
+            .OrderByDescending(preset => preset.IsFavorite)
+            .ThenBy(preset => preset.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .Select(CreatePresetCard)
+            .ToArray();
     }
 
     private HomeQuickActionCard CreateReactionCard(QuickActionId actionId, string status)
@@ -458,6 +492,33 @@ public sealed class HomeViewModel : INotifyPropertyChanged
         if (catalog.Get(actionId).Kind == QuickActionKind.Text)
         {
             MoveToRecent(actionId);
+        }
+    }
+
+    private TextPresetCard CreatePresetCard(TextPreset preset)
+    {
+        TextPresetCard? card = null;
+        card = new TextPresetCard(
+            preset,
+            new AsyncRelayCommand(
+                cancellationToken => SendPresetAsync(card!.Preset, cancellationToken),
+                () => card is not null && CanUseTextReactions));
+        return card;
+    }
+
+    private async Task SendPresetAsync(TextPreset preset, CancellationToken cancellationToken)
+    {
+        if (!CanUseTextReactions)
+        {
+            LastActionStatus = "Text not ready";
+            return;
+        }
+
+        var result = await textPresetDispatcher.SendAsync(preset, cancellationToken);
+        LastActionStatus = result.Message;
+        if (result.Succeeded)
+        {
+            CurrentLookText = preset.DisplayName;
         }
     }
 
@@ -607,6 +668,11 @@ public sealed class HomeViewModel : INotifyPropertyChanged
         foreach (var reaction in FavoriteReactions.Concat(RecentReactions))
         {
             reaction.TriggerCommand.RaiseCanExecuteChanged();
+        }
+
+        foreach (var preset in FavoriteTextPresets)
+        {
+            preset.SendCommand.RaiseCanExecuteChanged();
         }
     }
 

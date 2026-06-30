@@ -3,6 +3,7 @@ using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.QuickActions;
 using MaskApp.Core.Features.Text;
+using MaskApp.Core.Features.TextPresets;
 
 namespace MaskApp.Core.Tests.Features.Home;
 
@@ -125,11 +126,48 @@ public sealed class HomeViewModelTests
         Assert.Equal("Text color Green", viewModel.QuickCaptionForegroundText);
     }
 
+    [Fact]
+    public async Task InitializeTextPresetsAsync_LoadsFavoriteControlPresets()
+    {
+        var preset = new TextPreset
+        {
+            Id = TextPresetId.NewUserPreset(),
+            InputText = "ČAU",
+            DisplayName = "Pozdrav",
+            IsFavorite = true,
+            Visibility = new TextPresetVisibility { ShowInControl = true, ShowInReact = true }
+        }.Normalize();
+        var viewModel = CreateViewModel(
+            textPresetStore: new InMemoryTextPresetStore(new TextPresetStoreState { Presets = [preset] }));
+
+        await viewModel.InitializeTextPresetsAsync();
+
+        var card = Assert.Single(viewModel.FavoriteTextPresets, card => card.DisplayName == "Pozdrav");
+        Assert.Equal("CAU", card.MaskText);
+    }
+
+    [Fact]
+    public async Task FavoriteTextPreset_SendsThroughPresetDispatcher()
+    {
+        var presetDispatcher = new FakeTextPresetDispatcher();
+        var viewModel = CreateViewModel(textPresetDispatcher: presetDispatcher);
+        await viewModel.InitializeTextPresetsAsync();
+        var preset = viewModel.FavoriteTextPresets.First();
+
+        await preset.SendCommand.ExecuteAsync();
+
+        Assert.Equal(preset.Id, presetDispatcher.LastPresetId);
+        Assert.Equal("Sent preset.", viewModel.LastActionStatus);
+        Assert.Equal(preset.DisplayName, viewModel.CurrentLookText);
+    }
+
     private static HomeViewModel CreateViewModel(
         FakeCommandTransport? commandTransport = null,
         FakeTextTransport? textTransport = null,
         RecordingQuickActionDispatcher? dispatcher = null,
         IQuickActionTextSettingsStore? settingsStore = null,
+        ITextPresetStore? textPresetStore = null,
+        ITextPresetDispatcher? textPresetDispatcher = null,
         BleAutoConnectCoordinator? autoConnectCoordinator = null)
     {
         return new HomeViewModel(
@@ -138,6 +176,8 @@ public sealed class HomeViewModelTests
             commandTransport ?? new FakeCommandTransport(),
             textTransport ?? new FakeTextTransport(),
             settingsStore,
+            textPresetStore,
+            textPresetDispatcher,
             autoConnectCoordinator);
     }
 
@@ -228,6 +268,17 @@ public sealed class HomeViewModelTests
                     message,
                     supportsAcknowledgements,
                     isReady));
+        }
+    }
+
+    private sealed class FakeTextPresetDispatcher : ITextPresetDispatcher
+    {
+        public TextPresetId? LastPresetId { get; private set; }
+
+        public Task<TextPresetDispatchResult> SendAsync(TextPreset preset, CancellationToken cancellationToken = default)
+        {
+            LastPresetId = preset.Id;
+            return Task.FromResult(new TextPresetDispatchResult(true, preset.Id, "Sent preset.", "sent"));
         }
     }
 }

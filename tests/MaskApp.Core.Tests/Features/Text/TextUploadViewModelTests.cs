@@ -1,5 +1,6 @@
 using MaskApp.Core.Features.Text;
 using MaskApp.Core.Features.QuickActions;
+using MaskApp.Core.Features.TextPresets;
 using System.Collections.ObjectModel;
 
 namespace MaskApp.Core.Tests.Features.Text;
@@ -297,6 +298,34 @@ public sealed class TextUploadViewModelTests
 
         Assert.EndsWith("...", viewModel.LastPayloadHex);
         Assert.True(viewModel.LastPayloadHex.Length <= 1027);
+    }
+
+    [Fact]
+    public async Task SaveAsPresetCommand_CreatesPresetWithMaskSafeTextAndStyle()
+    {
+        var store = new InMemoryTextPresetStore(new TextPresetStoreState());
+        var viewModel = new TextUploadViewModel(
+            new SimulatedTextUploadTransport(),
+            textPresetStore: store)
+        {
+            Text = "ČAU",
+            PresetName = "Pozdrav",
+            SelectedPresetCategory = TextPresetCategory.CzechBasic,
+            SelectedPresetSendProfile = TextPresetSendProfile.StableFlash,
+            Speed = 33
+        };
+        viewModel.SelectColor(viewModel.TextColorOptions.Single(option => option.Name == "Green"));
+
+        await viewModel.SaveAsPresetCommand.ExecuteAsync();
+
+        var state = await store.LoadAsync();
+        var preset = state.Presets.Single(item => item.DisplayName == "Pozdrav");
+        Assert.Equal("ČAU", preset.InputText);
+        Assert.Equal("CAU", preset.MaskText);
+        Assert.Equal(TextPresetCategory.CzechBasic, preset.Category);
+        Assert.Equal(TextPresetSendProfile.StableFlash, preset.Style.SendProfile);
+        Assert.Equal(33, preset.Style.Speed);
+        Assert.Equal("Mask-safe: CAU", viewModel.MaskSafeTextWarning);
     }
 
     private sealed class FakeTextUploadTransport : ITextUploadTransport

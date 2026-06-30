@@ -5,6 +5,7 @@ using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.QuickActions;
 using MaskApp.Core.Features.Text;
+using MaskApp.Core.Features.TextPresets;
 
 namespace MaskApp.Core.Features.React;
 
@@ -14,11 +15,14 @@ public sealed class ReactViewModel : INotifyPropertyChanged
     private readonly IMaskCommandTransport commandTransport;
     private readonly ITextUploadTransport textTransport;
     private readonly IBuiltInAssetArchiveStore archiveStore;
+    private readonly ITextPresetStore textPresetStore;
+    private readonly ITextPresetDispatcher textPresetDispatcher;
     private readonly List<ReactReactionCard> allCards;
     private readonly IReadOnlyList<ReactReactionGroup> allGroups;
     private IReadOnlyList<ReactReactionGroup> groups;
     private ReactFilterOption selectedFilter;
     private IReadOnlyList<BuiltInAssetAction> favoriteBuiltIns = [];
+    private IReadOnlyList<TextPresetGroup> presetGroups = [];
     private string statusText;
     private string lastActionText = "None";
     private bool isSending;
@@ -28,12 +32,16 @@ public sealed class ReactViewModel : INotifyPropertyChanged
         IQuickActionDispatcher dispatcher,
         IMaskCommandTransport commandTransport,
         ITextUploadTransport textTransport,
-        IBuiltInAssetArchiveStore? archiveStore = null)
+        IBuiltInAssetArchiveStore? archiveStore = null,
+        ITextPresetStore? textPresetStore = null,
+        ITextPresetDispatcher? textPresetDispatcher = null)
     {
         this.dispatcher = dispatcher;
         this.commandTransport = commandTransport;
         this.textTransport = textTransport;
         this.archiveStore = archiveStore ?? new InMemoryBuiltInAssetArchiveStore();
+        this.textPresetStore = textPresetStore ?? new InMemoryTextPresetStore();
+        this.textPresetDispatcher = textPresetDispatcher ?? new TextPresetDispatcher(textTransport, this.textPresetStore);
 
         var deck = new ReactDeckCatalog(catalog).Build();
         PinnedCards = deck.PinnedCards.Select(CreateCard).ToArray();
@@ -101,6 +109,20 @@ public sealed class ReactViewModel : INotifyPropertyChanged
 
     public bool HasFavoriteBuiltIns => FavoriteBuiltIns.Count > 0;
 
+    public IReadOnlyList<TextPresetGroup> PresetGroups
+    {
+        get => presetGroups;
+        private set
+        {
+            if (SetField(ref presetGroups, value))
+            {
+                OnPropertyChanged(nameof(HasPresetGroups));
+            }
+        }
+    }
+
+    public bool HasPresetGroups => PresetGroups.Count > 0;
+
     public string FavoriteBuiltInsHintText => HasFavoriteBuiltIns
         ? "Favorite Faces send IMAG/ANIM command IDs only."
         : "Use Faces scanner to favorite fast command-only looks.";
@@ -144,6 +166,23 @@ public sealed class ReactViewModel : INotifyPropertyChanged
         var archive = await archiveStore.LoadAsync(cancellationToken);
         FavoriteBuiltIns = archive.FavoriteDeckRecords()
             .Select(CreateBuiltInAction)
+            .ToArray();
+        await InitializePresetsAsync(cancellationToken);
+    }
+
+    public async Task InitializePresetsAsync(CancellationToken cancellationToken = default)
+    {
+        var state = await textPresetStore.LoadAsync(cancellationToken);
+        PresetGroups = state.Presets
+            .Where(preset => preset.ShowInReact && preset.Category != TextPresetCategory.Legacy)
+            .OrderBy(preset => GetPresetGroupSortOrder(preset.Category))
+            .GroupBy(preset => preset.Category)
+            .Select(group => new TextPresetGroup(
+                group.Key,
+                GetPresetGroupTitle(group.Key),
+                group.OrderBy(preset => preset.DisplayName, StringComparer.OrdinalIgnoreCase)
+                    .Select(CreatePresetCard)
+                    .ToArray()))
             .ToArray();
     }
 
@@ -195,6 +234,17 @@ public sealed class ReactViewModel : INotifyPropertyChanged
         return action;
     }
 
+    private TextPresetCard CreatePresetCard(TextPreset preset)
+    {
+        TextPresetCard? card = null;
+        card = new TextPresetCard(
+            preset,
+            new AsyncRelayCommand(
+                cancellationToken => SendPresetAsync(card!.Preset, cancellationToken),
+                () => card is not null && CanSendPreset()));
+        return card;
+    }
+
     private void ApplyFilter()
     {
         Groups = SelectedFilter.Category is null
@@ -220,6 +270,8 @@ public sealed class ReactViewModel : INotifyPropertyChanged
 
     private bool CanSendBuiltIn() =>
         !IsSending && commandTransport.TransportState == MaskCommandTransportState.Ready;
+
+    private bool CanSendPreset() => !IsSending && textTransport.IsReady;
 
     private string GetUnavailableStatus(ReactReactionCard card) =>
         card.Kind switch
@@ -247,6 +299,28 @@ public sealed class ReactViewModel : INotifyPropertyChanged
             StatusText = result.Succeeded
                 ? "Sent, confirm on mask"
                 : result.Message;
+        }
+        finally
+        {
+            IsSending = false;
+        }
+    }
+
+    private async Task SendPresetAsync(TextPreset preset, CancellationToken cancellationToken)
+    {
+        if (!CanSendPreset())
+        {
+            StatusText = "Text not ready";
+            return;
+        }
+
+        try
+        {
+            IsSending = true;
+            LastActionText = preset.DisplayName;
+            StatusText = "Ready";
+            var result = await textPresetDispatcher.SendAsync(preset, cancellationToken);
+            StatusText = result.Message;
         }
         finally
         {
@@ -313,7 +387,34 @@ public sealed class ReactViewModel : INotifyPropertyChanged
         {
             action.SendCommand.RaiseCanExecuteChanged();
         }
+
+        foreach (var card in PresetGroups.SelectMany(group => group.Cards))
+        {
+            card.SendCommand.RaiseCanExecuteChanged();
+        }
     }
+
+    private static string GetPresetGroupTitle(TextPresetCategory category) =>
+        category switch
+        {
+            TextPresetCategory.CzechBasic => "Czech Basic",
+            TextPresetCategory.CzechMeme => "Czech Meme",
+            TextPresetCategory.CzechPoliticalSatire => "Czech Political/Satire",
+            TextPresetCategory.CzechRave => "Czech RAVE",
+            TextPresetCategory.Custom => "Custom",
+            _ => category.ToString()
+        };
+
+    private static int GetPresetGroupSortOrder(TextPresetCategory category) =>
+        category switch
+        {
+            TextPresetCategory.CzechBasic => 0,
+            TextPresetCategory.CzechMeme => 1,
+            TextPresetCategory.CzechPoliticalSatire => 2,
+            TextPresetCategory.CzechRave => 3,
+            TextPresetCategory.Custom => 4,
+            _ => 5
+        };
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

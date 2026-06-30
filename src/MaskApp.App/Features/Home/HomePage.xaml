@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:home="clr-namespace:MaskApp.Core.Features.Home;assembly=MaskApp.Core"
+    xmlns:presets="clr-namespace:MaskApp.Core.Features.TextPresets;assembly=MaskApp.Core"
     xmlns:quick="clr-namespace:MaskApp.Core.Features.QuickActions;assembly=MaskApp.Core"
     x:DataType="home:HomeViewModel"
     Title="Control"
@@ -246,6 +247,48 @@
                                     BorderColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
                                     TextColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}}"
                                     BackgroundColor="{Binding Id, Converter={StaticResource QuickActionAccentColorConverter}, ConverterParameter=soft}" />
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </FlexLayout>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Favorite text presets" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Label Text="Saved per-caption style from Text Composer." Style="{StaticResource TinyLabelStyle}" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="1" Style="{StaticResource StatusPillBorderStyle}">
+                            <Label Text="{Binding FavoriteTextPresets.Count, StringFormat='{}{0} presets'}" Style="{StaticResource ChipLabelStyle}" />
+                        </Border>
+                    </Grid>
+                    <FlexLayout
+                        Grid.Row="1"
+                        AlignItems="Stretch"
+                        BindableLayout.ItemsSource="{Binding FavoriteTextPresets}"
+                        Direction="Row"
+                        Wrap="Wrap">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="presets:TextPresetCard">
+                                <Border
+                                    Margin="0,0,10,10"
+                                    MinimumWidthRequest="142"
+                                    Style="{StaticResource ActionCardBorderStyle}"
+                                    Stroke="{Binding ColorHex}">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding SendCommand}" />
+                                    </Border.GestureRecognizers>
+                                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="5">
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                            <BoxView Color="{Binding ColorHex}" HeightRequest="18" WidthRequest="18" VerticalOptions="Center" />
+                                            <Label Grid.Column="1" Text="{Binding DisplayName}" FontAttributes="Bold" />
+                                        </Grid>
+                                        <Label Grid.Row="1" Text="{Binding InputText}" TextColor="{Binding ColorHex}" FontAttributes="Bold" />
+                                        <Button Grid.Row="2" Text="Send" Command="{Binding SendCommand}" />
+                                    </Grid>
+                                </Border>
                             </DataTemplate>
                         </BindableLayout.ItemTemplate>
                     </FlexLayout>

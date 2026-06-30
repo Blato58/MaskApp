@@ -14,6 +14,7 @@ using MaskApp.Core.Features.QuickActions;
 using MaskApp.Core.Features.React;
 using MaskApp.Core.Features.Rave;
 using MaskApp.Core.Features.Text;
+using MaskApp.Core.Features.TextPresets;
 using Microsoft.Extensions.Logging;
 
 namespace MaskApp.App;
@@ -43,6 +44,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<QuickActionCatalog>();
         builder.Services.AddSingleton<IQuickActionTextSettingsStore, JsonQuickActionTextSettingsStore>();
         builder.Services.AddTransient<IQuickActionDispatcher, QuickActionDispatcher>();
+        builder.Services.AddSingleton<ITextPresetStore, JsonTextPresetStore>();
+        builder.Services.AddTransient<ITextPresetDispatcher, TextPresetDispatcher>();
         builder.Services.AddSingleton<IBuiltInAssetArchiveStore, JsonBuiltInAssetArchiveStore>();
         builder.Services.AddSingleton<IBleAutoConnectSettingsStore, JsonBleAutoConnectSettingsStore>();
 

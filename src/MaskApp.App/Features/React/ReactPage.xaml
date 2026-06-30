@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:builtins="clr-namespace:MaskApp.Core.Features.BuiltIns;assembly=MaskApp.Core"
+    xmlns:presets="clr-namespace:MaskApp.Core.Features.TextPresets;assembly=MaskApp.Core"
     xmlns:react="clr-namespace:MaskApp.Core.Features.React;assembly=MaskApp.Core"
     x:DataType="react:ReactViewModel"
     Title="React"
@@ -53,6 +54,68 @@
                         Style="{StaticResource TinyLabelStyle}" />
                 </Grid>
             </Border>
+
+            <VerticalStackLayout
+                BindableLayout.ItemsSource="{Binding PresetGroups}"
+                Spacing="14">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="presets:TextPresetGroup">
+                        <Border Style="{StaticResource PanelBorderStyle}">
+                            <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Text="{Binding Title}" Style="{StaticResource SectionTitleLabelStyle}" />
+                                    <Border Grid.Column="1" Style="{StaticResource StatusPillBorderStyle}">
+                                        <Label Text="{Binding Cards.Count, StringFormat='{}{0} presets'}" Style="{StaticResource ChipLabelStyle}" />
+                                    </Border>
+                                </Grid>
+                                <FlexLayout
+                                    Grid.Row="1"
+                                    AlignItems="Stretch"
+                                    BindableLayout.ItemsSource="{Binding Cards}"
+                                    Direction="Row"
+                                    Wrap="Wrap">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="presets:TextPresetCard">
+                                            <Border
+                                                Margin="0,0,10,10"
+                                                MinimumHeightRequest="104"
+                                                MinimumWidthRequest="158"
+                                                Style="{StaticResource ActionCardBorderStyle}"
+                                                Stroke="{Binding ColorHex}">
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding SendCommand}" />
+                                                </Border.GestureRecognizers>
+                                                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="5">
+                                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                                        <BoxView
+                                                            Color="{Binding ColorHex}"
+                                                            HeightRequest="18"
+                                                            WidthRequest="18"
+                                                            VerticalOptions="Center" />
+                                                        <Label Grid.Column="1" Text="{Binding DisplayName}" FontAttributes="Bold" />
+                                                    </Grid>
+                                                    <Label
+                                                        Grid.Row="1"
+                                                        Text="{Binding InputText}"
+                                                        TextColor="{Binding ColorHex}"
+                                                        FontAttributes="Bold"
+                                                        FontSize="16" />
+                                                    <Label
+                                                        Grid.Row="2"
+                                                        IsVisible="{Binding HasMaskTextDifference}"
+                                                        Text="{Binding MaskTextWarning}"
+                                                        Style="{StaticResource TinyLabelStyle}" />
+                                                    <Label Grid.Row="3" Text="{Binding CategoryText}" Style="{StaticResource TinyLabelStyle}" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </FlexLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
 
             <Border Style="{StaticResource PanelBorderStyle}">
                 <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">

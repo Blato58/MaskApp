@@ -5,6 +5,7 @@ using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.QuickActions;
 using MaskApp.Core.Features.Text;
+using MaskApp.Core.Features.TextPresets;
 
 namespace MaskApp.Core.Features.Rave;
 
@@ -15,12 +16,15 @@ public sealed class RaveViewModel : INotifyPropertyChanged
     private readonly QuickActionCatalog catalog;
     private readonly IQuickActionDispatcher dispatcher;
     private readonly IBuiltInAssetArchiveStore archiveStore;
+    private readonly ITextPresetStore textPresetStore;
+    private readonly ITextPresetDispatcher textPresetDispatcher;
     private readonly IQuickActionTextSettingsStore quickCaptionSettingsStore;
     private readonly BleAutoConnectCoordinator? autoConnectCoordinator;
     private int brightnessCap = 65;
     private int restoreBrightness = 65;
     private bool isSending;
     private IReadOnlyList<BuiltInAssetAction> favoriteBuiltIns = [];
+    private IReadOnlyList<TextPresetGroup> presetGroups = [];
     private string sendStatusText = "Ready";
     private string maskStatusText;
     private string textStatusText;
@@ -35,6 +39,8 @@ public sealed class RaveViewModel : INotifyPropertyChanged
         ITextUploadTransport textTransport,
         IBuiltInAssetArchiveStore? archiveStore = null,
         IQuickActionTextSettingsStore? quickCaptionSettingsStore = null,
+        ITextPresetStore? textPresetStore = null,
+        ITextPresetDispatcher? textPresetDispatcher = null,
         BleAutoConnectCoordinator? autoConnectCoordinator = null)
     {
         this.catalog = catalog;
@@ -43,6 +49,8 @@ public sealed class RaveViewModel : INotifyPropertyChanged
         this.textTransport = textTransport;
         this.archiveStore = archiveStore ?? new InMemoryBuiltInAssetArchiveStore();
         this.quickCaptionSettingsStore = quickCaptionSettingsStore ?? new InMemoryQuickActionTextSettingsStore();
+        this.textPresetStore = textPresetStore ?? new InMemoryTextPresetStore();
+        this.textPresetDispatcher = textPresetDispatcher ?? new TextPresetDispatcher(textTransport, this.textPresetStore);
         this.autoConnectCoordinator = autoConnectCoordinator;
         maskStatusText = maskTransport.TransportStatusText;
         textStatusText = textTransport.StatusText;
@@ -107,6 +115,20 @@ public sealed class RaveViewModel : INotifyPropertyChanged
     }
 
     public bool HasFavoriteBuiltIns => FavoriteBuiltIns.Count > 0;
+
+    public IReadOnlyList<TextPresetGroup> PresetGroups
+    {
+        get => presetGroups;
+        private set
+        {
+            if (SetField(ref presetGroups, value))
+            {
+                OnPropertyChanged(nameof(HasPresetGroups));
+            }
+        }
+    }
+
+    public bool HasPresetGroups => PresetGroups.Count > 0;
 
     public string FavoriteBuiltInsHintText => HasFavoriteBuiltIns
         ? "Favorite built-ins are command-only and low-bandwidth."
@@ -188,6 +210,7 @@ public sealed class RaveViewModel : INotifyPropertyChanged
         FavoriteBuiltIns = archive.FavoriteDeckRecords()
             .Select(CreateBuiltInAction)
             .ToArray();
+        await InitializePresetsAsync(cancellationToken);
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -200,6 +223,27 @@ public sealed class RaveViewModel : INotifyPropertyChanged
             await autoConnectCoordinator.InitializeAsync(cancellationToken);
             await autoConnectCoordinator.StartForegroundAutoConnectAsync(cancellationToken);
         }
+    }
+
+    public async Task InitializePresetsAsync(CancellationToken cancellationToken = default)
+    {
+        var state = await textPresetStore.LoadAsync(cancellationToken);
+        var presets = state.Presets
+            .Where(preset =>
+                preset.Category == TextPresetCategory.CzechRave ||
+                (preset.IsFavorite && preset.ShowInRave) ||
+                (preset.Category == TextPresetCategory.CzechPoliticalSatire && preset.IsFavorite && preset.ShowInRave))
+            .OrderBy(preset => preset.IsFavorite ? 0 : 1)
+            .ThenBy(preset => preset.Category == TextPresetCategory.CzechRave ? 0 : 1)
+            .ThenBy(preset => preset.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        PresetGroups = presets
+            .GroupBy(preset => preset.IsFavorite ? "RAVE favorites" : preset.PackName)
+            .Select(group => new TextPresetGroup(
+                group.Any(preset => preset.IsFavorite) ? TextPresetCategory.Custom : group.First().Category,
+                group.Key,
+                group.Select(CreatePresetCard).ToArray()))
+            .ToArray();
     }
 
     private RaveAction CreateAction(QuickActionId actionId, string group)
@@ -236,6 +280,17 @@ public sealed class RaveViewModel : INotifyPropertyChanged
                 cancellationToken => SendBuiltInAsync(record, cancellationToken),
                 () => action is not null && CanSendBrightnessCommand()));
         return action;
+    }
+
+    private TextPresetCard CreatePresetCard(TextPreset preset)
+    {
+        TextPresetCard? card = null;
+        card = new TextPresetCard(
+            preset,
+            new AsyncRelayCommand(
+                cancellationToken => SendPresetAsync(card!.Preset, cancellationToken),
+                () => card is not null && CanSendCaption()));
+        return card;
     }
 
     private async Task SendActionAsync(QuickActionId actionId, string label, CancellationToken cancellationToken)
@@ -333,6 +388,31 @@ public sealed class RaveViewModel : INotifyPropertyChanged
                 ? "Sent, confirm on mask"
                 : result.Message;
             LastPayloadText = result.Succeeded ? "sent" : "failed";
+        }
+        finally
+        {
+            IsSending = false;
+        }
+    }
+
+    private async Task SendPresetAsync(TextPreset preset, CancellationToken cancellationToken)
+    {
+        if (!CanSendCaption())
+        {
+            SendStatusText = BuildTextUnavailableStatus();
+            return;
+        }
+
+        LastActionText = preset.DisplayName;
+        LastPayloadText = preset.MaskText;
+
+        try
+        {
+            IsSending = true;
+            SendStatusText = "Ready";
+            var result = await textPresetDispatcher.SendAsync(preset, cancellationToken);
+            SendStatusText = result.Message;
+            LastPayloadText = result.Status;
         }
         finally
         {
@@ -441,6 +521,11 @@ public sealed class RaveViewModel : INotifyPropertyChanged
         foreach (var action in FavoriteBuiltIns)
         {
             action.SendCommand.RaiseCanExecuteChanged();
+        }
+
+        foreach (var card in PresetGroups.SelectMany(group => group.Cards))
+        {
+            card.SendCommand.RaiseCanExecuteChanged();
         }
 
         BlackoutCommand.RaiseCanExecuteChanged();

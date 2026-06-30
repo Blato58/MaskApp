@@ -3,6 +3,7 @@
     x:Class="MaskApp.App.Features.Text.TextPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:presets="clr-namespace:MaskApp.Core.Features.TextPresets;assembly=MaskApp.Core"
     xmlns:text="clr-namespace:MaskApp.Core.Features.Text;assembly=MaskApp.Core"
     x:DataType="text:TextUploadViewModel"
     Title="Text"
@@ -127,6 +128,82 @@
                         </HorizontalStackLayout>
                     </Grid>
                     <Label Grid.Row="3" Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Save as preset" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Label Text="{Binding PresetStatusText}" Style="{StaticResource TinyLabelStyle}" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="1" Style="{StaticResource StatusPillBorderStyle}">
+                            <Label Text="{Binding SavedPresets.Count, StringFormat='Saved {0}'}" Style="{StaticResource ChipLabelStyle}" />
+                        </Border>
+                    </Grid>
+
+                    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Entry
+                            Placeholder="Preset name"
+                            Text="{Binding PresetName, Mode=TwoWay}" />
+                        <Picker
+                            Grid.Column="1"
+                            Title="Load preset"
+                            ItemsSource="{Binding SavedPresets}"
+                            ItemDisplayBinding="{Binding DisplayName}"
+                            SelectedItem="{Binding SelectedSavedPreset, Mode=TwoWay}" />
+                    </Grid>
+
+                    <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Picker
+                            Title="Category"
+                            ItemsSource="{Binding PresetCategoryOptions}"
+                            SelectedItem="{Binding SelectedPresetCategory, Mode=TwoWay}" />
+                        <Picker
+                            Grid.Column="1"
+                            Title="Send profile"
+                            ItemsSource="{Binding PresetSendProfileOptions}"
+                            SelectedItem="{Binding SelectedPresetSendProfile, Mode=TwoWay}" />
+                    </Grid>
+
+                    <Grid Grid.Row="3" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="8">
+                        <HorizontalStackLayout Spacing="8">
+                            <Switch IsToggled="{Binding IsFavorite, Mode=TwoWay}" />
+                            <Label Text="Favorite" VerticalTextAlignment="Center" />
+                        </HorizontalStackLayout>
+                        <HorizontalStackLayout Grid.Column="1" Spacing="8">
+                            <Switch IsToggled="{Binding UseBlackBackgroundReset, Mode=TwoWay}" />
+                            <Label Text="Black reset" VerticalTextAlignment="Center" />
+                        </HorizontalStackLayout>
+                        <HorizontalStackLayout Grid.Row="1" Spacing="8">
+                            <Switch IsToggled="{Binding ShowInReact, Mode=TwoWay}" />
+                            <Label Text="React" VerticalTextAlignment="Center" />
+                        </HorizontalStackLayout>
+                        <HorizontalStackLayout Grid.Row="1" Grid.Column="1" Spacing="8">
+                            <Switch IsToggled="{Binding ShowInRave, Mode=TwoWay}" />
+                            <Label Text="RAVE" VerticalTextAlignment="Center" />
+                        </HorizontalStackLayout>
+                    </Grid>
+
+                    <HorizontalStackLayout Grid.Row="4" Spacing="8">
+                        <Switch IsToggled="{Binding ShowInControl, Mode=TwoWay}" />
+                        <Label Text="Show in Control favorites" VerticalTextAlignment="Center" />
+                    </HorizontalStackLayout>
+
+                    <VerticalStackLayout Grid.Row="5" Spacing="4">
+                        <Label Text="{Binding MaskSafeTextWarning}" TextColor="{StaticResource AccentYellowColor}" Style="{StaticResource TinyLabelStyle}" />
+                        <Label Text="{Binding SelectedStyleSummary}" Style="{StaticResource TinyLabelStyle}" />
+                    </VerticalStackLayout>
+
+                    <Grid Grid.Row="6" ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                        <Button Text="Save as Preset" Command="{Binding SaveAsPresetCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Grid.Column="1" Text="Save Changes" Command="{Binding SaveChangesCommand}" />
+                        <Button Grid.Column="2" Text="Load" Command="{Binding LoadPresetCommand}" />
+                        <Button Grid.Row="1" Text="Duplicate" Command="{Binding DuplicatePresetCommand}" />
+                        <Button Grid.Row="1" Grid.Column="1" Text="Delete" Command="{Binding DeletePresetCommand}" />
+                        <Button Grid.Row="1" Grid.Column="2" Text="Save &amp; Send" Command="{Binding SaveAndSendCommand}" Style="{StaticResource NeonBlueButtonStyle}" />
+                    </Grid>
                 </Grid>
             </Border>
 

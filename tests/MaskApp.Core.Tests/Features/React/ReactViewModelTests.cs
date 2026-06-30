@@ -3,6 +3,7 @@ using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.QuickActions;
 using MaskApp.Core.Features.React;
 using MaskApp.Core.Features.Text;
+using MaskApp.Core.Features.TextPresets;
 
 namespace MaskApp.Core.Tests.Features.React;
 
@@ -107,17 +108,49 @@ public sealed class ReactViewModelTests
         Assert.Contains("Favorite Faces", viewModel.FavoriteBuiltInsHintText);
     }
 
+    [Fact]
+    public async Task InitializePresetsAsync_LoadsCzechPresetGroups()
+    {
+        var viewModel = CreateViewModel();
+
+        await viewModel.InitializePresetsAsync();
+
+        Assert.Contains(viewModel.PresetGroups, group => group.Title == "Czech Basic");
+        Assert.Contains(viewModel.PresetGroups, group => group.Title == "Czech Meme");
+        Assert.Contains(viewModel.PresetGroups, group => group.Title == "Czech Political/Satire");
+        Assert.Contains(viewModel.PresetGroups.SelectMany(group => group.Cards), card => card.MaskText == "AHOJ");
+    }
+
+    [Fact]
+    public async Task PresetCard_SendsThroughPresetDispatcher()
+    {
+        var dispatcher = new FakeTextPresetDispatcher();
+        var viewModel = CreateViewModel(textPresetDispatcher: dispatcher);
+        await viewModel.InitializePresetsAsync();
+        var preset = viewModel.PresetGroups.SelectMany(group => group.Cards).First(card => card.MaskText == "AHOJ");
+
+        await preset.SendCommand.ExecuteAsync();
+
+        Assert.Equal(preset.Id, dispatcher.LastPresetId);
+        Assert.Equal("Sent preset.", viewModel.StatusText);
+        Assert.Equal(preset.DisplayName, viewModel.LastActionText);
+    }
+
     private static ReactViewModel CreateViewModel(
         FakeQuickActionDispatcher? dispatcher = null,
         FakeCommandTransport? commandTransport = null,
         FakeTextUploadTransport? textTransport = null,
-        IBuiltInAssetArchiveStore? archiveStore = null) =>
+        IBuiltInAssetArchiveStore? archiveStore = null,
+        ITextPresetStore? textPresetStore = null,
+        ITextPresetDispatcher? textPresetDispatcher = null) =>
         new(
             new QuickActionCatalog(),
             dispatcher ?? new FakeQuickActionDispatcher(QuickActionResult.Sent(QuickActionId.Lol, "Uploaded.")),
             commandTransport ?? new FakeCommandTransport(),
             textTransport ?? new FakeTextUploadTransport(),
-            archiveStore);
+            archiveStore,
+            textPresetStore,
+            textPresetDispatcher);
 
     private sealed class FakeQuickActionDispatcher : IQuickActionDispatcher
     {
@@ -158,6 +191,17 @@ public sealed class ReactViewModelTests
 
         public Task<MaskCommandResult> SendAsync(MaskCommand command, CancellationToken cancellationToken = default) =>
             Task.FromResult(MaskCommandResult.Success("Sent."));
+    }
+
+    private sealed class FakeTextPresetDispatcher : ITextPresetDispatcher
+    {
+        public TextPresetId? LastPresetId { get; private set; }
+
+        public Task<TextPresetDispatchResult> SendAsync(TextPreset preset, CancellationToken cancellationToken = default)
+        {
+            LastPresetId = preset.Id;
+            return Task.FromResult(new TextPresetDispatchResult(true, preset.Id, "Sent preset.", "sent"));
+        }
     }
 
     private sealed class FakeTextUploadTransport : ITextUploadTransport

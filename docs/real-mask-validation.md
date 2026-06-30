@@ -63,6 +63,24 @@ slice record.
 17. Send a RAVE Favorite Face.
 18. Confirm Connect page manual scan still works after forget/reconnect.
 
+## Text Presets And Czech Packs Checklist
+
+1. Open React.
+2. Send Czech Basic preset `AHOJ`.
+3. Send Czech Meme preset `TY VOLE`.
+4. Send Czech RAVE preset `KDE JE VODA`.
+5. Confirm mask-safe text displays correctly.
+6. Create text in Text Composer.
+7. Change color.
+8. Save as preset.
+9. Send saved preset from React.
+10. Favorite it.
+11. Confirm it appears in Control favorites.
+12. Send it from Control.
+13. Confirm RAVE shows Czech RAVE presets.
+14. Confirm Political/Satire pack is editable local starter content.
+15. Restart app and confirm presets persist.
+
 ## P0 Text Crash/Freeze Hotfix Checklist
 
 1. Open app.
@@ -173,5 +191,12 @@ up to about `0x45`. Higher IDs should stay experimental until tested.
 | Global text color React | Not tested | Confirm selected color appears for `LOL`. |
 | Global text color RAVE | Not tested | Confirm selected color appears for `DROP`. |
 | Text Composer global default | Not tested | Confirm composer default follows global color and manual override still works. |
+| Czech Basic preset `AHOJ` | Not tested | Confirm preset send and mask-safe display. |
+| Czech Meme preset `TY VOLE` | Not tested | Confirm preset send and mask-safe display. |
+| Czech RAVE preset `KDE JE VODA` | Not tested | Confirm transliteration stays `KDE JE VODA`. |
+| Text Composer save as preset | Not tested | Confirm saved preset appears in React after save. |
+| Control favorite text preset | Not tested | Favorite saved preset and confirm it sends from Control. |
+| Preset persistence after restart | Not tested | Confirm local JSON survives app restart. |
+| Political/Satire editable starter pack | Not tested | Confirm pack is editable local content, not remote/current truth. |
 | Reconnect after RAVE | Not tested |  |
 | Useful built-in IDs | Not tested |  |

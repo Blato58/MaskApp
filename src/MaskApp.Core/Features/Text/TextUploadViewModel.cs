@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.QuickActions;
+using MaskApp.Core.Features.TextPresets;
 
 namespace MaskApp.Core.Features.Text;
 
@@ -17,19 +18,32 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
 
     private readonly ITextUploadTransport transport;
     private readonly IQuickActionTextSettingsStore quickCaptionSettingsStore;
+    private readonly ITextPresetStore textPresetStore;
     private readonly SynchronizationContext? synchronizationContext;
     private string text = "HELLO";
+    private string presetName = "HELLO";
     private TextColorOption selectedColor;
     private TextLayoutModeOption selectedLayoutMode;
     private TextAnimationModeOption selectedAnimationMode;
+    private TextPresetCategory selectedPresetCategory = TextPresetCategory.Custom;
+    private TextPresetSendProfile selectedPresetSendProfile = TextPresetSendProfile.LowStaticFlash;
     private int speed = 50;
     private string statusText;
+    private string presetStatusText = "Preset library ready.";
     private string lastPayloadHex = "None";
     private string lastCommandText = "None";
     private IReadOnlyList<TextPreviewCell> previewCells = [];
+    private IReadOnlyList<TextPreset> savedPresets = [];
+    private TextPreset? selectedSavedPreset;
+    private TextPresetId? editingPresetId;
     private int columnCount;
     private int frameCount;
     private bool isSending;
+    private bool isFavorite;
+    private bool showInReact = true;
+    private bool showInRave;
+    private bool showInControl;
+    private bool useBlackBackgroundReset = true;
     private bool useCompatibilityWriteOnly;
     private bool supportsAcknowledgements;
     private TextUploadTransportState transportState;
@@ -39,10 +53,12 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
 
     public TextUploadViewModel(
         ITextUploadTransport transport,
-        IQuickActionTextSettingsStore? quickCaptionSettingsStore = null)
+        IQuickActionTextSettingsStore? quickCaptionSettingsStore = null,
+        ITextPresetStore? textPresetStore = null)
     {
         this.transport = transport;
         this.quickCaptionSettingsStore = quickCaptionSettingsStore ?? new InMemoryQuickActionTextSettingsStore();
+        this.textPresetStore = textPresetStore ?? new InMemoryTextPresetStore();
         synchronizationContext = SynchronizationContext.Current;
         TextColorOptions =
         [
@@ -66,6 +82,20 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
             new TextLayoutModeOption("Scroll / variable width", TextLayoutMode.VariableWidth),
             new TextLayoutModeOption("Centered 44-column", TextLayoutMode.FixedWidthCentered)
         ];
+        PresetCategoryOptions =
+        [
+            TextPresetCategory.Custom,
+            TextPresetCategory.CzechBasic,
+            TextPresetCategory.CzechMeme,
+            TextPresetCategory.CzechPoliticalSatire,
+            TextPresetCategory.CzechRave
+        ];
+        PresetSendProfileOptions =
+        [
+            TextPresetSendProfile.LowStaticFlash,
+            TextPresetSendProfile.StableFlash,
+            TextPresetSendProfile.ComposerScroll
+        ];
 
         selectedColor = TextColorOptions.Single(option => option.Name == "White");
         selectedLayoutMode = LayoutModes[1];
@@ -75,8 +105,15 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
         useCompatibilityWriteOnly = ShouldDefaultToCompatibilityMode(transport.State, transport.SupportsAcknowledgements);
         statusText = transport.StatusText;
         SendCommand = new AsyncRelayCommand(SendAsync, CanSend);
+        SaveAsPresetCommand = new AsyncRelayCommand(SaveAsPresetAsync, CanSavePreset);
+        SaveChangesCommand = new AsyncRelayCommand(SaveChangesAsync, () => editingPresetId.HasValue && CanSavePreset());
+        DuplicatePresetCommand = new AsyncRelayCommand(DuplicatePresetAsync, () => SelectedSavedPreset is not null);
+        DeletePresetCommand = new AsyncRelayCommand(DeletePresetAsync, () => SelectedSavedPreset is not null);
+        LoadPresetCommand = new AsyncRelayCommand(LoadSelectedPresetAsync, () => SelectedSavedPreset is not null);
+        SaveAndSendCommand = new AsyncRelayCommand(SaveAndSendAsync, CanSavePreset);
         transport.StateChanged += OnTransportStateChanged;
         RefreshPreview();
+        RefreshNormalizedTextProperties();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -87,6 +124,22 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
 
     public IReadOnlyList<TextAnimationModeOption> AnimationModes { get; }
 
+    public IReadOnlyList<TextPresetCategory> PresetCategoryOptions { get; }
+
+    public IReadOnlyList<TextPresetSendProfile> PresetSendProfileOptions { get; }
+
+    public AsyncRelayCommand SaveAsPresetCommand { get; }
+
+    public AsyncRelayCommand SaveChangesCommand { get; }
+
+    public AsyncRelayCommand DuplicatePresetCommand { get; }
+
+    public AsyncRelayCommand DeletePresetCommand { get; }
+
+    public AsyncRelayCommand LoadPresetCommand { get; }
+
+    public AsyncRelayCommand SaveAndSendCommand { get; }
+
     public IReadOnlyList<TextPreviewCell> PreviewCells
     {
         get => previewCells;
@@ -94,6 +147,18 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
     }
 
     public AsyncRelayCommand SendCommand { get; }
+
+    public string PresetName
+    {
+        get => presetName;
+        set
+        {
+            if (SetField(ref presetName, value ?? string.Empty))
+            {
+                RaisePresetCommandStates();
+            }
+        }
+    }
 
     public string Text
     {
@@ -107,14 +172,30 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
 
             if (SetField(ref text, clampedValue))
             {
+                if (string.IsNullOrWhiteSpace(PresetName) || PresetName == MaskSafeText || PresetName == "HELLO")
+                {
+                    presetName = CzechTextNormalizer.Normalize(clampedValue).MaskText;
+                    OnPropertyChanged(nameof(PresetName));
+                }
+
                 SchedulePreviewRefresh();
+                RefreshNormalizedTextProperties();
                 OnPropertyChanged(nameof(CharacterCountText));
                 SendCommand.RaiseCanExecuteChanged();
+                RaisePresetCommandStates();
             }
         }
     }
 
     public string CharacterCountText => $"{Text.Length}/{MaxTextLength}";
+
+    public string MaskSafeText { get; private set; } = "HELLO";
+
+    public bool HasMaskSafeDifference { get; private set; }
+
+    public string MaskSafeTextWarning => HasMaskSafeDifference
+        ? $"Mask-safe: {MaskSafeText}"
+        : "Mask-safe text matches.";
 
     public TextColorOption SelectedColor
     {
@@ -125,6 +206,7 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
             {
                 SchedulePreviewRefresh();
                 OnPropertyChanged(nameof(ProfileSummary));
+                OnPropertyChanged(nameof(SelectedStyleSummary));
             }
         }
     }
@@ -138,6 +220,7 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
             {
                 SchedulePreviewRefresh();
                 OnPropertyChanged(nameof(ProfileSummary));
+                OnPropertyChanged(nameof(SelectedStyleSummary));
             }
         }
     }
@@ -150,6 +233,31 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
             if (value is not null && SetField(ref selectedAnimationMode, value))
             {
                 OnPropertyChanged(nameof(ProfileSummary));
+                OnPropertyChanged(nameof(SelectedStyleSummary));
+            }
+        }
+    }
+
+    public TextPresetCategory SelectedPresetCategory
+    {
+        get => selectedPresetCategory;
+        set
+        {
+            if (SetField(ref selectedPresetCategory, value))
+            {
+                ShowInRave = value == TextPresetCategory.CzechRave;
+            }
+        }
+    }
+
+    public TextPresetSendProfile SelectedPresetSendProfile
+    {
+        get => selectedPresetSendProfile;
+        set
+        {
+            if (SetField(ref selectedPresetSendProfile, value))
+            {
+                OnPropertyChanged(nameof(SelectedStyleSummary));
             }
         }
     }
@@ -162,6 +270,49 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
             if (SetField(ref speed, Math.Clamp(value, 1, 100)))
             {
                 OnPropertyChanged(nameof(ProfileSummary));
+                OnPropertyChanged(nameof(SelectedStyleSummary));
+            }
+        }
+    }
+
+    public bool IsFavorite
+    {
+        get => isFavorite;
+        set
+        {
+            if (SetField(ref isFavorite, value) && value)
+            {
+                ShowInControl = true;
+            }
+        }
+    }
+
+    public bool ShowInReact
+    {
+        get => showInReact;
+        set => SetField(ref showInReact, value);
+    }
+
+    public bool ShowInRave
+    {
+        get => showInRave;
+        set => SetField(ref showInRave, value);
+    }
+
+    public bool ShowInControl
+    {
+        get => showInControl;
+        set => SetField(ref showInControl, value);
+    }
+
+    public bool UseBlackBackgroundReset
+    {
+        get => useBlackBackgroundReset;
+        set
+        {
+            if (SetField(ref useBlackBackgroundReset, value))
+            {
+                OnPropertyChanged(nameof(SelectedStyleSummary));
             }
         }
     }
@@ -169,6 +320,43 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
     public string ProfileSummary => BuildComposerProfile().Name == TextSendProfile.ComposerCentered.Name
         ? $"Centered 44 columns, {SelectedAnimationMode.Name}, Speed {Speed}, {SelectedColor.Name}"
         : $"Variable width, {SelectedAnimationMode.Name}, Speed {Speed}, {SelectedColor.Name}";
+
+    public string SelectedStyleSummary =>
+        $"{SelectedPresetSendProfile}, {SelectedLayoutMode.Name}, {SelectedAnimationMode.Name}, Speed {Speed}, {SelectedColor.Name}";
+
+    public string PresetStatusText
+    {
+        get => presetStatusText;
+        private set => SetField(ref presetStatusText, value);
+    }
+
+    public IReadOnlyList<TextPreset> SavedPresets
+    {
+        get => savedPresets;
+        private set
+        {
+            if (SetField(ref savedPresets, value))
+            {
+                OnPropertyChanged(nameof(HasSavedPresets));
+            }
+        }
+    }
+
+    public bool HasSavedPresets => SavedPresets.Count > 0;
+
+    public TextPreset? SelectedSavedPreset
+    {
+        get => selectedSavedPreset;
+        set
+        {
+            if (SetField(ref selectedSavedPreset, value))
+            {
+                RaisePresetCommandStates();
+            }
+        }
+    }
+
+    public bool IsEditingPreset => editingPresetId.HasValue;
 
     public string ActiveTransportText =>
         transport.IsSimulated
@@ -286,6 +474,7 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
         if (globalColorInitialized || selectedColorManuallyChanged)
         {
             globalColorInitialized = true;
+            await RefreshSavedPresetsAsync(cancellationToken);
             return;
         }
 
@@ -293,6 +482,7 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
         var color = FindColorOption(settings.ForegroundPreset);
         SelectedColor = color;
         globalColorInitialized = true;
+        await RefreshSavedPresetsAsync(cancellationToken);
     }
 
     private async Task SendAsync(CancellationToken cancellationToken)
@@ -340,6 +530,91 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
         finally
         {
             IsSending = false;
+        }
+    }
+
+    private async Task SaveAsPresetAsync(CancellationToken cancellationToken)
+    {
+        var preset = BuildPreset(TextPresetId.NewUserPreset());
+        var state = await textPresetStore.UpsertAsync(preset, cancellationToken);
+        editingPresetId = preset.Id;
+        OnPropertyChanged(nameof(IsEditingPreset));
+        PresetStatusText = $"Saved preset {preset.DisplayName}.";
+        ApplySavedState(state);
+        RaisePresetCommandStates();
+    }
+
+    private async Task SaveChangesAsync(CancellationToken cancellationToken)
+    {
+        if (!editingPresetId.HasValue)
+        {
+            PresetStatusText = "Load a preset before saving changes.";
+            return;
+        }
+
+        var preset = BuildPreset(editingPresetId.Value);
+        var state = await textPresetStore.UpsertAsync(preset, cancellationToken);
+        PresetStatusText = $"Saved changes to {preset.DisplayName}.";
+        ApplySavedState(state);
+    }
+
+    private async Task DuplicatePresetAsync(CancellationToken cancellationToken)
+    {
+        if (SelectedSavedPreset is null)
+        {
+            return;
+        }
+
+        var duplicated = SelectedSavedPreset with
+        {
+            Id = TextPresetId.NewUserPreset(),
+            DisplayName = $"{SelectedSavedPreset.DisplayName} Copy",
+            IsSeed = false,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+        var state = await textPresetStore.UpsertAsync(duplicated, cancellationToken);
+        PresetStatusText = $"Duplicated {SelectedSavedPreset.DisplayName}.";
+        ApplySavedState(state);
+    }
+
+    private async Task DeletePresetAsync(CancellationToken cancellationToken)
+    {
+        if (SelectedSavedPreset is null)
+        {
+            return;
+        }
+
+        var id = SelectedSavedPreset.Id;
+        var state = await textPresetStore.DeleteAsync(id, cancellationToken);
+        if (editingPresetId == id)
+        {
+            editingPresetId = null;
+            OnPropertyChanged(nameof(IsEditingPreset));
+        }
+
+        PresetStatusText = "Preset deleted.";
+        ApplySavedState(state);
+        RaisePresetCommandStates();
+    }
+
+    private Task LoadSelectedPresetAsync(CancellationToken cancellationToken)
+    {
+        if (SelectedSavedPreset is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        LoadPreset(SelectedSavedPreset);
+        return Task.CompletedTask;
+    }
+
+    private async Task SaveAndSendAsync(CancellationToken cancellationToken)
+    {
+        await SaveAsPresetAsync(cancellationToken);
+        if (CanSend())
+        {
+            await SendAsync(cancellationToken);
         }
     }
 
@@ -465,6 +740,107 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
             && TransportState is TextUploadTransportState.Ready or TextUploadTransportState.Simulated;
     }
 
+    private bool CanSavePreset() =>
+        !string.IsNullOrWhiteSpace(Text) && !string.IsNullOrWhiteSpace(PresetName);
+
+    private TextPreset BuildPreset(TextPresetId id)
+    {
+        var normalized = CzechTextNormalizer.Normalize(Text);
+        var now = DateTimeOffset.UtcNow;
+        return new TextPreset
+        {
+            Id = id,
+            InputText = normalized.InputText,
+            MaskText = normalized.MaskText,
+            DisplayName = string.IsNullOrWhiteSpace(PresetName) ? normalized.MaskText : PresetName.Trim(),
+            Category = SelectedPresetCategory,
+            PackName = SelectedPresetCategory == TextPresetCategory.Custom ? "Custom" : GetPackName(SelectedPresetCategory),
+            Style = new TextPresetStyle
+            {
+                ForegroundColor = SelectedColor.ToLedColor(),
+                LayoutMode = SelectedLayoutMode.LayoutMode == TextLayoutMode.FixedWidthCentered
+                    ? TextPresetLayoutMode.FixedWidthCentered
+                    : TextPresetLayoutMode.VariableWidthScroll,
+                DisplayMode = ToTextDisplayMode(SelectedAnimationMode.Mode),
+                Speed = Speed,
+                SendProfile = SelectedPresetSendProfile,
+                UseBlackBackgroundReset = UseBlackBackgroundReset
+            },
+            IsFavorite = IsFavorite,
+            Visibility = new TextPresetVisibility
+            {
+                ShowInReact = ShowInReact,
+                ShowInRave = ShowInRave,
+                ShowInControl = ShowInControl
+            },
+            CreatedAt = now,
+            UpdatedAt = now,
+            IsSeed = false
+        }.Normalize(now);
+    }
+
+    private void LoadPreset(TextPreset preset)
+    {
+        editingPresetId = preset.Id;
+        Text = preset.InputText;
+        PresetName = preset.DisplayName;
+        SelectedPresetCategory = preset.Category == TextPresetCategory.Legacy ? TextPresetCategory.Custom : preset.Category;
+        SelectedPresetSendProfile = preset.Style.SendProfile;
+        SelectedLayoutMode = preset.Style.LayoutMode == TextPresetLayoutMode.FixedWidthCentered
+            ? LayoutModes.Single(option => option.LayoutMode == TextLayoutMode.FixedWidthCentered)
+            : LayoutModes.Single(option => option.LayoutMode == TextLayoutMode.VariableWidth);
+        SelectedAnimationMode = AnimationModes.FirstOrDefault(option => ToTextDisplayMode(option.Mode) == preset.Style.DisplayMode)
+            ?? AnimationModes.Single(option => option.Mode == 2);
+        Speed = preset.Style.Speed;
+        SelectedColor = FindColorOption(preset.Style.ForegroundColor);
+        IsFavorite = preset.IsFavorite;
+        ShowInReact = preset.ShowInReact;
+        ShowInRave = preset.ShowInRave;
+        ShowInControl = preset.ShowInControl;
+        UseBlackBackgroundReset = preset.Style.UseBlackBackgroundReset;
+        PresetStatusText = $"Loaded {preset.DisplayName}.";
+        OnPropertyChanged(nameof(IsEditingPreset));
+        RaisePresetCommandStates();
+    }
+
+    private async Task RefreshSavedPresetsAsync(CancellationToken cancellationToken)
+    {
+        var state = await textPresetStore.LoadAsync(cancellationToken);
+        ApplySavedState(state);
+    }
+
+    private void ApplySavedState(TextPresetStoreState state)
+    {
+        SavedPresets = state.Presets
+            .Where(preset => preset.Category != TextPresetCategory.Legacy || preset.IsFavorite)
+            .OrderBy(preset => preset.Category)
+            .ThenBy(preset => preset.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        SelectedSavedPreset = SavedPresets.FirstOrDefault(preset => preset.Id == SelectedSavedPreset?.Id)
+            ?? SavedPresets.FirstOrDefault(preset => preset.Id == editingPresetId)
+            ?? SavedPresets.FirstOrDefault();
+    }
+
+    private void RefreshNormalizedTextProperties()
+    {
+        var normalized = CzechTextNormalizer.Normalize(Text);
+        MaskSafeText = normalized.MaskText;
+        HasMaskSafeDifference = normalized.Changed;
+        OnPropertyChanged(nameof(MaskSafeText));
+        OnPropertyChanged(nameof(HasMaskSafeDifference));
+        OnPropertyChanged(nameof(MaskSafeTextWarning));
+    }
+
+    private void RaisePresetCommandStates()
+    {
+        SaveAsPresetCommand.RaiseCanExecuteChanged();
+        SaveChangesCommand.RaiseCanExecuteChanged();
+        DuplicatePresetCommand.RaiseCanExecuteChanged();
+        DeletePresetCommand.RaiseCanExecuteChanged();
+        LoadPresetCommand.RaiseCanExecuteChanged();
+        SaveAndSendCommand.RaiseCanExecuteChanged();
+    }
+
     private string BuildCannotSendStatus()
     {
         if (transport.IsReady && !SupportsAcknowledgements && !UseCompatibilityWriteOnly)
@@ -507,6 +883,13 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
             ?? TextColorOptions.Single(option => option.Name == "White");
     }
 
+    private TextColorOption FindColorOption(TextLedColor color) =>
+        TextColorOptions.FirstOrDefault(option =>
+                option.Red == color.Red &&
+                option.Green == color.Green &&
+                option.Blue == color.Blue)
+            ?? TextColorOptions.Single(option => option.Name == "White");
+
     private static TextDisplayMode ToTextDisplayMode(int mode) =>
         mode switch
         {
@@ -514,6 +897,17 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
             2 => TextDisplayMode.Blink,
             4 => TextDisplayMode.ScrollLeftToRight,
             _ => TextDisplayMode.ScrollRightToLeft
+        };
+
+    private static string GetPackName(TextPresetCategory category) =>
+        category switch
+        {
+            TextPresetCategory.CzechBasic => TextPresetSeedCatalog.CzechBasicPackName,
+            TextPresetCategory.CzechMeme => TextPresetSeedCatalog.CzechMemePackName,
+            TextPresetCategory.CzechPoliticalSatire => TextPresetSeedCatalog.CzechPoliticalPackName,
+            TextPresetCategory.CzechRave => TextPresetSeedCatalog.CzechRavePackName,
+            TextPresetCategory.Legacy => TextPresetSeedCatalog.LegacyPackName,
+            _ => "Custom"
         };
 
     private static int CalculateFrameCount(int columnCount)
