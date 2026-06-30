@@ -31,14 +31,14 @@
                         Text="{Binding Text, Mode=TwoWay}" />
                     <Button
                         Grid.Row="2"
-                        Text="Send Text"
+                        Text="Send Draft"
                         Command="{Binding SendCommand}"
                         Style="{StaticResource PrimaryButtonStyle}" />
                 </Grid>
             </Border>
 
             <Border Style="{StaticResource PanelBorderStyle}">
-                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <Label Text="Mode and speed" Style="{StaticResource SectionTitleLabelStyle}" />
                         <ActivityIndicator
@@ -69,7 +69,11 @@
                             Style="{StaticResource MetricLabelStyle}"
                             VerticalTextAlignment="Center" />
                     </Grid>
-                    <Grid Grid.Row="4" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+                    <HorizontalStackLayout Grid.Row="4" Spacing="8">
+                        <Switch IsToggled="{Binding IsBold, Mode=TwoWay}" />
+                        <Label Text="Bold" VerticalTextAlignment="Center" />
+                    </HorizontalStackLayout>
+                    <Grid Grid.Row="5" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8">
                         <Button BackgroundColor="#52E3FF" BorderColor="#52E3FF" Clicked="OnColorClicked" CommandParameter="Cyan" HeightRequest="42" Text="" WidthRequest="46" />
                         <Button Grid.Column="1" BackgroundColor="#FFFFFF" BorderColor="#D1D5DB" BorderWidth="1" Clicked="OnColorClicked" CommandParameter="White" HeightRequest="42" Text="" WidthRequest="46" />
                         <Button Grid.Column="2" BackgroundColor="#F472B6" BorderColor="#F472B6" Clicked="OnColorClicked" CommandParameter="Pink" HeightRequest="42" Text="" WidthRequest="46" />
@@ -135,25 +139,18 @@
                 <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Save as preset" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Label Text="Text presets" Style="{StaticResource SectionTitleLabelStyle}" />
                             <Label Text="{Binding PresetStatusText}" Style="{StaticResource TinyLabelStyle}" />
                         </VerticalStackLayout>
                         <Border Grid.Column="1" Style="{StaticResource StatusPillBorderStyle}">
-                            <Label Text="{Binding SavedPresets.Count, StringFormat='Saved {0}'}" Style="{StaticResource ChipLabelStyle}" />
+                            <Label Text="{Binding SavedPresetCards.Count, StringFormat='Saved {0}'}" Style="{StaticResource ChipLabelStyle}" />
                         </Border>
                     </Grid>
 
-                    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="10">
-                        <Entry
-                            Placeholder="Preset name"
-                            Text="{Binding PresetName, Mode=TwoWay}" />
-                        <Picker
-                            Grid.Column="1"
-                            Title="Load preset"
-                            ItemsSource="{Binding SavedPresets}"
-                            ItemDisplayBinding="{Binding DisplayName}"
-                            SelectedItem="{Binding SelectedSavedPreset, Mode=TwoWay}" />
-                    </Grid>
+                    <Entry
+                        Grid.Row="1"
+                        Placeholder="Preset name"
+                        Text="{Binding PresetName, Mode=TwoWay}" />
 
                     <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="10">
                         <Picker
@@ -196,14 +193,69 @@
                         <Label Text="{Binding SelectedStyleSummary}" Style="{StaticResource TinyLabelStyle}" />
                     </VerticalStackLayout>
 
-                    <Grid Grid.Row="6" ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                    <Grid Grid.Row="6" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
                         <Button Text="Save as Preset" Command="{Binding SaveAsPresetCommand}" Style="{StaticResource PrimaryButtonStyle}" />
                         <Button Grid.Column="1" Text="Save Changes" Command="{Binding SaveChangesCommand}" />
-                        <Button Grid.Column="2" Text="Load" Command="{Binding LoadPresetCommand}" />
-                        <Button Grid.Row="1" Text="Duplicate" Command="{Binding DuplicatePresetCommand}" />
-                        <Button Grid.Row="1" Grid.Column="1" Text="Delete" Command="{Binding DeletePresetCommand}" />
-                        <Button Grid.Row="1" Grid.Column="2" Text="Save &amp; Send" Command="{Binding SaveAndSendCommand}" Style="{StaticResource NeonBlueButtonStyle}" />
+                        <Button Grid.Row="1" Text="Duplicate Loaded" Command="{Binding DuplicatePresetCommand}" />
+                        <Button Grid.Row="1" Grid.Column="1" Text="Delete Loaded" Command="{Binding DeletePresetCommand}" />
                     </Grid>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto" RowSpacing="12">
+                    <Label Text="Open a preset" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <CollectionView
+                        Grid.Row="1"
+                        HeightRequest="420"
+                        ItemsSource="{Binding SavedPresetCards}"
+                        SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="text:TextComposerPresetCard">
+                                <Border
+                                    Margin="0,0,0,10"
+                                    Padding="12"
+                                    BackgroundColor="#111827"
+                                    Stroke="#24324A"
+                                    StrokeThickness="1">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="8" />
+                                    </Border.StrokeShape>
+                                    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                            <VerticalStackLayout Spacing="2">
+                                                <Label Text="{Binding DisplayName}" FontAttributes="Bold" />
+                                                <Label Text="{Binding InputText}" Style="{StaticResource MutedLabelStyle}" LineBreakMode="TailTruncation" />
+                                            </VerticalStackLayout>
+                                            <Border Grid.Column="1" BackgroundColor="{Binding ColorHex}" HeightRequest="28" WidthRequest="28">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="6" />
+                                                </Border.StrokeShape>
+                                            </Border>
+                                        </Grid>
+
+                                        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="8">
+                                            <Label Text="{Binding CategoryText}" Style="{StaticResource TinyLabelStyle}" />
+                                            <Label Grid.Column="1" Text="{Binding VisibilityText}" Style="{StaticResource TinyLabelStyle}" HorizontalTextAlignment="End" />
+                                        </Grid>
+
+                                        <VerticalStackLayout Grid.Row="2" Spacing="2">
+                                            <Label Text="{Binding StyleSummary}" Style="{StaticResource TinyLabelStyle}" />
+                                            <Label Text="{Binding LastSendStatusText}" Style="{StaticResource TinyLabelStyle}" />
+                                            <Label Text="{Binding MaskTextWarning}" TextColor="{StaticResource AccentYellowColor}" Style="{StaticResource TinyLabelStyle}" IsVisible="{Binding HasMaskTextDifference}" />
+                                        </VerticalStackLayout>
+
+                                        <Grid Grid.Row="3" ColumnDefinitions="*,*,*,*" ColumnSpacing="8">
+                                            <Button Text="Open" Command="{Binding OpenCommand}" />
+                                            <Button Grid.Column="1" Text="Send" Command="{Binding SendCommand}" Style="{StaticResource NeonBlueButtonStyle}" />
+                                            <Button Grid.Column="2" Text="Copy" Command="{Binding DuplicateCommand}" />
+                                            <Button Grid.Column="3" Text="Del" Command="{Binding DeleteCommand}" />
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
                 </Grid>
             </Border>
 

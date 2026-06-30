@@ -29,7 +29,9 @@ public sealed class JsonTextPresetStoreCoreTests
             Category = TextPresetCategory.Custom,
             Style = TextPresetStyle.Default with
             {
-                ForegroundColor = new TextLedColor(0xF4, 0x72, 0xB6)
+                ForegroundColor = new TextLedColor(0xF4, 0x72, 0xB6),
+                LayoutMode = TextPresetLayoutMode.ThreeLineCentered,
+                IsBold = true
             }
         };
 
@@ -40,6 +42,8 @@ public sealed class JsonTextPresetStoreCoreTests
         var loadedPreset = loaded.Presets.Single(item => item.DisplayName == "Pozdrav");
         Assert.Equal("CAU", loadedPreset.MaskText);
         Assert.Equal(new TextLedColor(0xF4, 0x72, 0xB6), loadedPreset.Style.ForegroundColor);
+        Assert.Equal(TextPresetLayoutMode.ThreeLineCentered, loadedPreset.Style.LayoutMode);
+        Assert.True(loadedPreset.Style.IsBold);
     }
 
     [Fact]

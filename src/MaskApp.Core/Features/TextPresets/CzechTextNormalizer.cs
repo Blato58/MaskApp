@@ -14,11 +14,16 @@ public static class CzechTextNormalizer
         ['ť'] = 'T', ['ú'] = 'U', ['ů'] = 'U', ['ý'] = 'Y', ['ž'] = 'Z'
     };
 
-    public static CzechTextNormalizationResult Normalize(string? input)
+    public static CzechTextNormalizationResult Normalize(string? input, bool preserveLineBreaks = false)
     {
         if (string.IsNullOrWhiteSpace(input))
         {
             return new CzechTextNormalizationResult(string.Empty, string.Empty, false);
+        }
+
+        if (preserveLineBreaks)
+        {
+            return NormalizeLines(input);
         }
 
         var builder = new StringBuilder(input.Length);
@@ -68,6 +73,23 @@ public static class CzechTextNormalizer
     }
 
     private static bool IsSupportedAscii(char character) => character is >= ' ' and <= '~';
+
+    private static CzechTextNormalizationResult NormalizeLines(string input)
+    {
+        var displayLines = input
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n')
+            .Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Select(CollapseWhitespace)
+            .Where(line => line.Length > 0)
+            .ToArray();
+        var displayText = string.Join('\n', displayLines);
+        var maskText = string.Join('\n', displayLines.Select(line => Normalize(line).MaskText));
+        return new CzechTextNormalizationResult(
+            displayText,
+            maskText,
+            !string.Equals(displayText, maskText, StringComparison.Ordinal));
+    }
 
     private static string CollapseWhitespace(string value)
     {

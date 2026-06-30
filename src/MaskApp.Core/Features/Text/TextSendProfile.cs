@@ -87,6 +87,12 @@ public sealed record TextSendProfile
         PostUploadQuietPeriod = TimeSpan.FromMilliseconds(40)
     };
 
+    public static TextSendProfile ComposerThreeLineCentered { get; } = ComposerCentered with
+    {
+        Name = "Composer 3-line Centered",
+        LayoutMode = TextLayoutMode.ThreeLineCentered
+    };
+
     public string Name { get; init; } = "Text";
 
     public TextSendIntent Intent { get; init; }
@@ -102,6 +108,8 @@ public sealed record TextSendProfile
     public int? FixedWidthColumns { get; init; }
 
     public TextLedColor TextColor { get; init; } = new(0xFF, 0xFF, 0xFF);
+
+    public bool IsBold { get; init; }
 
     public bool BackgroundEnabled { get; init; }
 

@@ -10,6 +10,8 @@ public sealed record TextPresetStyle
 
     public TextPresetLayoutMode LayoutMode { get; init; } = TextPresetLayoutMode.FixedWidthCentered;
 
+    public bool IsBold { get; init; }
+
     public TextDisplayMode DisplayMode { get; init; } = TextDisplayMode.Blink;
 
     public int Speed { get; init; } = 50;
@@ -38,24 +40,38 @@ public sealed record TextPresetStyle
             TextPresetSendProfile.ComposerScroll => TextSendProfile.ComposerScroll,
             _ => TextSendProfile.QuickFlashLowStatic
         };
-        var fixedWidth = normalized.LayoutMode == TextPresetLayoutMode.FixedWidthCentered;
+        var fixedWidth = normalized.LayoutMode is TextPresetLayoutMode.FixedWidthCentered or TextPresetLayoutMode.ThreeLineCentered;
 
         return baseProfile with
         {
             Name = normalized.SendProfile switch
             {
-                TextPresetSendProfile.StableFlash => "Preset Stable Flash",
-                TextPresetSendProfile.ComposerScroll => "Preset Composer Scroll",
-                _ => "Preset Low-static Flash"
+                TextPresetSendProfile.StableFlash => normalized.LayoutMode == TextPresetLayoutMode.ThreeLineCentered
+                    ? "Preset Stable 3-line Flash"
+                    : "Preset Stable Flash",
+                TextPresetSendProfile.ComposerScroll => normalized.LayoutMode == TextPresetLayoutMode.ThreeLineCentered
+                    ? "Preset Composer 3-line"
+                    : "Preset Composer Scroll",
+                _ => normalized.LayoutMode == TextPresetLayoutMode.ThreeLineCentered
+                    ? "Preset Low-static 3-line Flash"
+                    : "Preset Low-static Flash"
             },
-            LayoutMode = fixedWidth ? TextLayoutMode.FixedWidthCentered : TextLayoutMode.VariableWidth,
+            LayoutMode = normalized.LayoutMode switch
+            {
+                TextPresetLayoutMode.ThreeLineCentered => TextLayoutMode.ThreeLineCentered,
+                TextPresetLayoutMode.FixedWidthCentered => TextLayoutMode.FixedWidthCentered,
+                _ => TextLayoutMode.VariableWidth
+            },
             FixedWidthColumns = fixedWidth ? QuickCaptionLayout.VisibleColumns : null,
             DisplayMode = normalized.DisplayMode,
             Speed = normalized.Speed,
             TextColor = normalized.ForegroundColor,
+            IsBold = normalized.IsBold,
             SendBlackBackgroundReset = normalized.UseBlackBackgroundReset
         };
     }
 
     public string ForegroundHex => $"#{ForegroundColor.Red:X2}{ForegroundColor.Green:X2}{ForegroundColor.Blue:X2}";
+
+    public string WeightText => IsBold ? "Bold" : "Regular";
 }

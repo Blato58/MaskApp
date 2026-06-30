@@ -79,6 +79,42 @@ public sealed class QuickCaptionLayoutTests
         Assert.Empty(layout.LedData);
     }
 
+    [Fact]
+    public void CreateThreeLineCentered_RequiresManualLineBreaks()
+    {
+        var layout = QuickCaptionLayout.CreateThreeLineCentered("ONE TWO THREE");
+
+        Assert.False(layout.Succeeded);
+        Assert.Equal("3-line centered needs manual line breaks.", layout.Warning);
+    }
+
+    [Fact]
+    public void CreateThreeLineCentered_RendersManualLinesInFortyFourColumns()
+    {
+        var layout = QuickCaptionLayout.CreateThreeLineCentered("ONE\nTWO\nTHREE");
+
+        Assert.True(layout.Succeeded);
+        Assert.False(layout.WasShortened);
+        Assert.Equal("ONE\nTWO\nTHREE", layout.DisplayText);
+        Assert.Equal(QuickCaptionLayout.VisibleColumns, layout.ColumnCount);
+        Assert.True(HasLitPixelInRows(layout.LedData, startRow: 0, endRow: 4));
+        Assert.True(HasLitPixelInRows(layout.LedData, startRow: 5, endRow: 9));
+        Assert.True(HasLitPixelInRows(layout.LedData, startRow: 10, endRow: 14));
+    }
+
+    [Fact]
+    public void CreateThreeLineCentered_ShortensOverwideLines()
+    {
+        var layout = QuickCaptionLayout.CreateThreeLineCentered("THIS LINE IS MUCH TOO LONG FOR ONE ROW\nOK");
+
+        Assert.True(layout.Succeeded);
+        Assert.True(layout.WasShortened);
+        Assert.Equal("Caption shortened to fit.", layout.Warning);
+        Assert.All(
+            layout.DisplayText.Split('\n'),
+            line => Assert.True(TextGlyphRasterizer.RenderCompact(line, topPadding: 0).Length / 2 <= QuickCaptionLayout.VisibleColumns));
+    }
+
     private static bool HasLitPixelInRows(byte[] ledData, int startRow, int endRow)
     {
         for (var column = 0; column < ledData.Length / 2; column++)

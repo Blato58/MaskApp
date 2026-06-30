@@ -20,4 +20,14 @@ public sealed class TextGlyphRasterizerTests
 
         Assert.Equal(fallback, unsupported);
     }
+
+    [Fact]
+    public void Render_BoldChangesColumnBytesWithoutChangingColumnCount()
+    {
+        var regular = TextGlyphRasterizer.Render("B");
+        var bold = TextGlyphRasterizer.Render("B", bold: true);
+
+        Assert.Equal(regular.Length, bold.Length);
+        Assert.NotEqual(regular, bold);
+    }
 }

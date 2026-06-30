@@ -47,7 +47,9 @@ public sealed record TextPreset
     public TextPreset Normalize(DateTimeOffset? timestamp = null)
     {
         var now = timestamp ?? DateTimeOffset.UtcNow;
-        var normalized = CzechTextNormalizer.Normalize(InputText);
+        var normalizedStyle = Style.Normalize();
+        var preserveLineBreaks = normalizedStyle.LayoutMode == TextPresetLayoutMode.ThreeLineCentered;
+        var normalized = CzechTextNormalizer.Normalize(InputText, preserveLineBreaks);
         var displayName = string.IsNullOrWhiteSpace(DisplayName)
             ? normalized.MaskText
             : DisplayName.Trim();
@@ -56,11 +58,13 @@ public sealed record TextPreset
         {
             Id = string.IsNullOrWhiteSpace(Id.Value) ? TextPresetId.NewUserPreset() : Id,
             InputText = string.IsNullOrWhiteSpace(InputText) ? normalized.MaskText : InputText.Trim(),
-            MaskText = string.IsNullOrWhiteSpace(MaskText) ? normalized.MaskText : CzechTextNormalizer.Normalize(MaskText).MaskText,
+            MaskText = string.IsNullOrWhiteSpace(MaskText)
+                ? normalized.MaskText
+                : CzechTextNormalizer.Normalize(MaskText, preserveLineBreaks).MaskText,
             DisplayName = displayName,
             PackName = string.IsNullOrWhiteSpace(PackName) ? "Custom" : PackName.Trim(),
             Tags = Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
-            Style = Style.Normalize(),
+            Style = normalizedStyle,
             Visibility = Visibility ?? TextPresetVisibility.ReactDefault,
             CreatedAt = CreatedAt == default ? now : CreatedAt,
             UpdatedAt = now

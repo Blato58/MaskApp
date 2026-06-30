@@ -7,4 +7,5 @@ public sealed record TextSendLayoutMetadata(
     bool VariableWidth,
     bool TwoLine,
     bool Shortened,
-    string Description);
+    string Description,
+    bool ThreeLine = false);

@@ -328,6 +328,126 @@ public sealed class TextUploadViewModelTests
         Assert.Equal("Mask-safe: CAU", viewModel.MaskSafeTextWarning);
     }
 
+    [Fact]
+    public async Task SendCommand_SendsDraftWithoutSavingOrMarkingPreset()
+    {
+        var transport = new FakeTextUploadTransport
+        {
+            IsReady = true,
+            SupportsAcknowledgements = true,
+            State = TextUploadTransportState.Ready
+        };
+        var preset = new TextPreset
+        {
+            Id = TextPresetId.NewUserPreset(),
+            InputText = "SAVED",
+            DisplayName = "Saved"
+        };
+        var store = new InMemoryTextPresetStore(new TextPresetStoreState { Presets = [preset] });
+        var viewModel = new TextUploadViewModel(transport, textPresetStore: store)
+        {
+            Text = "DRAFT",
+            PresetName = "Draft"
+        };
+
+        await viewModel.SendCommand.ExecuteAsync();
+
+        Assert.True(transport.WasCalled);
+        Assert.Equal("DRAFT", transport.LastPackage?.Text);
+        var state = await store.LoadAsync();
+        Assert.DoesNotContain(state.Presets, item => item.DisplayName == "Draft");
+        Assert.Null(state.Presets.Single(item => item.Id == preset.Id).LastSentAt);
+    }
+
+    [Fact]
+    public async Task PresetCard_OpenLoadsEditableStyle()
+    {
+        var preset = CreateThreeLineBoldPreset();
+        var store = new InMemoryTextPresetStore(new TextPresetStoreState { Presets = [preset] });
+        var viewModel = new TextUploadViewModel(new SimulatedTextUploadTransport(), textPresetStore: store);
+
+        await viewModel.InitializeAsync();
+        var card = viewModel.SavedPresetCards.Single(item => item.Id == preset.Id);
+        await card.OpenCommand.ExecuteAsync();
+
+        Assert.Equal("Three Line", viewModel.PresetName);
+        Assert.Equal("ONE\nTWO\nTHREE", viewModel.Text);
+        Assert.Equal(TextLayoutMode.ThreeLineCentered, viewModel.SelectedLayoutMode.LayoutMode);
+        Assert.True(viewModel.IsBold);
+        Assert.True(viewModel.IsFavorite);
+        Assert.True(viewModel.ShowInControl);
+        Assert.True(viewModel.ShowInRave);
+    }
+
+    [Fact]
+    public async Task SaveChangesCommand_UpdatesLoadedPresetStyle()
+    {
+        var preset = CreateThreeLineBoldPreset();
+        var store = new InMemoryTextPresetStore(new TextPresetStoreState { Presets = [preset] });
+        var viewModel = new TextUploadViewModel(new SimulatedTextUploadTransport(), textPresetStore: store);
+
+        await viewModel.InitializeAsync();
+        var card = viewModel.SavedPresetCards.Single(item => item.Id == preset.Id);
+        await card.OpenCommand.ExecuteAsync();
+        viewModel.Text = "FOO\nBAR";
+        viewModel.IsBold = false;
+
+        await viewModel.SaveChangesCommand.ExecuteAsync();
+
+        var state = await store.LoadAsync();
+        var saved = state.Presets.Single(item => item.Id == preset.Id);
+        Assert.Equal("FOO\nBAR", saved.MaskText);
+        Assert.Equal(TextPresetLayoutMode.ThreeLineCentered, saved.Style.LayoutMode);
+        Assert.False(saved.Style.IsBold);
+    }
+
+    [Fact]
+    public async Task PresetCard_SendUsesStoredThreeLineBoldStyle()
+    {
+        var transport = new FakeTextUploadTransport
+        {
+            IsReady = true,
+            SupportsAcknowledgements = true,
+            State = TextUploadTransportState.Ready
+        };
+        var preset = CreateThreeLineBoldPreset();
+        var store = new InMemoryTextPresetStore(new TextPresetStoreState { Presets = [preset] });
+        var viewModel = new TextUploadViewModel(transport, textPresetStore: store);
+
+        await viewModel.InitializeAsync();
+        var card = viewModel.SavedPresetCards.Single(item => item.Id == preset.Id);
+        await card.SendCommand.ExecuteAsync();
+
+        Assert.True(transport.WasCalled);
+        Assert.Equal("ONE\nTWO\nTHREE", transport.LastPackage?.Text);
+        Assert.Equal(44, transport.LastPackage?.ColumnCount);
+        var regular = QuickCaptionLayout.CreateThreeLineCentered("ONE\nTWO\nTHREE", bold: false);
+        Assert.NotEqual(regular.LedData, transport.LastPackage!.LedData);
+        var state = await store.LoadAsync();
+        Assert.NotNull(state.Presets.Single(item => item.Id == preset.Id).LastSentAt);
+    }
+
+    private static TextPreset CreateThreeLineBoldPreset() =>
+        new TextPreset
+        {
+            Id = TextPresetId.NewUserPreset(),
+            InputText = "ONE\nTWO\nTHREE",
+            DisplayName = "Three Line",
+            Style = TextPresetStyle.Default with
+            {
+                LayoutMode = TextPresetLayoutMode.ThreeLineCentered,
+                IsBold = true,
+                Speed = 42
+            },
+            IsFavorite = true,
+            Visibility = new TextPresetVisibility
+            {
+                ShowInControl = true,
+                ShowInReact = true,
+                ShowInRave = true
+            }
+        }.Normalize();
+
     private sealed class FakeTextUploadTransport : ITextUploadTransport
     {
         public event EventHandler<TextUploadTransportStateChangedEventArgs>? StateChanged;

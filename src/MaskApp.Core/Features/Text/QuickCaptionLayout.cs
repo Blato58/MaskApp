@@ -8,7 +8,7 @@ public static class QuickCaptionLayout
     private const int TwoLineBottomRow = 9;
     private static readonly TextLedColor BlankColumnColor = new(0x00, 0x00, 0x00);
 
-    public static QuickCaptionLayoutResult Create(string? caption, int visibleColumns = VisibleColumns)
+    public static QuickCaptionLayoutResult Create(string? caption, int visibleColumns = VisibleColumns, bool bold = false)
     {
         if (visibleColumns <= 0)
         {
@@ -21,13 +21,13 @@ public static class QuickCaptionLayout
             return QuickCaptionLayoutResult.Failed(caption ?? string.Empty, "Caption is empty.");
         }
 
-        var displayText = FitCaption(normalized, visibleColumns, out var wasShortened);
+        var displayText = FitCaption(normalized, visibleColumns, bold, out var wasShortened);
         if (displayText.Length == 0)
         {
             return QuickCaptionLayoutResult.Failed(caption ?? string.Empty, "Caption could not be fitted.");
         }
 
-        var ledData = BuildLedData(displayText, visibleColumns);
+        var ledData = BuildLedData(displayText, visibleColumns, bold);
         var columnCount = ledData.Length / 2;
         if (columnCount > visibleColumns)
         {
@@ -38,6 +38,62 @@ public static class QuickCaptionLayout
         return QuickCaptionLayoutResult.Success(
             caption ?? string.Empty,
             displayText,
+            wasShortened,
+            warning,
+            visibleColumns,
+            ledData);
+    }
+
+    public static QuickCaptionLayoutResult CreateThreeLineCentered(
+        string? caption,
+        int visibleColumns = VisibleColumns,
+        bool bold = false)
+    {
+        if (visibleColumns <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(visibleColumns), "Visible columns must be positive.");
+        }
+
+        if (string.IsNullOrWhiteSpace(caption))
+        {
+            return QuickCaptionLayoutResult.Failed(caption ?? string.Empty, "Caption is empty.");
+        }
+
+        if (!caption.Contains('\n') && !caption.Contains('\r'))
+        {
+            return QuickCaptionLayoutResult.Failed(caption, "3-line centered needs manual line breaks.");
+        }
+
+        var lines = caption
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n')
+            .Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Select(NormalizeCaption)
+            .Where(line => line.Length > 0)
+            .ToArray();
+        if (lines.Length is 0 or > 3)
+        {
+            return QuickCaptionLayoutResult.Failed(caption, "3-line centered accepts up to 3 non-empty lines.");
+        }
+
+        var wasShortened = false;
+        var fittedLines = new string[lines.Length];
+        for (var i = 0; i < lines.Length; i++)
+        {
+            fittedLines[i] = FitSingleLine(lines[i], visibleColumns, bold, compact: true, out var lineWasShortened);
+            if (fittedLines[i].Length == 0)
+            {
+                return QuickCaptionLayoutResult.Failed(caption, "Caption could not be fitted.");
+            }
+
+            wasShortened |= lineWasShortened;
+        }
+
+        var ledData = BuildThreeLineLedData(fittedLines, visibleColumns, bold);
+        var warning = wasShortened ? "Caption shortened to fit." : null;
+        return QuickCaptionLayoutResult.Success(
+            caption,
+            string.Join('\n', fittedLines),
             wasShortened,
             warning,
             visibleColumns,
@@ -115,15 +171,26 @@ public static class QuickCaptionLayout
         return new string(chars.ToArray());
     }
 
-    private static string FitCaption(string caption, int visibleColumns, out bool wasShortened)
+    private static string FitCaption(string caption, int visibleColumns, bool bold, out bool wasShortened)
     {
         wasShortened = false;
-        if (MeasureColumns(caption) <= visibleColumns)
+        if (MeasureColumns(caption, bold) <= visibleColumns)
         {
             return caption;
         }
 
-        if (CanRenderAsTwoLines(caption, visibleColumns))
+        if (CanRenderAsTwoLines(caption, visibleColumns, bold))
+        {
+            return caption;
+        }
+
+        return FitSingleLine(caption, visibleColumns, bold, compact: false, out wasShortened);
+    }
+
+    private static string FitSingleLine(string caption, int visibleColumns, bool bold, bool compact, out bool wasShortened)
+    {
+        wasShortened = false;
+        if (MeasureColumns(caption, bold, compact) <= visibleColumns)
         {
             return caption;
         }
@@ -136,7 +203,7 @@ public static class QuickCaptionLayout
             var candidate = fittedWords.Count == 0
                 ? word
                 : $"{string.Join(' ', fittedWords)} {word}";
-            if (MeasureColumns(candidate) > visibleColumns)
+            if (MeasureColumns(candidate, bold, compact) > visibleColumns)
             {
                 break;
             }
@@ -156,7 +223,7 @@ public static class QuickCaptionLayout
             Array.Resize(ref candidateChars, candidateChars.Length + 1);
             candidateChars[^1] = character;
             var candidate = new string(candidateChars);
-            if (MeasureColumns(candidate) > visibleColumns)
+            if (MeasureColumns(candidate, bold, compact) > visibleColumns)
             {
                 break;
             }
@@ -167,23 +234,26 @@ public static class QuickCaptionLayout
         return new string(chars.ToArray()).Trim();
     }
 
-    private static int MeasureColumns(string text) => TextGlyphRasterizer.Render(text).Length / 2;
+    private static int MeasureColumns(string text, bool bold = false, bool compact = false) =>
+        (compact
+            ? TextGlyphRasterizer.RenderCompact(text, topPadding: 0, bold: bold)
+            : TextGlyphRasterizer.Render(text, bold)).Length / 2;
 
-    private static byte[] BuildLedData(string text, int visibleColumns)
+    private static byte[] BuildLedData(string text, int visibleColumns, bool bold)
     {
-        if (MeasureColumns(text) <= visibleColumns)
+        if (MeasureColumns(text, bold) <= visibleColumns)
         {
-            return CenterLedData(TextGlyphRasterizer.Render(text), visibleColumns);
+            return CenterLedData(TextGlyphRasterizer.Render(text, bold), visibleColumns);
         }
 
-        var lines = SplitTwoLineCaption(text, visibleColumns);
+        var lines = SplitTwoLineCaption(text, visibleColumns, bold);
         if (lines is null)
         {
-            return CenterLedData(TextGlyphRasterizer.Render(text), visibleColumns);
+            return CenterLedData(TextGlyphRasterizer.Render(text, bold), visibleColumns);
         }
 
-        var topLine = CenterLedData(TextGlyphRasterizer.Render(lines.Value.Top, TwoLineTopRow), visibleColumns);
-        var bottomLine = CenterLedData(TextGlyphRasterizer.Render(lines.Value.Bottom, TwoLineBottomRow), visibleColumns);
+        var topLine = CenterLedData(TextGlyphRasterizer.Render(lines.Value.Top, TwoLineTopRow, bold), visibleColumns);
+        var bottomLine = CenterLedData(TextGlyphRasterizer.Render(lines.Value.Bottom, TwoLineBottomRow, bold), visibleColumns);
         for (var i = 0; i < topLine.Length; i++)
         {
             topLine[i] |= bottomLine[i];
@@ -192,10 +262,25 @@ public static class QuickCaptionLayout
         return topLine;
     }
 
-    private static bool CanRenderAsTwoLines(string caption, int visibleColumns) =>
-        SplitTwoLineCaption(caption, visibleColumns) is not null;
+    private static byte[] BuildThreeLineLedData(IReadOnlyList<string> lines, int visibleColumns, bool bold)
+    {
+        var combined = new byte[visibleColumns * 2];
+        for (var i = 0; i < lines.Count; i++)
+        {
+            var line = CenterLedData(TextGlyphRasterizer.RenderCompact(lines[i], i * 5, bold), visibleColumns);
+            for (var offset = 0; offset < combined.Length; offset++)
+            {
+                combined[offset] |= line[offset];
+            }
+        }
 
-    private static (string Top, string Bottom)? SplitTwoLineCaption(string caption, int visibleColumns)
+        return combined;
+    }
+
+    private static bool CanRenderAsTwoLines(string caption, int visibleColumns, bool bold) =>
+        SplitTwoLineCaption(caption, visibleColumns, bold) is not null;
+
+    private static (string Top, string Bottom)? SplitTwoLineCaption(string caption, int visibleColumns, bool bold)
     {
         var words = caption.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (words.Length != 2)
@@ -203,7 +288,7 @@ public static class QuickCaptionLayout
             return null;
         }
 
-        return MeasureColumns(words[0]) <= visibleColumns && MeasureColumns(words[1]) <= visibleColumns
+        return MeasureColumns(words[0], bold) <= visibleColumns && MeasureColumns(words[1], bold) <= visibleColumns
             ? (words[0], words[1])
             : null;
     }
