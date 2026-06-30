@@ -26,7 +26,7 @@
 
                 <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="8" IsVisible="{Binding IsManageMode}">
                     <Button Text="+ Page" Command="{Binding AddPageCommand}" Style="{StaticResource PrimaryButtonStyle}" />
-                    <Button Grid.Column="1" Text="Add Items" Command="{Binding ToggleAddItemsSheetCommand}" />
+                    <Button Grid.Column="1" Text="Add Items" Clicked="OnAddItemsClicked" />
                     <Button Grid.Column="2" Text="Edit Page" Command="{Binding TogglePageEditorSheetCommand}" />
                 </Grid>
             </Grid>
@@ -90,7 +90,7 @@
                                             <RoundRectangle CornerRadius="18" />
                                         </Border.StrokeShape>
                                         <Grid RowDefinitions="*,Auto" Padding="6">
-                                            <Label Text="{Binding IconLabel}" TextColor="#05070D" FontSize="12" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                            <Image Source="{Binding IconAsset}" Aspect="AspectFit" HeightRequest="32" WidthRequest="32" HorizontalOptions="Center" VerticalOptions="Center" />
                                             <Label Grid.Row="1" Text="{Binding Label}" TextColor="#05070D" FontSize="12" FontAttributes="Bold" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation" />
                                         </Grid>
                                         <Border.GestureRecognizers>
@@ -113,10 +113,6 @@
                                     <Button Text="Up" Command="{Binding MoveEarlierCommand}" Padding="6,4" />
                                     <Button Grid.Column="1" Text="Down" Command="{Binding MoveLaterCommand}" Padding="6,4" />
                                 </Grid>
-                                <Grid ColumnDefinitions="*,*" ColumnSpacing="4" IsVisible="{Binding Source={x:Reference RootPage}, Path=BindingContext.IsManageMode}">
-                                    <Button Text="Icon" Command="{Binding CycleIconCommand}" Padding="6,4" />
-                                    <Button Grid.Column="1" Text="Color" Command="{Binding CycleColorCommand}" Padding="6,4" />
-                                </Grid>
                             </VerticalStackLayout>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
@@ -125,7 +121,7 @@
                 <Grid Grid.Row="2" RowDefinitions="Auto,Auto" RowSpacing="10">
                     <Button
                         Text="+ Add"
-                        Command="{Binding ToggleAddItemsSheetCommand}"
+                        Clicked="OnAddItemsClicked"
                         IsVisible="{Binding IsManageMode}" />
                     <CollectionView Grid.Row="1" ItemsSource="{Binding Pages}" SelectionMode="None" HorizontalOptions="Center" HeightRequest="42">
                         <CollectionView.ItemsLayout>
@@ -142,39 +138,6 @@
         </Border>
 
         <Grid Grid.Row="3">
-            <Border Margin="18,8,18,18" IsVisible="{Binding IsAddItemsSheetVisible}" Style="{StaticResource PanelBorderStyle}">
-                <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <Label Text="Add Items to Page" Style="{StaticResource SectionTitleLabelStyle}" />
-                        <Button Grid.Column="1" Text="Done" Command="{Binding CloseSheetsCommand}" />
-                    </Grid>
-                    <CollectionView Grid.Row="1" HeightRequest="220" ItemsSource="{Binding AvailableItems}" SelectionMode="None">
-                        <CollectionView.ItemsLayout>
-                            <GridItemsLayout Orientation="Vertical" Span="2" />
-                        </CollectionView.ItemsLayout>
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate x:DataType="gallery:GalleryAvailableItemCard">
-                                <Border Margin="0,0,8,8" Style="{StaticResource ActionCardBorderStyle}" Stroke="{Binding ColorHex}">
-                                    <Grid ColumnDefinitions="42,*,Auto" ColumnSpacing="8">
-                                        <Border BackgroundColor="{Binding ColorHex}" HeightRequest="38" WidthRequest="42">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="10" />
-                                            </Border.StrokeShape>
-                                            <Label Text="{Binding IconLabel}" TextColor="#05070D" FontSize="9" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
-                                        </Border>
-                                        <VerticalStackLayout Grid.Column="1" Spacing="1">
-                                            <Label Text="{Binding Title}" FontAttributes="Bold" LineBreakMode="TailTruncation" />
-                                            <Label Text="{Binding Subtitle}" Style="{StaticResource TinyLabelStyle}" />
-                                        </VerticalStackLayout>
-                                        <Button Grid.Column="2" Text="Add" Command="{Binding AddCommand}" />
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
-                </Grid>
-            </Border>
-
             <Border Margin="18,8,18,18" IsVisible="{Binding IsPageEditorSheetVisible}" Style="{StaticResource PanelBorderStyle}">
                 <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
                     <Grid ColumnDefinitions="*,Auto">

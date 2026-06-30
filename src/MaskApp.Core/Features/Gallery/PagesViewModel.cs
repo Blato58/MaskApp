@@ -39,7 +39,6 @@ public sealed class PagesViewModel : INotifyPropertyChanged
     private string newPageTitle = "New page";
     private bool isSending;
     private bool isManageMode;
-    private bool isAddItemsSheetVisible;
     private bool isPageEditorSheetVisible;
     private bool isDeletePageConfirmationVisible;
 
@@ -77,23 +76,11 @@ public sealed class PagesViewModel : INotifyPropertyChanged
             IsManageMode = true;
             return Task.CompletedTask;
         });
-        ToggleAddItemsSheetCommand = new AsyncRelayCommand(_ =>
-        {
-            IsAddItemsSheetVisible = !IsAddItemsSheetVisible;
-            if (IsAddItemsSheetVisible)
-            {
-                IsPageEditorSheetVisible = false;
-                IsDeletePageConfirmationVisible = false;
-            }
-
-            return Task.CompletedTask;
-        });
         TogglePageEditorSheetCommand = new AsyncRelayCommand(_ =>
         {
             IsPageEditorSheetVisible = !IsPageEditorSheetVisible;
             if (IsPageEditorSheetVisible)
             {
-                IsAddItemsSheetVisible = false;
                 IsDeletePageConfirmationVisible = false;
             }
 
@@ -119,8 +106,6 @@ public sealed class PagesViewModel : INotifyPropertyChanged
     public AsyncRelayCommand SetUseModeCommand { get; }
 
     public AsyncRelayCommand SetManageModeCommand { get; }
-
-    public AsyncRelayCommand ToggleAddItemsSheetCommand { get; }
 
     public AsyncRelayCommand TogglePageEditorSheetCommand { get; }
 
@@ -204,12 +189,6 @@ public sealed class PagesViewModel : INotifyPropertyChanged
 
     public string PagesModeText => IsManageMode ? "Manage" : "Use";
 
-    public bool IsAddItemsSheetVisible
-    {
-        get => isAddItemsSheetVisible;
-        private set => SetField(ref isAddItemsSheetVisible, value);
-    }
-
     public bool IsPageEditorSheetVisible
     {
         get => isPageEditorSheetVisible;
@@ -263,13 +242,36 @@ public sealed class PagesViewModel : INotifyPropertyChanged
 
     public async Task AddItemAsync(GalleryItem item, CancellationToken cancellationToken = default)
     {
+        await AddItemAsync(item.Id, item.Title, item.IconKey, item.ColorHex, cancellationToken);
+    }
+
+    public async Task AddItemAsync(
+        string galleryItemId,
+        string label,
+        string iconKey,
+        string colorHex,
+        CancellationToken cancellationToken = default)
+    {
         var page = SelectedPage;
+        if (page.Items.Any(item => item.GalleryItemId == galleryItemId))
+        {
+            StatusText = "Shortcut already exists";
+            return;
+        }
+
+        var item = allItems.FirstOrDefault(candidate => candidate.Id == galleryItemId);
+        if (item is null)
+        {
+            StatusText = "Gallery item unavailable";
+            return;
+        }
+
         var layoutItem = new GalleryPageItemLayout
         {
-            GalleryItemId = item.Id,
-            Label = item.Title,
-            IconKey = item.IconKey,
-            ColorHex = item.ColorHex,
+            GalleryItemId = galleryItemId,
+            Label = string.IsNullOrWhiteSpace(label) ? item.Title : label.Trim(),
+            IconKey = string.IsNullOrWhiteSpace(iconKey) ? item.IconKey : iconKey.Trim(),
+            ColorHex = string.IsNullOrWhiteSpace(colorHex) ? item.ColorHex : colorHex.Trim(),
             SortIndex = page.Items.Count == 0 ? 0 : page.Items.Max(existing => existing.SortIndex) + 1
         };
         await UpdateSelectedPageAsync(page with { Items = page.Items.Append(layoutItem).ToArray() }, cancellationToken);
@@ -306,25 +308,6 @@ public sealed class PagesViewModel : INotifyPropertyChanged
 
         await UpdateSelectedPageAsync(SelectedPage with { Items = updatedItems }, cancellationToken);
         StatusText = "Shortcut order saved";
-    }
-
-    public async Task CycleItemIconAsync(string slotId, CancellationToken cancellationToken = default)
-    {
-        var icons = GalleryIconOption.Defaults.Select(icon => icon.IconKey).ToArray();
-        await UpdateSelectedItemAsync(slotId, item =>
-        {
-            var currentIndex = Array.IndexOf(icons, item.IconKey);
-            return item with { IconKey = icons[(currentIndex + 1 + icons.Length) % icons.Length] };
-        }, cancellationToken);
-    }
-
-    public async Task CycleItemColorAsync(string slotId, CancellationToken cancellationToken = default)
-    {
-        await UpdateSelectedItemAsync(slotId, item =>
-        {
-            var currentIndex = Array.IndexOf(ColorCycle, item.ColorHex);
-            return item with { ColorHex = ColorCycle[(currentIndex + 1 + ColorCycle.Length) % ColorCycle.Length] };
-        }, cancellationToken);
     }
 
     public async Task MovePageAsync(string pageId, int delta, CancellationToken cancellationToken = default)
@@ -405,7 +388,6 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         }
 
         IsDeletePageConfirmationVisible = true;
-        IsAddItemsSheetVisible = false;
         IsPageEditorSheetVisible = false;
         return Task.CompletedTask;
     }
@@ -431,18 +413,6 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         var currentIndex = Array.IndexOf(ColorCycle, SelectedPage.ColorHex);
         var color = ColorCycle[(currentIndex + 1 + ColorCycle.Length) % ColorCycle.Length];
         return UpdateSelectedPageAsync(SelectedPage with { ColorHex = color }, cancellationToken);
-    }
-
-    private async Task UpdateSelectedItemAsync(
-        string slotId,
-        Func<GalleryPageItemLayout, GalleryPageItemLayout> update,
-        CancellationToken cancellationToken)
-    {
-        var items = SelectedPage.Items
-            .Select(item => item.SlotId == slotId ? update(item) : item)
-            .ToArray();
-        await UpdateSelectedPageAsync(SelectedPage with { Items = items }, cancellationToken);
-        StatusText = "Shortcut updated";
     }
 
     private Task UpdateSelectedPageAsync(GalleryPageLayout page, CancellationToken cancellationToken)
@@ -505,7 +475,6 @@ public sealed class PagesViewModel : INotifyPropertyChanged
 
     private void CloseSheets()
     {
-        IsAddItemsSheetVisible = false;
         IsPageEditorSheetVisible = false;
         IsDeletePageConfirmationVisible = false;
     }
@@ -517,9 +486,7 @@ public sealed class PagesViewModel : INotifyPropertyChanged
             new AsyncRelayCommand(cancellationToken => SendAsync(item, cancellationToken), () => item.CanSend && CanSend(item)),
             new AsyncRelayCommand(cancellationToken => RemoveItemAsync(layout.SlotId, cancellationToken)),
             new AsyncRelayCommand(cancellationToken => MoveItemAsync(layout.SlotId, -1, cancellationToken)),
-            new AsyncRelayCommand(cancellationToken => MoveItemAsync(layout.SlotId, 1, cancellationToken)),
-            new AsyncRelayCommand(cancellationToken => CycleItemIconAsync(layout.SlotId, cancellationToken)),
-            new AsyncRelayCommand(cancellationToken => CycleItemColorAsync(layout.SlotId, cancellationToken)));
+            new AsyncRelayCommand(cancellationToken => MoveItemAsync(layout.SlotId, 1, cancellationToken)));
 
     private bool CanSend(GalleryItem item) =>
         item.Type switch

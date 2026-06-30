@@ -14,6 +14,7 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("text", typeof(TextPage));
         Routing.RegisterRoute("builtins", typeof(BuiltInsPage));
         Routing.RegisterRoute("library-add", typeof(LibraryAddPage));
+        Routing.RegisterRoute("page-add-item", typeof(PageAddItemPage));
 
         Items.Add(new TabBar
         {

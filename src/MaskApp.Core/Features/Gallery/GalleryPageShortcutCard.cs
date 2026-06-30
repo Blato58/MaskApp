@@ -10,9 +10,7 @@ public sealed class GalleryPageShortcutCard
         AsyncRelayCommand sendCommand,
         AsyncRelayCommand removeCommand,
         AsyncRelayCommand moveEarlierCommand,
-        AsyncRelayCommand moveLaterCommand,
-        AsyncRelayCommand cycleIconCommand,
-        AsyncRelayCommand cycleColorCommand)
+        AsyncRelayCommand moveLaterCommand)
     {
         Layout = layout;
         Item = item;
@@ -20,8 +18,6 @@ public sealed class GalleryPageShortcutCard
         RemoveCommand = removeCommand;
         MoveEarlierCommand = moveEarlierCommand;
         MoveLaterCommand = moveLaterCommand;
-        CycleIconCommand = cycleIconCommand;
-        CycleColorCommand = cycleColorCommand;
     }
 
     public GalleryPageItemLayout Layout { get; }
@@ -36,6 +32,8 @@ public sealed class GalleryPageShortcutCard
 
     public string IconLabel => GalleryIconOption.Defaults.FirstOrDefault(icon => icon.IconKey == Layout.IconKey)?.Label ?? "ITEM";
 
+    public string IconAsset => GalleryIconOption.Defaults.FirstOrDefault(icon => icon.IconKey == Layout.IconKey)?.PreviewAsset ?? string.Empty;
+
     public string ColorHex => Layout.ColorHex;
 
     public bool CanSend => Item.CanSend;
@@ -47,8 +45,4 @@ public sealed class GalleryPageShortcutCard
     public AsyncRelayCommand MoveEarlierCommand { get; }
 
     public AsyncRelayCommand MoveLaterCommand { get; }
-
-    public AsyncRelayCommand CycleIconCommand { get; }
-
-    public AsyncRelayCommand CycleColorCommand { get; }
 }

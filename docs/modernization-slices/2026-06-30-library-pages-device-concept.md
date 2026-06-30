@@ -53,6 +53,12 @@ text-preset-only bulk delete plus page-shortcut cleanup. Pages was rebuilt
 toward the concept card: Use/Manage mode, manage action row, central four-column
 shortcut grid, add tile, page dots, and mode-specific controls.
 
+Pages add-item follow-up: Add Items now opens a dedicated per-page screen. The
+screen chooses one existing Gallery item, previews the shortcut tile, customizes
+the label, color, and icon, and saves the shortcut back to the selected page.
+Shortcut icon options are organized into curated Mask, Lucide, Material, and
+Phosphor packs, with source licensing recorded in `docs/icon-sources.md`.
+
 ## Current evidence
 
 - Repo files: `src/MaskApp.App`, `src/MaskApp.Core/Features/Gallery`,
@@ -73,6 +79,8 @@ In scope:
   grouping row, text-preset edit routing, and multi-select text-preset delete.
 - Pages concept rebuild around page cards, page dots, four-column tiles, and
   mode-specific management controls.
+- Dedicated per-page add shortcut route, duplicate-safe draft state, custom
+  shortcut label/icon/color persistence, and curated icon-pack metadata.
 - Tests and progress docs.
 
 Out of scope:
@@ -94,6 +102,9 @@ Out of scope:
   Device dashboard text, brightness presets.
 - Repair tests: Library flat rows, multi-select clear/delete, page-shortcut
   cleanup, and Pages dot/current-page selection.
+- Add-screen tests: draft initialization, save disabled until Gallery selection,
+  default draft metadata, custom label/icon/color persistence, duplicate
+  rejection, and source-item preservation.
 - Build validation: core tests, iOS build, Android build, diff whitespace check.
 - Browser/simulator/device validation: not run.
 - Skipped validation and reason: physical iPhone/mask validation requires hardware.
@@ -103,6 +114,8 @@ Out of scope:
 - iOS rendered ergonomics on device or simulator.
 - Library keyboard dismissal, scrolling smoothness, full-screen add routing, and
   Pages visual density on rendered iOS.
+- Pages add-screen navigation, icon preview readability, color/text entry
+  ergonomics, and shortcut tile density on rendered iOS.
 - iOS physical BLE scan/connect, remembered-mask recovery, brightness, and sends.
 - Android physical parity after iOS behavior is understood.
 
@@ -119,7 +132,10 @@ Out of scope:
   Device, reusing current stores and send paths. Repair follow-up moved Add to
   a dedicated screen, flattened Library rows, added keyboard dismissal and
   multi-select text deletion, routed text preset edits into Text Composer, and
-  rebuilt Pages around the concept page card/grid/dots structure.
+  rebuilt Pages around the concept page card/grid/dots structure. Pages add-item
+  follow-up replaced the inline add-items sheet with `page-add-item?pageId=...`,
+  added duplicate-safe draft state, custom shortcut label/icon/color save, and
+  curated Mask/Lucide/Material/Phosphor icon catalog metadata.
 - Commands run:
   - `dotnet test tests\MaskApp.Core.Tests\MaskApp.Core.Tests.csproj --no-restore`
   - `dotnet build src\MaskApp.App\MaskApp.App.csproj -f net10.0-ios --no-restore`

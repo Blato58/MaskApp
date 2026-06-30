@@ -16,21 +16,21 @@ public sealed class PagesViewModelTests
         var viewModel = CreateViewModel(textPresets: [preset]);
 
         await viewModel.InitializeAsync();
-        var available = viewModel.AvailableItems.Single(item => item.Item.Id == $"text:{preset.Id.Value}");
+        var itemId = $"text:{preset.Id.Value}";
 
-        await available.AddCommand.ExecuteAsync();
+        await viewModel.AddItemAsync(itemId, preset.DisplayName, "txt", "#52E3FF");
 
-        var shortcut = Assert.Single(viewModel.Shortcuts, item => item.Item.Id == available.Item.Id);
-        Assert.DoesNotContain(viewModel.AvailableItems, item => item.Item.Id == available.Item.Id);
+        var shortcut = Assert.Single(viewModel.Shortcuts, item => item.Item.Id == itemId);
+        Assert.DoesNotContain(viewModel.AvailableItems, item => item.Item.Id == itemId);
 
         await shortcut.RemoveCommand.ExecuteAsync();
 
-        Assert.DoesNotContain(viewModel.Shortcuts, item => item.Item.Id == available.Item.Id);
-        Assert.Contains(viewModel.AvailableItems, item => item.Item.Id == available.Item.Id);
+        Assert.DoesNotContain(viewModel.Shortcuts, item => item.Item.Id == itemId);
+        Assert.Contains(viewModel.AvailableItems, item => item.Item.Id == itemId);
     }
 
     [Fact]
-    public async Task MoveShortcutAndCycleIconColor_PersistsPageLayout()
+    public async Task MoveShortcutAndCustomMetadata_PersistsPageLayout()
     {
         var first = CreatePreset("Shortcut one");
         var second = CreatePreset("Shortcut two");
@@ -38,21 +38,19 @@ public sealed class PagesViewModelTests
         var viewModel = CreateViewModel(textPresets: [first, second], layoutStore: store);
 
         await viewModel.InitializeAsync();
-        await viewModel.AvailableItems.Single(item => item.Item.Id == $"text:{first.Id.Value}").AddCommand.ExecuteAsync();
-        await viewModel.AvailableItems.Single(item => item.Item.Id == $"text:{second.Id.Value}").AddCommand.ExecuteAsync();
+        await viewModel.AddItemAsync($"text:{first.Id.Value}", "First", "txt", "#52E3FF");
+        await viewModel.AddItemAsync($"text:{second.Id.Value}", "Second custom", "lucide:heart", "#FF3D8B");
         var secondShortcut = viewModel.Shortcuts.Single(item => item.Item.Id == $"text:{second.Id.Value}");
-        var originalColor = secondShortcut.ColorHex;
 
         await secondShortcut.MoveEarlierCommand.ExecuteAsync();
-        await secondShortcut.CycleIconCommand.ExecuteAsync();
-        await secondShortcut.CycleColorCommand.ExecuteAsync();
 
         var savedPage = store.State.Pages.Single(page => page.PageId == viewModel.SelectedPage.PageId);
         var savedSecond = savedPage.Items.Single(item => item.GalleryItemId == $"text:{second.Id.Value}");
         var savedFirst = savedPage.Items.Single(item => item.GalleryItemId == $"text:{first.Id.Value}");
         Assert.True(savedSecond.SortIndex < savedFirst.SortIndex);
-        Assert.NotEqual("txt", savedSecond.IconKey);
-        Assert.NotEqual(originalColor, savedSecond.ColorHex);
+        Assert.Equal("Second custom", savedSecond.Label);
+        Assert.Equal("lucide:heart", savedSecond.IconKey);
+        Assert.Equal("#FF3D8B", savedSecond.ColorHex);
     }
 
     [Fact]
@@ -68,13 +66,8 @@ public sealed class PagesViewModelTests
         Assert.True(viewModel.IsManageMode);
         Assert.Equal("Manage", viewModel.PagesModeText);
 
-        await viewModel.ToggleAddItemsSheetCommand.ExecuteAsync();
-        Assert.True(viewModel.IsAddItemsSheetVisible);
-        Assert.False(viewModel.IsPageEditorSheetVisible);
-
         await viewModel.TogglePageEditorSheetCommand.ExecuteAsync();
         Assert.True(viewModel.IsPageEditorSheetVisible);
-        Assert.False(viewModel.IsAddItemsSheetVisible);
 
         await viewModel.SetUseModeCommand.ExecuteAsync();
         Assert.True(viewModel.IsUseMode);
@@ -109,7 +102,7 @@ public sealed class PagesViewModelTests
         var viewModel = CreateViewModel(textPresets: [preset], layoutStore: store);
 
         await viewModel.InitializeAsync();
-        await viewModel.AvailableItems.Single(item => item.Item.Id == $"text:{preset.Id.Value}").AddCommand.ExecuteAsync();
+        await viewModel.AddItemAsync($"text:{preset.Id.Value}", preset.DisplayName, "txt", "#52E3FF");
         var originalPageCount = viewModel.Pages.Count;
 
         await viewModel.RemovePageCommand.ExecuteAsync();
@@ -133,10 +126,70 @@ public sealed class PagesViewModelTests
         var viewModel = CreateViewModel(textPresets: [preset], presetDispatcher: dispatcher);
 
         await viewModel.InitializeAsync();
-        await viewModel.AvailableItems.Single(item => item.Item.Id == $"text:{preset.Id.Value}").AddCommand.ExecuteAsync();
+        await viewModel.AddItemAsync($"text:{preset.Id.Value}", preset.DisplayName, "txt", "#52E3FF");
         await Assert.Single(viewModel.Shortcuts).SendCommand.ExecuteAsync();
 
         Assert.Equal(preset.Id, dispatcher.LastPresetId);
+    }
+
+    [Fact]
+    public async Task AddItemDraft_InitializesForSelectedPageAndRequiresGalleryItem()
+    {
+        var preset = CreatePreset("Draft source");
+        var viewModel = CreateAddItemViewModel(textPresets: [preset]);
+
+        await viewModel.InitializeAsync(string.Empty);
+
+        Assert.Equal("Live", viewModel.PageTitle);
+        Assert.False(viewModel.CanSave);
+        Assert.Contains(viewModel.AvailableItems, item => item.Item.Id == $"text:{preset.Id.Value}");
+        Assert.Contains(viewModel.IconPacks, pack => pack.Label == "Lucide");
+        Assert.Contains(viewModel.Icons, icon => icon.Pack == "Mask");
+    }
+
+    [Fact]
+    public async Task AddItemDraft_SelectingItemDefaultsDraftAndCustomSavePersists()
+    {
+        var preset = CreatePreset("Draft custom");
+        var store = new RecordingGalleryLayoutStore();
+        var viewModel = CreateAddItemViewModel(textPresets: [preset], layoutStore: store);
+
+        await viewModel.InitializeAsync(string.Empty);
+        viewModel.SelectItem($"text:{preset.Id.Value}");
+        viewModel.DraftLabel = "Custom label";
+        viewModel.SelectIconPack("Lucide");
+        viewModel.SelectIcon("lucide:heart");
+        viewModel.SelectColor("#FF3D8B");
+
+        Assert.True(viewModel.CanSave);
+        Assert.Equal("Custom label", viewModel.PreviewLabel);
+        Assert.Equal("LOVE", viewModel.PreviewIconLabel);
+
+        var saved = await viewModel.SaveAsync();
+
+        Assert.True(saved);
+        var pageItem = store.State.Pages.First().Items.Single(item => item.GalleryItemId == $"text:{preset.Id.Value}");
+        Assert.Equal("Custom label", pageItem.Label);
+        Assert.Equal("lucide:heart", pageItem.IconKey);
+        Assert.Equal("#FF3D8B", pageItem.ColorHex);
+    }
+
+    [Fact]
+    public async Task AddItemDraft_HidesAndRejectsDuplicateGalleryItem()
+    {
+        var preset = CreatePreset("Duplicate source");
+        var store = new RecordingGalleryLayoutStore();
+        var viewModel = CreateAddItemViewModel(textPresets: [preset], layoutStore: store);
+
+        await viewModel.InitializeAsync(string.Empty);
+        viewModel.SelectItem($"text:{preset.Id.Value}");
+        Assert.True(await viewModel.SaveAsync());
+
+        await viewModel.InitializeAsync(string.Empty);
+
+        Assert.DoesNotContain(viewModel.AvailableItems, item => item.Item.Id == $"text:{preset.Id.Value}");
+        viewModel.SelectItem($"text:{preset.Id.Value}");
+        Assert.False(await viewModel.SaveAsync());
     }
 
     private static PagesViewModel CreateViewModel(
@@ -153,6 +206,17 @@ public sealed class PagesViewModelTests
             presetDispatcher ?? new RecordingTextPresetDispatcher(),
             new RecordingCommandTransport(),
             new RecordingTextTransport());
+    }
+
+    private static PageAddItemViewModel CreateAddItemViewModel(
+        IReadOnlyList<TextPreset>? textPresets = null,
+        RecordingGalleryLayoutStore? layoutStore = null)
+    {
+        return new PageAddItemViewModel(
+            new QuickActionCatalog(),
+            new InMemoryTextPresetStore(new TextPresetStoreState { Presets = textPresets ?? [] }),
+            new InMemoryBuiltInAssetArchiveStore(),
+            layoutStore ?? new RecordingGalleryLayoutStore());
     }
 
     private static TextPreset CreatePreset(string name) =>

@@ -18,4 +18,10 @@ public partial class PagesPage : ContentPage
         base.OnAppearing();
         await viewModel.InitializeAsync();
     }
+
+    private async void OnAddItemsClicked(object? sender, EventArgs e)
+    {
+        var pageId = Uri.EscapeDataString(viewModel.SelectedPage.PageId);
+        await Shell.Current.GoToAsync($"page-add-item?pageId={pageId}");
+    }
 }
