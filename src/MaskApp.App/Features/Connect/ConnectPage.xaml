@@ -6,123 +6,49 @@
     xmlns:connect="clr-namespace:MaskApp.Core.Features.Connect;assembly=MaskApp.Core"
     xmlns:mask="clr-namespace:MaskApp.Core.Features.MaskControl;assembly=MaskApp.Core"
     x:DataType="connect:ConnectViewModel"
-    Title="Control"
+    Title="Device"
     BackgroundColor="{StaticResource PageBackgroundColor}">
     <ScrollView>
         <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="16">
+            <Label Text="Device" Style="{StaticResource PageTitleLabelStyle}" />
+
             <Border Style="{StaticResource PanelBorderStyle}">
-                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="14">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                        <VerticalStackLayout Spacing="2">
-                            <Label Text="Control" Style="{StaticResource PageTitleLabelStyle}" />
-                            <Label Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
+                        <VerticalStackLayout Spacing="6">
+                            <HorizontalStackLayout Spacing="8">
+                                <Border BackgroundColor="{StaticResource AccentGreenColor}" HeightRequest="12" WidthRequest="12" VerticalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="6" />
+                                    </Border.StrokeShape>
+                                </Border>
+                                <Label Text="{Binding ConnectionHeadline}" FontSize="18" FontAttributes="Bold" TextColor="{Binding ConnectionState, Converter={StaticResource TransportStateColorConverter}}" />
+                            </HorizontalStackLayout>
+                            <Label Text="{Binding DeviceNameText}" FontSize="28" FontAttributes="Bold" />
+                            <Label Text="{Binding ConnectionDetailText}" Style="{StaticResource MutedLabelStyle}" />
                         </VerticalStackLayout>
-                        <Border
-                            Grid.Column="1"
-                            Style="{StaticResource StatusPillBorderStyle}"
-                            Stroke="{Binding ConnectionState, Converter={StaticResource TransportStateColorConverter}}">
-                            <Label
-                                Text="{Binding ConnectionState}"
-                                TextColor="{Binding ConnectionState, Converter={StaticResource TransportStateColorConverter}}"
-                                Style="{StaticResource ChipLabelStyle}" />
+                        <Image Grid.Column="1" Source="mask_neon.svg" HeightRequest="112" WidthRequest="112" Opacity="0.9" />
+                    </Grid>
+
+                    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <Border Style="{StaticResource CompactPanelBorderStyle}">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="Signal" Style="{StaticResource TinyLabelStyle}" />
+                                <Label Text="{Binding DeviceSignalText}" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Column="1" Style="{StaticResource CompactPanelBorderStyle}">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="Remembered" Style="{StaticResource TinyLabelStyle}" />
+                                <Label Text="{Binding LastKnownMaskText}" FontAttributes="Bold" MaxLines="2" />
+                            </VerticalStackLayout>
                         </Border>
                     </Grid>
 
-                    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="10">
-                        <Button Text="Scan" Command="{Binding StartScanCommand}" Style="{StaticResource PrimaryButtonStyle}" />
-                        <Button Grid.Column="1" Text="Stop scan" Command="{Binding StopScanCommand}" />
-                    </Grid>
                     <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="10">
                         <Button Text="Connect" Command="{Binding ConnectCommand}" Style="{StaticResource BrightButtonStyle}" />
                         <Button Grid.Column="1" Text="Disconnect" Command="{Binding DisconnectCommand}" Style="{StaticResource DangerButtonStyle}" />
                     </Grid>
-                </Grid>
-            </Border>
-
-            <Border Style="{StaticResource PanelBorderStyle}">
-                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                        <VerticalStackLayout Spacing="2">
-                            <Label Text="Auto-connect" Style="{StaticResource SectionTitleLabelStyle}" />
-                            <Label Text="{Binding AutoConnectStatusText}" Style="{StaticResource TinyLabelStyle}" />
-                        </VerticalStackLayout>
-                        <Button
-                            Grid.Column="1"
-                            Text="Connect now"
-                            Command="{Binding StartAutoConnectCommand}"
-                            Style="{StaticResource PrimaryButtonStyle}" />
-                    </Grid>
-
-                    <Border Grid.Row="1" Style="{StaticResource CompactPanelBorderStyle}">
-                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="4">
-                            <Label Text="Mask" Style="{StaticResource TinyLabelStyle}" />
-                            <Label Grid.Column="1" Text="{Binding LastKnownMaskText}" FontAttributes="Bold" />
-                            <Label Grid.Row="1" Text="Scope" Style="{StaticResource TinyLabelStyle}" />
-                            <Label Grid.Row="1" Grid.Column="1" Text="Foreground only while the app is open." Style="{StaticResource MutedLabelStyle}" />
-                        </Grid>
-                    </Border>
-
-                    <Grid Grid.Row="2" ColumnDefinitions="*,*,Auto" ColumnSpacing="10">
-                        <HorizontalStackLayout Spacing="8">
-                            <Switch IsToggled="{Binding AutoConnectEnabled, Mode=TwoWay}" />
-                            <Label Text="Auto" VerticalTextAlignment="Center" />
-                        </HorizontalStackLayout>
-                        <HorizontalStackLayout Grid.Column="1" Spacing="8">
-                            <Switch IsToggled="{Binding RememberLastDeviceEnabled, Mode=TwoWay}" />
-                            <Label Text="Remember" VerticalTextAlignment="Center" />
-                        </HorizontalStackLayout>
-                        <Button
-                            Grid.Column="2"
-                            Text="Forget"
-                            Command="{Binding ForgetKnownMaskCommand}" />
-                    </Grid>
-                </Grid>
-            </Border>
-
-            <Border Style="{StaticResource PanelBorderStyle}">
-                <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                        <Label Text="Nearby masks" Style="{StaticResource SectionTitleLabelStyle}" />
-                        <Label Grid.Column="1" Text="{Binding Devices.Count, StringFormat='{}{0} found'}" Style="{StaticResource TinyLabelStyle}" />
-                    </Grid>
-                    <CollectionView
-                        Grid.Row="1"
-                        HeightRequest="230"
-                        ItemsSource="{Binding Devices}"
-                        SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
-                        SelectionMode="Single">
-                        <CollectionView.EmptyView>
-                            <Grid Padding="18">
-                                <VerticalStackLayout HorizontalOptions="Center" Spacing="8">
-                                    <Image HeightRequest="64" Source="mask_neon.svg" WidthRequest="64" />
-                                    <Label
-                                        HorizontalTextAlignment="Center"
-                                        Text="No masks discovered"
-                                        Style="{StaticResource MutedLabelStyle}" />
-                                </VerticalStackLayout>
-                            </Grid>
-                        </CollectionView.EmptyView>
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate x:DataType="connect:DiscoveredMaskDevice">
-                                <Border
-                                    Margin="0,0,0,10"
-                                    Style="{StaticResource CompactPanelBorderStyle}"
-                                    Stroke="{StaticResource AccentColor}">
-                                    <Grid ColumnDefinitions="52,*,Auto" ColumnSpacing="12" RowDefinitions="Auto,Auto">
-                                        <Image Grid.RowSpan="2" HeightRequest="44" Source="mask_neon.svg" WidthRequest="44" />
-                                        <Label Grid.Column="1" Text="{Binding Name}" FontAttributes="Bold" />
-                                        <Label Grid.Column="2" Text="{Binding SignalStrength}" TextColor="{StaticResource AccentGreenColor}" />
-                                        <Label
-                                            Grid.Row="1"
-                                            Grid.Column="1"
-                                            Grid.ColumnSpan="2"
-                                            Text="{Binding Id}"
-                                            Style="{StaticResource TinyLabelStyle}" />
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
                 </Grid>
             </Border>
 
@@ -132,45 +58,108 @@
                 Spacing="16">
                 <Border Style="{StaticResource PanelBorderStyle}">
                     <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="14">
-                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="10">
-                            <Label Text="Brightness" Style="{StaticResource SectionTitleLabelStyle}" />
-                            <Border
-                                Grid.Column="1"
-                                Style="{StaticResource StatusPillBorderStyle}"
-                                Stroke="{Binding TransportState, Converter={StaticResource TransportStateColorConverter}}">
-                                <Label
-                                    Text="{Binding TransportState}"
-                                    TextColor="{Binding TransportState, Converter={StaticResource TransportStateColorConverter}}"
-                                    Style="{StaticResource ChipLabelStyle}" />
-                            </Border>
-                            <Label
-                                Grid.Row="1"
-                                Grid.ColumnSpan="2"
-                                Text="{Binding TransportStatusText}"
-                                Style="{StaticResource MutedLabelStyle}" />
-                        </Grid>
-
-                        <Grid Grid.Row="1" RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="8" ColumnSpacing="12">
-                            <Label Text="Level" FontAttributes="Bold" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Label Text="Brightness" FontSize="20" FontAttributes="Bold" />
                             <Label Grid.Column="1" Text="{Binding Brightness, StringFormat='{}{0}%'}" Style="{StaticResource MetricLabelStyle}" />
-                            <Slider
-                                Grid.Row="1"
-                                Grid.ColumnSpan="2"
-                                Minimum="1"
-                                Maximum="100"
-                                Value="{Binding Brightness, Mode=TwoWay}" />
                         </Grid>
 
-                        <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                        <Slider
+                            Grid.Row="1"
+                            Minimum="1"
+                            Maximum="100"
+                            Value="{Binding Brightness, Mode=TwoWay}" />
+
+                        <Grid Grid.Row="2" ColumnDefinitions="*,*,*,*" ColumnSpacing="8">
+                            <Button Text="25%" Command="{Binding SetBrightness25Command}" />
+                            <Button Grid.Column="1" Text="50%" Command="{Binding SetBrightness50Command}" />
+                            <Button Grid.Column="2" Text="75%" Command="{Binding SetBrightness75Command}" Style="{StaticResource PrimaryButtonStyle}" />
+                            <Button Grid.Column="3" Text="100%" Command="{Binding SetBrightness100Command}" />
+                        </Grid>
+
+                        <Grid Grid.Row="3" ColumnDefinitions="*,*,*" ColumnSpacing="10">
                             <Button Text="Apply" Command="{Binding ApplyBrightnessCommand}" Style="{StaticResource PrimaryButtonStyle}" />
                             <Button Grid.Column="1" Text="BLACKOUT" Command="{Binding BlackoutCommand}" Style="{StaticResource DangerButtonStyle}" />
                             <Button Grid.Column="2" Text="Restore" Command="{Binding RestoreBrightnessCommand}" Style="{StaticResource BrightButtonStyle}" />
                         </Grid>
-
-                        <Label Grid.Row="3" Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
                     </Grid>
                 </Border>
             </VerticalStackLayout>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
+                    <Label Text="Device Controls" FontSize="20" FontAttributes="Bold" />
+                    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button Text="Scan for Devices" Command="{Binding StartScanCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Grid.Column="1" Text="Stop Scanning" Command="{Binding StopScanCommand}" />
+                    </Grid>
+                    <Grid Grid.Row="2" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                            <Label Text="LINK" Style="{StaticResource TinyLabelStyle}" VerticalTextAlignment="Center" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                <Label Text="Auto-connect" FontAttributes="Bold" />
+                                <Label Text="{Binding AutoConnectStatusText}" Style="{StaticResource TinyLabelStyle}" />
+                            </VerticalStackLayout>
+                            <Switch Grid.Column="2" IsToggled="{Binding AutoConnectEnabled, Mode=TwoWay}" />
+                        </Grid>
+                        <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                            <Label Text="SAVE" Style="{StaticResource TinyLabelStyle}" VerticalTextAlignment="Center" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                <Label Text="Remember Device" FontAttributes="Bold" />
+                                <Label Text="Keep this mask saved for quick access." Style="{StaticResource TinyLabelStyle}" />
+                            </VerticalStackLayout>
+                            <Switch Grid.Column="2" IsToggled="{Binding RememberLastDeviceEnabled, Mode=TwoWay}" />
+                        </Grid>
+                        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Label Text="Foreground auto-connect only runs while the app is open." Style="{StaticResource TinyLabelStyle}" />
+                            <Button Grid.Column="1" Text="Forget" Command="{Binding ForgetKnownMaskCommand}" />
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <Label Text="Nearby Devices" FontSize="20" FontAttributes="Bold" />
+                        <Label Grid.Column="1" Text="{Binding Devices.Count, StringFormat='{}{0} found'}" Style="{StaticResource TinyLabelStyle}" />
+                    </Grid>
+                    <CollectionView
+                        Grid.Row="1"
+                        HeightRequest="220"
+                        ItemsSource="{Binding Devices}"
+                        SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
+                        SelectionMode="Single">
+                        <CollectionView.EmptyView>
+                            <Grid Padding="18">
+                                <VerticalStackLayout HorizontalOptions="Center" Spacing="8">
+                                    <Image HeightRequest="64" Source="mask_neon.svg" WidthRequest="64" />
+                                    <Label HorizontalTextAlignment="Center" Text="No masks discovered" Style="{StaticResource MutedLabelStyle}" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="connect:DiscoveredMaskDevice">
+                                <Border Margin="0,0,0,10" Style="{StaticResource CompactPanelBorderStyle}" Stroke="{StaticResource AccentBlueColor}">
+                                    <Grid ColumnDefinitions="52,*,Auto" ColumnSpacing="12" RowDefinitions="Auto,Auto">
+                                        <Image Grid.RowSpan="2" HeightRequest="44" Source="mask_neon.svg" WidthRequest="44" />
+                                        <Label Grid.Column="1" Text="{Binding Name}" FontAttributes="Bold" />
+                                        <Label Grid.Column="2" Text="{Binding SignalStrength}" TextColor="{StaticResource AccentGreenColor}" />
+                                        <Label Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Id}" Style="{StaticResource TinyLabelStyle}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+                    <Label Text="Advanced" FontSize="20" FontAttributes="Bold" />
+                    <Label Grid.Row="1" Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
+                    <Label Grid.Row="2" Text="Firmware, battery, and last sync are hidden until the app has real mask telemetry for them." Style="{StaticResource TinyLabelStyle}" />
+                </Grid>
+            </Border>
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

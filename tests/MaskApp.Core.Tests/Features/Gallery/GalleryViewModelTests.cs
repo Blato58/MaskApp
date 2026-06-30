@@ -90,6 +90,37 @@ public sealed class GalleryViewModelTests
     }
 
     [Fact]
+    public async Task ModeAndSheets_ExposeLibraryConceptState()
+    {
+        var preset = CreatePreset("Sheet managed item", "Concept Pack", favorite: true);
+        var viewModel = CreateViewModel(textPresets: [preset]);
+
+        await viewModel.InitializeAsync();
+        Assert.True(viewModel.IsBrowseMode);
+        Assert.Equal("Browse", viewModel.GalleryModeText);
+
+        await viewModel.SetArrangeModeCommand.ExecuteAsync();
+
+        Assert.True(viewModel.IsArrangeMode);
+        Assert.Equal("Arrange", viewModel.GalleryModeText);
+
+        await viewModel.ToggleFilterSheetCommand.ExecuteAsync();
+        Assert.True(viewModel.IsFilterSheetVisible);
+        await viewModel.ShowFavoritesCommand.ExecuteAsync();
+        Assert.True(viewModel.ShowFavoritesOnly);
+        Assert.Equal("Favorites only", viewModel.FilterSummaryText);
+        Assert.False(viewModel.IsFilterSheetVisible);
+
+        var card = Flatten(viewModel).Single(item => item.Id == $"text:{preset.Id.Value}");
+        viewModel.OpenManageSheet(card.Item);
+
+        Assert.True(viewModel.IsManageSheetVisible);
+        Assert.Equal("Sheet managed item", viewModel.ManagedItemTitle);
+        Assert.True(viewModel.ManagedItemCanOpenEditor);
+        Assert.Equal("Open Text Composer", viewModel.ManagedItemEditorLabel);
+    }
+
+    [Fact]
     public async Task SendAsync_RoutesTextBuiltInAndQuickActionItems()
     {
         var preset = CreatePreset("Send text route", "Send Pack");

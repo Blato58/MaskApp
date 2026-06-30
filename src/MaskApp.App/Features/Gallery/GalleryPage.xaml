@@ -5,49 +5,40 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:gallery="clr-namespace:MaskApp.Core.Features.Gallery;assembly=MaskApp.Core"
     x:DataType="gallery:GalleryViewModel"
-    Title="Gallery"
+    Title="Library"
     BackgroundColor="{StaticResource PageBackgroundColor}">
     <Grid RowDefinitions="Auto,*,Auto">
-        <Border Margin="18,16,18,8" Style="{StaticResource PanelBorderStyle}">
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
-                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+        <Border Margin="18,18,18,10" Style="{StaticResource PanelBorderStyle}">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                     <VerticalStackLayout Spacing="2">
-                        <Label Text="Gallery" Style="{StaticResource PageTitleLabelStyle}" />
+                        <Label Text="Library" Style="{StaticResource PageTitleLabelStyle}" />
                         <Label Text="{Binding VisibleItemCountText}" Style="{StaticResource TinyLabelStyle}" />
                     </VerticalStackLayout>
-                    <ActivityIndicator
-                        Grid.Column="1"
-                        IsRunning="{Binding IsSending}"
-                        IsVisible="{Binding IsSending}"
-                        VerticalOptions="Center" />
                     <Button
-                        Grid.Column="2"
-                        Text="Add"
+                        Grid.Column="1"
+                        Text="+ Add"
                         Command="{Binding ToggleAddOptionsCommand}"
                         Style="{StaticResource PrimaryButtonStyle}" />
                 </Grid>
 
                 <SearchBar
                     Grid.Row="1"
-                    Placeholder="Search text, faces, anims, groups"
+                    Placeholder="Search items"
                     Text="{Binding SearchText, Mode=TwoWay}" />
 
-                <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
-                    <Picker
-                        ItemsSource="{Binding GroupingOptions}"
-                        ItemDisplayBinding="{Binding Label}"
-                        SelectedItem="{Binding SelectedGroupingMode, Mode=TwoWay}" />
-                    <HorizontalStackLayout Grid.Column="1" Spacing="8">
-                        <Switch IsToggled="{Binding ShowFavoritesOnly, Mode=TwoWay}" />
-                        <Label Text="Favorites" VerticalTextAlignment="Center" />
-                    </HorizontalStackLayout>
-                    <HorizontalStackLayout Grid.Column="2" Spacing="8">
-                        <Switch IsToggled="{Binding IsEditMode, Mode=TwoWay}" />
-                        <Label Text="{Binding GalleryModeText}" VerticalTextAlignment="Center" />
-                    </HorizontalStackLayout>
+                <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="8">
+                    <Button Text="Browse" Command="{Binding SetBrowseModeCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                    <Button Grid.Column="1" Text="Arrange" Command="{Binding SetArrangeModeCommand}" />
                 </Grid>
 
-                <Label Grid.Row="3" Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
+                <Grid Grid.Row="3" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                    <Button Text="Filter" Command="{Binding ToggleFilterSheetCommand}" />
+                    <Button Grid.Column="1" Text="{Binding GroupSummaryText, StringFormat='Group: {0}'}" Command="{Binding ToggleGroupSheetCommand}" />
+                    <Border Grid.Column="2" Style="{StaticResource StatusPillBorderStyle}">
+                        <Label Text="{Binding GalleryModeText}" Style="{StaticResource ChipLabelStyle}" />
+                    </Border>
+                </Grid>
             </Grid>
         </Border>
 
@@ -58,119 +49,154 @@
             SelectionMode="None">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="gallery:GalleryGroupCard">
-                    <Border Margin="0,0,0,14" Style="{StaticResource PanelBorderStyle}">
-                        <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
-                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                                <VerticalStackLayout Spacing="2">
-                                    <Label Text="{Binding Title}" Style="{StaticResource SectionTitleLabelStyle}" />
-                                    <Label Text="{Binding Count, StringFormat='{}{0} items'}" Style="{StaticResource TinyLabelStyle}" />
-                                </VerticalStackLayout>
-                                <Button Grid.Column="1" Text="Up" Command="{Binding MoveEarlierCommand}" IsVisible="{Binding IsEditMode}" />
-                                <Button Grid.Column="2" Text="Down" Command="{Binding MoveLaterCommand}" IsVisible="{Binding IsEditMode}" />
-                            </Grid>
-
-                            <CollectionView
-                                Grid.Row="1"
-                                ItemsSource="{Binding Items}"
-                                SelectionMode="None">
-                                <CollectionView.ItemsLayout>
-                                    <GridItemsLayout Orientation="Vertical" Span="2" />
-                                </CollectionView.ItemsLayout>
-                                <CollectionView.ItemTemplate>
-                                    <DataTemplate x:DataType="gallery:GalleryItemCard">
-                                        <Grid>
-                                            <Border
-                                                Margin="0,0,8,10"
-                                                IsVisible="{Binding IsNormalMode}"
-                                                MinimumHeightRequest="78"
-                                                Style="{StaticResource ActionCardBorderStyle}"
-                                                Stroke="{Binding ColorHex}">
-                                                <Border.GestureRecognizers>
-                                                    <TapGestureRecognizer Command="{Binding SendCommand}" />
-                                                </Border.GestureRecognizers>
-                                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                                    <Border
-                                                        BackgroundColor="{Binding ColorHex}"
-                                                        HeightRequest="34"
-                                                        Stroke="{Binding ColorHex}"
-                                                        WidthRequest="44">
-                                                        <Border.StrokeShape>
-                                                            <RoundRectangle CornerRadius="8" />
-                                                        </Border.StrokeShape>
-                                                        <Label
-                                                            Text="{Binding IconKey}"
-                                                            TextColor="#05070D"
-                                                            FontSize="9"
-                                                            FontAttributes="Bold"
-                                                            HorizontalTextAlignment="Center"
-                                                            VerticalTextAlignment="Center" />
-                                                    </Border>
-                                                    <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
-                                                        <Label Text="{Binding TypeLabel}" Style="{StaticResource TinyLabelStyle}" />
-                                                        <Label Text="{Binding Title}" FontAttributes="Bold" LineBreakMode="TailTruncation" />
-                                                    </VerticalStackLayout>
-                                                </Grid>
-                                            </Border>
-
-                                            <Border
-                                                Margin="0,0,8,10"
-                                                IsVisible="{Binding IsEditMode}"
-                                                MinimumHeightRequest="160"
-                                                Style="{StaticResource ActionCardBorderStyle}"
-                                                Stroke="{Binding ColorHex}">
-                                                <Grid ColumnDefinitions="*,96" ColumnSpacing="10">
-                                                    <VerticalStackLayout Spacing="2" VerticalOptions="Center">
-                                                        <Label Text="{Binding TypeLabel}" Style="{StaticResource TinyLabelStyle}" />
-                                                        <Label Text="{Binding Title}" FontAttributes="Bold" LineBreakMode="TailTruncation" />
-                                                    </VerticalStackLayout>
-                                                    <VerticalStackLayout Grid.Column="1" Spacing="7">
-                                                        <Button Text="Move up" Command="{Binding MoveEarlierCommand}" />
-                                                        <Button
-                                                            Text="Manage"
-                                                            Clicked="OnManageClicked"
-                                                            CommandParameter="{Binding Item}"
-                                                            IsVisible="{Binding CanManage}" />
-                                                        <Button Text="Move down" Command="{Binding MoveLaterCommand}" />
-                                                    </VerticalStackLayout>
-                                                </Grid>
-                                            </Border>
-                                        </Grid>
-                                    </DataTemplate>
-                                </CollectionView.ItemTemplate>
-                            </CollectionView>
+                    <Grid RowDefinitions="Auto,Auto" RowSpacing="10" Margin="0,0,0,18">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                            <Label Text="*" FontSize="22" TextColor="{StaticResource SecondaryTextColor}" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="1">
+                                <Label Text="{Binding Title}" FontSize="22" FontAttributes="Bold" />
+                                <Label Text="{Binding Count, StringFormat='{}{0} items'}" Style="{StaticResource TinyLabelStyle}" />
+                            </VerticalStackLayout>
+                            <HorizontalStackLayout Grid.Column="2" Spacing="6" IsVisible="{Binding IsEditMode}">
+                                <Button Text="Up" Command="{Binding MoveEarlierCommand}" Padding="10,6" />
+                                <Button Text="Down" Command="{Binding MoveLaterCommand}" Padding="10,6" />
+                            </HorizontalStackLayout>
                         </Grid>
-                    </Border>
+
+                        <CollectionView Grid.Row="1" ItemsSource="{Binding Items}" SelectionMode="None">
+                            <CollectionView.ItemsLayout>
+                                <GridItemsLayout Orientation="Vertical" Span="2" />
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="gallery:GalleryItemCard">
+                                    <Grid>
+                                        <Border
+                                            Margin="0,0,10,12"
+                                            HeightRequest="184"
+                                            IsVisible="{Binding IsNormalMode}"
+                                            Style="{StaticResource ActionCardBorderStyle}"
+                                            Stroke="{Binding ColorHex}">
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding SendCommand}" />
+                                            </Border.GestureRecognizers>
+                                            <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
+                                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                                    <Border BackgroundColor="{Binding ColorHex}" HeightRequest="38" Stroke="{Binding ColorHex}" WidthRequest="44">
+                                                        <Border.StrokeShape>
+                                                            <RoundRectangle CornerRadius="10" />
+                                                        </Border.StrokeShape>
+                                                        <Label Text="{Binding IconKey}" TextColor="#05070D" FontSize="9" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                                    </Border>
+                                                    <Label Grid.Column="1" Text="{Binding TypeLabel}" Style="{StaticResource TinyLabelStyle}" VerticalTextAlignment="Center" />
+                                                    <Label Grid.Column="2" Text="{Binding FavoriteLabel}" TextColor="{StaticResource AccentYellowColor}" FontAttributes="Bold" />
+                                                </Grid>
+
+                                                <VerticalStackLayout Grid.Row="1" Spacing="5" VerticalOptions="Center">
+                                                    <Label Text="{Binding Title}" FontSize="18" FontAttributes="Bold" MaxLines="2" />
+                                                    <Label Text="{Binding Subtitle}" Style="{StaticResource MutedLabelStyle}" MaxLines="2" />
+                                                </VerticalStackLayout>
+
+                                                <Label Grid.Row="2" Text="{Binding LastSendStatus}" Style="{StaticResource TinyLabelStyle}" />
+                                            </Grid>
+                                        </Border>
+
+                                        <Border
+                                            Margin="0,0,10,12"
+                                            HeightRequest="184"
+                                            IsVisible="{Binding IsEditMode}"
+                                            Style="{StaticResource ActionCardBorderStyle}"
+                                            Stroke="{Binding ColorHex}">
+                                            <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
+                                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                                                    <Label Text="{Binding TypeLabel}" Style="{StaticResource TinyLabelStyle}" />
+                                                    <Button Grid.Column="1" Text="Up" Command="{Binding MoveEarlierCommand}" Padding="8,4" />
+                                                    <Button Grid.Column="2" Text="Down" Command="{Binding MoveLaterCommand}" Padding="8,4" />
+                                                </Grid>
+                                                <VerticalStackLayout Grid.Row="1" Spacing="4" VerticalOptions="Center">
+                                                    <Label Text="{Binding Title}" FontSize="18" FontAttributes="Bold" MaxLines="2" />
+                                                    <Label Text="{Binding Subtitle}" Style="{StaticResource TinyLabelStyle}" MaxLines="2" />
+                                                </VerticalStackLayout>
+                                                <Button
+                                                    Grid.Row="2"
+                                                    Text="Manage"
+                                                    Clicked="OnManageClicked"
+                                                    CommandParameter="{Binding Item}"
+                                                    IsVisible="{Binding CanManage}" />
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </Grid>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <Border
-            Grid.Row="2"
-            Margin="18,8,18,16"
-            IsVisible="{Binding IsAddOptionsVisible}"
-            Style="{StaticResource PanelBorderStyle}">
-            <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
-                <Label Text="Add or manage" Style="{StaticResource SectionTitleLabelStyle}" />
-                <CollectionView
-                    Grid.Row="1"
-                    HeightRequest="170"
-                    ItemsSource="{Binding AddOptions}"
-                    SelectionMode="None">
-                    <CollectionView.ItemsLayout>
-                        <GridItemsLayout Orientation="Vertical" Span="2" />
-                    </CollectionView.ItemsLayout>
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="gallery:GalleryAddOption">
-                            <Button
-                                Margin="0,0,8,8"
-                                BorderColor="{Binding ColorHex}"
-                                Clicked="OnAddOptionClicked"
-                                CommandParameter="{Binding .}"
-                                Text="{Binding Title}" />
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </Grid>
-        </Border>
+        <Grid Grid.Row="2">
+            <Border Margin="18,8,18,18" IsVisible="{Binding IsFilterSheetVisible}" Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                    <Label Text="Filter Library" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Grid.Row="1" Text="{Binding FilterSummaryText}" Style="{StaticResource MutedLabelStyle}" />
+                    <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button Text="All items" Command="{Binding ShowAllItemsCommand}" />
+                        <Button Grid.Column="1" Text="Favorites" Command="{Binding ShowFavoritesCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Margin="18,8,18,18" IsVisible="{Binding IsGroupSheetVisible}" Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                    <Label Text="Group Items" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Picker
+                        Grid.Row="1"
+                        ItemsSource="{Binding GroupingOptions}"
+                        ItemDisplayBinding="{Binding Label}"
+                        SelectedItem="{Binding SelectedGroupingMode, Mode=TwoWay}" />
+                </Grid>
+            </Border>
+
+            <Border Margin="18,8,18,18" IsVisible="{Binding IsAddOptionsVisible}" Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                    <Label Text="Add Item" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Grid.Row="1" Text="Create implemented items now. Media imports stay in Labs until upload support is ready." Style="{StaticResource MutedLabelStyle}" />
+                    <CollectionView Grid.Row="2" HeightRequest="190" ItemsSource="{Binding AddOptions}" SelectionMode="None">
+                        <CollectionView.ItemsLayout>
+                            <GridItemsLayout Orientation="Vertical" Span="2" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="gallery:GalleryAddOption">
+                                <Button
+                                    Margin="0,0,8,8"
+                                    BorderColor="{Binding ColorHex}"
+                                    Clicked="OnAddOptionClicked"
+                                    CommandParameter="{Binding .}"
+                                    Text="{Binding Title}" />
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Grid>
+            </Border>
+
+            <Border Margin="18,8,18,18" IsVisible="{Binding IsManageSheetVisible}" Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Manage Item" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Button Grid.Column="1" Text="Done" Command="{Binding CloseManageSheetCommand}" />
+                    </Grid>
+                    <VerticalStackLayout Grid.Row="1" Spacing="4">
+                        <Label Text="{Binding ManagedItemTitle}" FontSize="22" FontAttributes="Bold" />
+                        <Label Text="{Binding ManagedItemSubtitle}" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Text="{Binding ManagedItemTypeText}" Style="{StaticResource TinyLabelStyle}" />
+                    </VerticalStackLayout>
+                    <Label Grid.Row="2" Text="{Binding ManagedItemStatusText}" Style="{StaticResource MutedLabelStyle}" />
+                    <Button
+                        Grid.Row="3"
+                        Text="{Binding ManagedItemEditorLabel}"
+                        IsEnabled="{Binding ManagedItemCanOpenEditor}"
+                        Clicked="OnOpenManagedEditorClicked"
+                        Style="{StaticResource PrimaryButtonStyle}" />
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </ContentPage>

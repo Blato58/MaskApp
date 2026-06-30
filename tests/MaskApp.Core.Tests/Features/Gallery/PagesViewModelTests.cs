@@ -56,6 +56,56 @@ public sealed class PagesViewModelTests
     }
 
     [Fact]
+    public async Task ManageModeAndSheets_ControlPageEditingSurface()
+    {
+        var viewModel = CreateViewModel();
+
+        await viewModel.InitializeAsync();
+        Assert.True(viewModel.IsUseMode);
+        Assert.Equal("Use", viewModel.PagesModeText);
+
+        await viewModel.SetManageModeCommand.ExecuteAsync();
+        Assert.True(viewModel.IsManageMode);
+        Assert.Equal("Manage", viewModel.PagesModeText);
+
+        await viewModel.ToggleAddItemsSheetCommand.ExecuteAsync();
+        Assert.True(viewModel.IsAddItemsSheetVisible);
+        Assert.False(viewModel.IsPageEditorSheetVisible);
+
+        await viewModel.TogglePageEditorSheetCommand.ExecuteAsync();
+        Assert.True(viewModel.IsPageEditorSheetVisible);
+        Assert.False(viewModel.IsAddItemsSheetVisible);
+
+        await viewModel.SetUseModeCommand.ExecuteAsync();
+        Assert.True(viewModel.IsUseMode);
+        Assert.False(viewModel.IsPageEditorSheetVisible);
+    }
+
+    [Fact]
+    public async Task RemovePageCommand_RequiresConfirmationAndKeepsLibraryItems()
+    {
+        var preset = CreatePreset("Delete page source");
+        var store = new RecordingGalleryLayoutStore();
+        var viewModel = CreateViewModel(textPresets: [preset], layoutStore: store);
+
+        await viewModel.InitializeAsync();
+        await viewModel.AvailableItems.Single(item => item.Item.Id == $"text:{preset.Id.Value}").AddCommand.ExecuteAsync();
+        var originalPageCount = viewModel.Pages.Count;
+
+        await viewModel.RemovePageCommand.ExecuteAsync();
+
+        Assert.True(viewModel.IsDeletePageConfirmationVisible);
+        Assert.Equal(originalPageCount, viewModel.Pages.Count);
+        Assert.DoesNotContain(viewModel.AvailableItems, item => item.Item.Id == $"text:{preset.Id.Value}");
+
+        await viewModel.ConfirmRemovePageCommand.ExecuteAsync();
+
+        Assert.False(viewModel.IsDeletePageConfirmationVisible);
+        Assert.Equal(originalPageCount - 1, viewModel.Pages.Count);
+        Assert.Contains(viewModel.AvailableItems, item => item.Item.Id == $"text:{preset.Id.Value}");
+    }
+
+    [Fact]
     public async Task SendShortcut_RoutesToUnderlyingItem()
     {
         var preset = CreatePreset("Shortcut send");

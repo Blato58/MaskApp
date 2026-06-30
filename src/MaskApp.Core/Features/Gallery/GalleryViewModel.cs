@@ -29,6 +29,10 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
     private string lastActionText = "None";
     private bool isSending;
     private bool isAddOptionsVisible;
+    private bool isFilterSheetVisible;
+    private bool isGroupSheetVisible;
+    private bool isManageSheetVisible;
+    private GalleryItem? managedItem;
     private bool isEditMode;
 
     public GalleryViewModel(
@@ -71,6 +75,65 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         ToggleAddOptionsCommand = new AsyncRelayCommand(_ =>
         {
             IsAddOptionsVisible = !IsAddOptionsVisible;
+            if (IsAddOptionsVisible)
+            {
+                IsFilterSheetVisible = false;
+                IsGroupSheetVisible = false;
+                IsManageSheetVisible = false;
+            }
+
+            return Task.CompletedTask;
+        });
+        ToggleFilterSheetCommand = new AsyncRelayCommand(_ =>
+        {
+            IsFilterSheetVisible = !IsFilterSheetVisible;
+            if (IsFilterSheetVisible)
+            {
+                IsAddOptionsVisible = false;
+                IsGroupSheetVisible = false;
+                IsManageSheetVisible = false;
+            }
+
+            return Task.CompletedTask;
+        });
+        ToggleGroupSheetCommand = new AsyncRelayCommand(_ =>
+        {
+            IsGroupSheetVisible = !IsGroupSheetVisible;
+            if (IsGroupSheetVisible)
+            {
+                IsAddOptionsVisible = false;
+                IsFilterSheetVisible = false;
+                IsManageSheetVisible = false;
+            }
+
+            return Task.CompletedTask;
+        });
+        SetBrowseModeCommand = new AsyncRelayCommand(_ =>
+        {
+            IsEditMode = false;
+            return Task.CompletedTask;
+        });
+        SetArrangeModeCommand = new AsyncRelayCommand(_ =>
+        {
+            IsEditMode = true;
+            return Task.CompletedTask;
+        });
+        ShowAllItemsCommand = new AsyncRelayCommand(_ =>
+        {
+            ShowFavoritesOnly = false;
+            IsFilterSheetVisible = false;
+            return Task.CompletedTask;
+        });
+        ShowFavoritesCommand = new AsyncRelayCommand(_ =>
+        {
+            ShowFavoritesOnly = true;
+            IsFilterSheetVisible = false;
+            return Task.CompletedTask;
+        });
+        CloseManageSheetCommand = new AsyncRelayCommand(_ =>
+        {
+            IsManageSheetVisible = false;
+            ManagedItem = null;
             return Task.CompletedTask;
         });
     }
@@ -82,6 +145,20 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
     public IReadOnlyList<GalleryAddOption> AddOptions { get; }
 
     public AsyncRelayCommand ToggleAddOptionsCommand { get; }
+
+    public AsyncRelayCommand ToggleFilterSheetCommand { get; }
+
+    public AsyncRelayCommand ToggleGroupSheetCommand { get; }
+
+    public AsyncRelayCommand SetBrowseModeCommand { get; }
+
+    public AsyncRelayCommand SetArrangeModeCommand { get; }
+
+    public AsyncRelayCommand ShowAllItemsCommand { get; }
+
+    public AsyncRelayCommand ShowFavoritesCommand { get; }
+
+    public AsyncRelayCommand CloseManageSheetCommand { get; }
 
     public IReadOnlyList<GalleryGroupCard> Groups
     {
@@ -115,6 +192,7 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
             if (SetField(ref showFavoritesOnly, value))
             {
                 RebuildGroups();
+                OnPropertyChanged(nameof(FilterSummaryText));
             }
         }
     }
@@ -127,6 +205,7 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
             if (value is not null && SetField(ref selectedGroupingMode, value))
             {
                 RebuildGroups();
+                OnPropertyChanged(nameof(GroupSummaryText));
             }
         }
     }
@@ -155,6 +234,41 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         private set => SetField(ref isAddOptionsVisible, value);
     }
 
+    public bool IsFilterSheetVisible
+    {
+        get => isFilterSheetVisible;
+        private set => SetField(ref isFilterSheetVisible, value);
+    }
+
+    public bool IsGroupSheetVisible
+    {
+        get => isGroupSheetVisible;
+        private set => SetField(ref isGroupSheetVisible, value);
+    }
+
+    public bool IsManageSheetVisible
+    {
+        get => isManageSheetVisible;
+        private set => SetField(ref isManageSheetVisible, value);
+    }
+
+    public GalleryItem? ManagedItem
+    {
+        get => managedItem;
+        private set
+        {
+            if (SetField(ref managedItem, value))
+            {
+                OnPropertyChanged(nameof(ManagedItemTitle));
+                OnPropertyChanged(nameof(ManagedItemSubtitle));
+                OnPropertyChanged(nameof(ManagedItemTypeText));
+                OnPropertyChanged(nameof(ManagedItemStatusText));
+                OnPropertyChanged(nameof(ManagedItemCanOpenEditor));
+                OnPropertyChanged(nameof(ManagedItemEditorLabel));
+            }
+        }
+    }
+
     public bool IsEditMode
     {
         get => isEditMode;
@@ -164,13 +278,46 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
             {
                 RebuildGroups();
                 OnPropertyChanged(nameof(GalleryModeText));
+                OnPropertyChanged(nameof(IsBrowseMode));
+                OnPropertyChanged(nameof(IsArrangeMode));
             }
         }
     }
 
-    public string GalleryModeText => IsEditMode ? "Edit mode" : "Send mode";
+    public bool IsBrowseMode => !IsEditMode;
+
+    public bool IsArrangeMode => IsEditMode;
+
+    public string GalleryModeText => IsEditMode ? "Arrange" : "Browse";
 
     public string VisibleItemCountText => $"{Groups.Sum(group => group.Items.Count)} items";
+
+    public string FilterSummaryText => ShowFavoritesOnly ? "Favorites only" : "All implemented items";
+
+    public string GroupSummaryText => SelectedGroupingMode.Label;
+
+    public string ManagedItemTitle => ManagedItem?.Title ?? "No item selected";
+
+    public string ManagedItemSubtitle => ManagedItem?.Subtitle ?? "Select an item to manage.";
+
+    public string ManagedItemTypeText => ManagedItem is null
+        ? "None"
+        : $"{ManagedItem.TypeLabel} / {ManagedItem.GroupName}";
+
+    public string ManagedItemStatusText => ManagedItem is null
+        ? "No action selected."
+        : ManagedItem.CanSend
+            ? "Implemented and sendable when the device transport is ready."
+            : "Labs placeholder; not sendable yet.";
+
+    public bool ManagedItemCanOpenEditor => ManagedItem?.CanManage ?? false;
+
+    public string ManagedItemEditorLabel => ManagedItem?.ManageTarget switch
+    {
+        "text" => "Open Text Composer",
+        "builtins" => "Open Built-in Scanner",
+        _ => "Editor unavailable"
+    };
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -212,6 +359,15 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         {
             IsSending = false;
         }
+    }
+
+    public void OpenManageSheet(GalleryItem item)
+    {
+        ManagedItem = item;
+        IsManageSheetVisible = true;
+        IsAddOptionsVisible = false;
+        IsFilterSheetVisible = false;
+        IsGroupSheetVisible = false;
     }
 
     public async Task MoveItemAsync(string itemId, int delta, CancellationToken cancellationToken = default)

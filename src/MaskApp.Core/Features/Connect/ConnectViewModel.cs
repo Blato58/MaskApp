@@ -59,6 +59,8 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
         {
             if (SetField(ref selectedDevice, value))
             {
+                OnPropertyChanged(nameof(DeviceNameText));
+                OnPropertyChanged(nameof(DeviceSignalText));
                 RaiseCommandStates();
             }
         }
@@ -71,6 +73,11 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
         {
             if (SetField(ref connectionState, value))
             {
+                OnPropertyChanged(nameof(IsConnected));
+                OnPropertyChanged(nameof(ConnectionHeadline));
+                OnPropertyChanged(nameof(ConnectionDetailText));
+                OnPropertyChanged(nameof(DeviceNameText));
+                OnPropertyChanged(nameof(DeviceSignalText));
                 RaiseCommandStates();
             }
         }
@@ -125,6 +132,26 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
     public bool HasKnownMask => autoConnectCoordinator.HasKnownDevice;
 
     public bool CanStartAutoConnect => autoConnectCoordinator.CanAutoConnectNow;
+
+    public bool IsConnected => ConnectionState == BleConnectionState.Connected;
+
+    public string ConnectionHeadline => ConnectionState switch
+    {
+        BleConnectionState.Connected => "Connected",
+        BleConnectionState.Connecting => "Connecting",
+        BleConnectionState.Scanning => "Scanning",
+        BleConnectionState.Failed => "Connection Error",
+        _ => "Not Connected"
+    };
+
+    public string ConnectionDetailText => IsConnected
+        ? "Mask command and text transports can send when diagnostics show ready."
+        : "Scan nearby masks or reconnect a remembered mask.";
+
+    public string DeviceNameText => SelectedDevice?.Name
+        ?? (HasKnownMask ? LastKnownMaskText : "LED Mask");
+
+    public string DeviceSignalText => SelectedDevice is null ? "Signal unavailable" : $"{SelectedDevice.SignalStrength} dBm";
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -208,6 +235,8 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(LastKnownMaskText));
         OnPropertyChanged(nameof(HasKnownMask));
         OnPropertyChanged(nameof(CanStartAutoConnect));
+        OnPropertyChanged(nameof(DeviceNameText));
+        OnPropertyChanged(nameof(ConnectionDetailText));
         StartAutoConnectCommand.RaiseCanExecuteChanged();
         ForgetKnownMaskCommand.RaiseCanExecuteChanged();
     }

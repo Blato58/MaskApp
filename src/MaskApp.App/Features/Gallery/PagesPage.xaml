@@ -4,16 +4,17 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:gallery="clr-namespace:MaskApp.Core.Features.Gallery;assembly=MaskApp.Core"
+    x:Name="RootPage"
     x:DataType="gallery:PagesViewModel"
     Title="Pages"
     BackgroundColor="{StaticResource PageBackgroundColor}">
     <Grid RowDefinitions="Auto,Auto,*,Auto">
-        <Border Margin="18,16,18,8" Style="{StaticResource PanelBorderStyle}">
-            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+        <Border Margin="18,18,18,10" Style="{StaticResource PanelBorderStyle}">
+            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                     <VerticalStackLayout Spacing="2">
                         <Label Text="Pages" Style="{StaticResource PageTitleLabelStyle}" />
-                        <Label Text="{Binding ShortcutCountText}" Style="{StaticResource TinyLabelStyle}" />
+                        <Label Text="{Binding PagePositionText}" Style="{StaticResource TinyLabelStyle}" />
                     </VerticalStackLayout>
                     <ActivityIndicator
                         Grid.Column="1"
@@ -22,9 +23,35 @@
                         VerticalOptions="Center" />
                 </Grid>
 
+                <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="8">
+                    <Button Text="Use" Command="{Binding SetUseModeCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                    <Button Grid.Column="1" Text="Manage" Command="{Binding SetManageModeCommand}" />
+                </Grid>
+
+                <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="8" IsVisible="{Binding IsManageMode}">
+                    <Button Text="+ Page" Command="{Binding AddPageCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                    <Button Grid.Column="1" Text="Add Items" Command="{Binding ToggleAddItemsSheetCommand}" />
+                    <Button Grid.Column="2" Text="Edit Page" Command="{Binding TogglePageEditorSheetCommand}" />
+                </Grid>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Margin="18,0,18,10" Style="{StaticResource CompactPanelBorderStyle}" Stroke="{Binding SelectedPageColorHex}">
+            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="8" ColumnSpacing="10">
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="{Binding SelectedPageTitle}" FontSize="24" FontAttributes="Bold" />
+                    <Label Text="{Binding StatusText}" Style="{StaticResource TinyLabelStyle}" />
+                </VerticalStackLayout>
+                <Button
+                    Grid.Column="1"
+                    Text="Delete"
+                    Command="{Binding RemovePageCommand}"
+                    IsVisible="{Binding IsManageMode}"
+                    Style="{StaticResource DangerButtonStyle}" />
                 <CollectionView
                     Grid.Row="1"
-                    HeightRequest="76"
+                    Grid.ColumnSpan="2"
+                    HeightRequest="62"
                     ItemsSource="{Binding Pages}"
                     SelectionMode="None">
                     <CollectionView.ItemsLayout>
@@ -32,44 +59,30 @@
                     </CollectionView.ItemsLayout>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="gallery:GalleryPageTab">
-                            <Border
-                                Padding="10"
-                                Stroke="{Binding ColorHex}"
-                                StrokeThickness="1"
-                                WidthRequest="132">
+                            <Border Padding="10,6" Stroke="{Binding ColorHex}" StrokeThickness="1" WidthRequest="132">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="8" />
+                                    <RoundRectangle CornerRadius="16" />
                                 </Border.StrokeShape>
-                                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-                                    <Label Text="{Binding Title}" FontAttributes="Bold" LineBreakMode="TailTruncation" />
-                                    <Button Grid.Column="1" Text="‹" Command="{Binding MoveEarlierCommand}" />
-                                    <Button Grid.Column="2" Text="›" Command="{Binding MoveLaterCommand}" />
+                                <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="4">
+                                    <Label Text="{Binding Title}" FontAttributes="Bold" LineBreakMode="TailTruncation" VerticalTextAlignment="Center" />
                                     <Button
-                                        Grid.Row="1"
-                                        Grid.ColumnSpan="3"
-                                        Text="Open"
-                                        Command="{Binding SelectCommand}" />
+                                        Grid.Column="1"
+                                        Text="Up"
+                                        Command="{Binding MoveEarlierCommand}"
+                                        IsVisible="{Binding Source={x:Reference RootPage}, Path=BindingContext.IsManageMode}"
+                                        Padding="8,4" />
+                                    <Button
+                                        Grid.Column="2"
+                                        Text="Down"
+                                        Command="{Binding MoveLaterCommand}"
+                                        IsVisible="{Binding Source={x:Reference RootPage}, Path=BindingContext.IsManageMode}"
+                                        Padding="8,4" />
+                                    <Button Grid.Column="3" Text="Open" Command="{Binding SelectCommand}" Padding="8,4" />
                                 </Grid>
                             </Border>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>
-
-                <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                    <Entry Placeholder="Page name" Text="{Binding NewPageTitle, Mode=TwoWay}" />
-                    <Button Grid.Column="1" Text="Add page" Command="{Binding AddPageCommand}" Style="{StaticResource PrimaryButtonStyle}" />
-                    <Button Grid.Column="2" Text="Color" Command="{Binding CyclePageColorCommand}" />
-                </Grid>
-            </Grid>
-        </Border>
-
-        <Border Margin="18,0,18,8" Style="{StaticResource CompactPanelBorderStyle}" Stroke="{Binding SelectedPageColorHex}">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                <VerticalStackLayout Spacing="2">
-                    <Label Text="{Binding SelectedPageTitle}" Style="{StaticResource SectionTitleLabelStyle}" />
-                    <Label Text="{Binding StatusText}" Style="{StaticResource TinyLabelStyle}" />
-                </VerticalStackLayout>
-                <Button Grid.Column="1" Text="Remove page" Command="{Binding RemovePageCommand}" />
             </Grid>
         </Border>
 
@@ -79,100 +92,132 @@
             ItemsSource="{Binding Shortcuts}"
             SelectionMode="None">
             <CollectionView.ItemsLayout>
-                <GridItemsLayout Orientation="Vertical" Span="4" />
+                <GridItemsLayout Orientation="Vertical" Span="3" />
             </CollectionView.ItemsLayout>
             <CollectionView.EmptyView>
                 <Grid Padding="18">
-                    <Label
-                        HorizontalTextAlignment="Center"
-                        Text="Add created gallery items below."
-                        Style="{StaticResource MutedLabelStyle}" />
+                    <VerticalStackLayout HorizontalOptions="Center" Spacing="10">
+                        <Label Text="This page is empty" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                        <Label Text="Switch to Manage and add items from your Library." Style="{StaticResource MutedLabelStyle}" HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
                 </Grid>
             </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="gallery:GalleryPageShortcutCard">
-                    <VerticalStackLayout Margin="0,0,8,14" Spacing="6">
-                        <Border
-                            BackgroundColor="{Binding ColorHex}"
-                            HeightRequest="62"
-                            Stroke="{Binding ColorHex}"
-                            WidthRequest="62"
-                            HorizontalOptions="Center">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="14" />
-                            </Border.StrokeShape>
-                            <Label
-                                Text="{Binding IconLabel}"
-                                TextColor="#05070D"
-                                FontSize="10"
-                                FontAttributes="Bold"
-                                HorizontalTextAlignment="Center"
-                                VerticalTextAlignment="Center" />
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding SendCommand}" />
-                            </Border.GestureRecognizers>
-                        </Border>
-                        <Label
-                            Text="{Binding Label}"
-                            FontSize="11"
-                            HorizontalTextAlignment="Center"
-                            LineBreakMode="TailTruncation"
-                            MaxLines="2" />
-                        <Grid ColumnDefinitions="*,*" ColumnSpacing="4">
-                            <Button Text="‹" Command="{Binding MoveEarlierCommand}" Padding="6,4" />
-                            <Button Grid.Column="1" Text="›" Command="{Binding MoveLaterCommand}" Padding="6,4" />
+                    <VerticalStackLayout Margin="0,0,10,16" Spacing="7">
+                        <Grid>
+                            <Border
+                                BackgroundColor="{Binding ColorHex}"
+                                HeightRequest="96"
+                                Stroke="{Binding ColorHex}"
+                                WidthRequest="96"
+                                HorizontalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="18" />
+                                </Border.StrokeShape>
+                                <Grid RowDefinitions="*,Auto" Padding="8">
+                                    <Label
+                                        Text="{Binding IconLabel}"
+                                        TextColor="#05070D"
+                                        FontSize="13"
+                                        FontAttributes="Bold"
+                                        HorizontalTextAlignment="Center"
+                                        VerticalTextAlignment="Center" />
+                                    <Label
+                                        Grid.Row="1"
+                                        Text="{Binding Label}"
+                                        TextColor="#05070D"
+                                        FontSize="13"
+                                        FontAttributes="Bold"
+                                        HorizontalTextAlignment="Center"
+                                        LineBreakMode="TailTruncation" />
+                                </Grid>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SendCommand}" />
+                                </Border.GestureRecognizers>
+                            </Border>
                         </Grid>
-                        <Grid ColumnDefinitions="*,*" ColumnSpacing="4">
-                            <Button Text="I" Command="{Binding CycleIconCommand}" Padding="6,4" />
-                            <Button Grid.Column="1" Text="C" Command="{Binding CycleColorCommand}" Padding="6,4" />
+
+                        <Label Text="{Binding Subtitle}" Style="{StaticResource TinyLabelStyle}" HorizontalTextAlignment="Center" />
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="4" IsVisible="{Binding Source={x:Reference RootPage}, Path=BindingContext.IsManageMode}">
+                            <Button Text="Up" Command="{Binding MoveEarlierCommand}" Padding="6,4" />
+                            <Button Grid.Column="1" Text="Down" Command="{Binding MoveLaterCommand}" Padding="6,4" />
                         </Grid>
-                        <Button Text="Remove" Command="{Binding RemoveCommand}" Padding="6,4" />
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="4" IsVisible="{Binding Source={x:Reference RootPage}, Path=BindingContext.IsManageMode}">
+                            <Button Text="Icon" Command="{Binding CycleIconCommand}" Padding="6,4" />
+                            <Button Grid.Column="1" Text="Color" Command="{Binding CycleColorCommand}" Padding="6,4" />
+                        </Grid>
+                        <Button
+                            Text="Remove"
+                            Command="{Binding RemoveCommand}"
+                            IsVisible="{Binding Source={x:Reference RootPage}, Path=BindingContext.IsManageMode}"
+                            Padding="6,4"
+                            Style="{StaticResource DangerButtonStyle}" />
                     </VerticalStackLayout>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <Border Grid.Row="3" Margin="18,8,18,16" Style="{StaticResource PanelBorderStyle}">
-            <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
-                <Label Text="Add existing item" Style="{StaticResource SectionTitleLabelStyle}" />
-                <CollectionView
-                    Grid.Row="1"
-                    HeightRequest="172"
-                    ItemsSource="{Binding AvailableItems}"
-                    SelectionMode="None">
-                    <CollectionView.ItemsLayout>
-                        <GridItemsLayout Orientation="Vertical" Span="2" />
-                    </CollectionView.ItemsLayout>
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="gallery:GalleryAvailableItemCard">
-                            <Border
-                                Margin="0,0,8,8"
-                                Style="{StaticResource ActionCardBorderStyle}"
-                                Stroke="{Binding ColorHex}">
-                                <Grid ColumnDefinitions="42,*,Auto" ColumnSpacing="8">
-                                    <Border BackgroundColor="{Binding ColorHex}" HeightRequest="36" WidthRequest="42">
-                                        <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="8" />
-                                        </Border.StrokeShape>
-                                        <Label
-                                            Text="{Binding IconLabel}"
-                                            TextColor="#05070D"
-                                            FontSize="9"
-                                            FontAttributes="Bold"
-                                            HorizontalTextAlignment="Center"
-                                            VerticalTextAlignment="Center" />
-                                    </Border>
-                                    <VerticalStackLayout Grid.Column="1" Spacing="1">
-                                        <Label Text="{Binding Title}" FontAttributes="Bold" LineBreakMode="TailTruncation" />
-                                        <Label Text="{Binding Subtitle}" Style="{StaticResource TinyLabelStyle}" />
-                                    </VerticalStackLayout>
-                                    <Button Grid.Column="2" Text="Add" Command="{Binding AddCommand}" />
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </Grid>
-        </Border>
+        <Grid Grid.Row="3">
+            <Border Margin="18,8,18,18" IsVisible="{Binding IsAddItemsSheetVisible}" Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Add Items to Page" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Button Grid.Column="1" Text="Done" Command="{Binding CloseSheetsCommand}" />
+                    </Grid>
+                    <CollectionView Grid.Row="1" HeightRequest="220" ItemsSource="{Binding AvailableItems}" SelectionMode="None">
+                        <CollectionView.ItemsLayout>
+                            <GridItemsLayout Orientation="Vertical" Span="2" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="gallery:GalleryAvailableItemCard">
+                                <Border Margin="0,0,8,8" Style="{StaticResource ActionCardBorderStyle}" Stroke="{Binding ColorHex}">
+                                    <Grid ColumnDefinitions="42,*,Auto" ColumnSpacing="8">
+                                        <Border BackgroundColor="{Binding ColorHex}" HeightRequest="38" WidthRequest="42">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="10" />
+                                            </Border.StrokeShape>
+                                            <Label Text="{Binding IconLabel}" TextColor="#05070D" FontSize="9" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                        </Border>
+                                        <VerticalStackLayout Grid.Column="1" Spacing="1">
+                                            <Label Text="{Binding Title}" FontAttributes="Bold" LineBreakMode="TailTruncation" />
+                                            <Label Text="{Binding Subtitle}" Style="{StaticResource TinyLabelStyle}" />
+                                        </VerticalStackLayout>
+                                        <Button Grid.Column="2" Text="Add" Command="{Binding AddCommand}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Grid>
+            </Border>
+
+            <Border Margin="18,8,18,18" IsVisible="{Binding IsPageEditorSheetVisible}" Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Edit Page" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Button Grid.Column="1" Text="Done" Command="{Binding CloseSheetsCommand}" />
+                    </Grid>
+                    <Entry Grid.Row="1" Placeholder="Page name" Text="{Binding NewPageTitle, Mode=TwoWay}" />
+                    <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button Text="Create Page" Command="{Binding AddPageCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Grid.Column="1" Text="Change Color" Command="{Binding CyclePageColorCommand}" />
+                    </Grid>
+                    <Label Grid.Row="3" Text="Rename of existing pages is planned after the page layout store gets editable titles." Style="{StaticResource TinyLabelStyle}" />
+                </Grid>
+            </Border>
+
+            <Border Margin="18,8,18,18" IsVisible="{Binding IsDeletePageConfirmationVisible}" Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                    <Label Text="{Binding DeletePagePrompt}" FontSize="20" FontAttributes="Bold" />
+                    <Label Grid.Row="1" Text="This removes the page layout only. Library items stay available." Style="{StaticResource MutedLabelStyle}" />
+                    <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button Text="Cancel" Command="{Binding CloseSheetsCommand}" />
+                        <Button Grid.Column="1" Text="Delete Page" Command="{Binding ConfirmRemovePageCommand}" Style="{StaticResource DangerButtonStyle}" />
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </ContentPage>

@@ -53,9 +53,35 @@ public sealed class ConnectViewModelTests
         Assert.Equal(device, connection.ConnectedDevice);
         Assert.Equal(BleConnectionState.Connected, viewModel.ConnectionState);
         Assert.Equal("Connected to Mask One.", viewModel.StatusText);
+        Assert.True(viewModel.IsConnected);
+        Assert.Equal("Connected", viewModel.ConnectionHeadline);
+        Assert.Equal("Mask One", viewModel.DeviceNameText);
+        Assert.Equal("-51 dBm", viewModel.DeviceSignalText);
         Assert.True(viewModel.AutoConnectEnabled);
         Assert.Equal("Mask One", viewModel.LastKnownMaskText);
         Assert.Equal("mask-1", (await store.LoadAsync()).LastKnownDevice?.Id);
+    }
+
+    [Fact]
+    public async Task DashboardText_UsesRememberedMaskWithoutFakeTelemetry()
+    {
+        var scanner = new FakeBleScanner();
+        var connection = new FakeBleConnection();
+        var store = new InMemoryBleAutoConnectSettingsStore(new BleAutoConnectSettings
+        {
+            AutoConnectEnabled = false,
+            LastKnownDevice = new KnownMaskDevice("mask-1", "Saved Mask", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow)
+        });
+        var coordinator = new BleAutoConnectCoordinator(scanner, connection, store);
+        var viewModel = new ConnectViewModel(scanner, connection, coordinator);
+
+        await viewModel.InitializeAsync();
+
+        Assert.False(viewModel.IsConnected);
+        Assert.Equal("Not Connected", viewModel.ConnectionHeadline);
+        Assert.Equal("Saved Mask", viewModel.DeviceNameText);
+        Assert.Equal("Signal unavailable", viewModel.DeviceSignalText);
+        Assert.Contains("Scan nearby", viewModel.ConnectionDetailText, StringComparison.Ordinal);
     }
 
     [Fact]

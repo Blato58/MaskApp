@@ -18,9 +18,9 @@ public partial class AppShell : Shell
         {
             Items =
             {
-                CreateShellContent<GalleryPage>("Gallery", "gallery", "icon_gallery.svg", services),
+                CreateShellContent<GalleryPage>("Library", "library", "icon_library.svg", services),
                 CreateShellContent<PagesPage>("Pages", "pages", "icon_pages.svg", services),
-                CreateShellContent<ConnectPage>("Control", "control", "icon_control.svg", services)
+                CreateShellContent<ConnectPage>("Device", "device", "icon_device.svg", services)
             }
         });
     }

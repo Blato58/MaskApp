@@ -19,9 +19,20 @@ public partial class GalleryPage : ContentPage
         await viewModel.InitializeAsync();
     }
 
-    private static async void OnManageClicked(object? sender, EventArgs e)
+    private void OnManageClicked(object? sender, EventArgs e)
     {
         if (sender is not Button { CommandParameter: GalleryItem item } || !item.CanManage)
+        {
+            return;
+        }
+
+        viewModel.OpenManageSheet(item);
+    }
+
+    private async void OnOpenManagedEditorClicked(object? sender, EventArgs e)
+    {
+        var item = viewModel.ManagedItem;
+        if (item is null || !item.CanManage)
         {
             return;
         }

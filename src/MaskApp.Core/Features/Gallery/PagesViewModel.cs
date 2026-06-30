@@ -38,6 +38,10 @@ public sealed class PagesViewModel : INotifyPropertyChanged
     private string statusText = "Ready";
     private string newPageTitle = "New page";
     private bool isSending;
+    private bool isManageMode;
+    private bool isAddItemsSheetVisible;
+    private bool isPageEditorSheetVisible;
+    private bool isDeletePageConfirmationVisible;
 
     public PagesViewModel(
         QuickActionCatalog quickActionCatalog,
@@ -59,8 +63,47 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         this.textTransport = textTransport;
 
         AddPageCommand = new AsyncRelayCommand(AddPageAsync);
-        RemovePageCommand = new AsyncRelayCommand(RemoveSelectedPageAsync, () => Pages.Count > 1);
+        RemovePageCommand = new AsyncRelayCommand(OpenDeleteConfirmationAsync, () => Pages.Count > 1);
+        ConfirmRemovePageCommand = new AsyncRelayCommand(RemoveSelectedPageAsync, () => Pages.Count > 1);
         CyclePageColorCommand = new AsyncRelayCommand(CyclePageColorAsync);
+        SetUseModeCommand = new AsyncRelayCommand(_ =>
+        {
+            IsManageMode = false;
+            CloseSheets();
+            return Task.CompletedTask;
+        });
+        SetManageModeCommand = new AsyncRelayCommand(_ =>
+        {
+            IsManageMode = true;
+            return Task.CompletedTask;
+        });
+        ToggleAddItemsSheetCommand = new AsyncRelayCommand(_ =>
+        {
+            IsAddItemsSheetVisible = !IsAddItemsSheetVisible;
+            if (IsAddItemsSheetVisible)
+            {
+                IsPageEditorSheetVisible = false;
+                IsDeletePageConfirmationVisible = false;
+            }
+
+            return Task.CompletedTask;
+        });
+        TogglePageEditorSheetCommand = new AsyncRelayCommand(_ =>
+        {
+            IsPageEditorSheetVisible = !IsPageEditorSheetVisible;
+            if (IsPageEditorSheetVisible)
+            {
+                IsAddItemsSheetVisible = false;
+                IsDeletePageConfirmationVisible = false;
+            }
+
+            return Task.CompletedTask;
+        });
+        CloseSheetsCommand = new AsyncRelayCommand(_ =>
+        {
+            CloseSheets();
+            return Task.CompletedTask;
+        });
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -69,7 +112,19 @@ public sealed class PagesViewModel : INotifyPropertyChanged
 
     public AsyncRelayCommand RemovePageCommand { get; }
 
+    public AsyncRelayCommand ConfirmRemovePageCommand { get; }
+
     public AsyncRelayCommand CyclePageColorCommand { get; }
+
+    public AsyncRelayCommand SetUseModeCommand { get; }
+
+    public AsyncRelayCommand SetManageModeCommand { get; }
+
+    public AsyncRelayCommand ToggleAddItemsSheetCommand { get; }
+
+    public AsyncRelayCommand TogglePageEditorSheetCommand { get; }
+
+    public AsyncRelayCommand CloseSheetsCommand { get; }
 
     public IReadOnlyList<GalleryPageTab> Pages
     {
@@ -86,6 +141,8 @@ public sealed class PagesViewModel : INotifyPropertyChanged
             {
                 OnPropertyChanged(nameof(SelectedPageTitle));
                 OnPropertyChanged(nameof(SelectedPageColorHex));
+                OnPropertyChanged(nameof(PagePositionText));
+                OnPropertyChanged(nameof(DeletePagePrompt));
             }
         }
     }
@@ -130,7 +187,54 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         private set => SetField(ref isSending, value);
     }
 
+    public bool IsManageMode
+    {
+        get => isManageMode;
+        set
+        {
+            if (SetField(ref isManageMode, value))
+            {
+                OnPropertyChanged(nameof(IsUseMode));
+                OnPropertyChanged(nameof(PagesModeText));
+            }
+        }
+    }
+
+    public bool IsUseMode => !IsManageMode;
+
+    public string PagesModeText => IsManageMode ? "Manage" : "Use";
+
+    public bool IsAddItemsSheetVisible
+    {
+        get => isAddItemsSheetVisible;
+        private set => SetField(ref isAddItemsSheetVisible, value);
+    }
+
+    public bool IsPageEditorSheetVisible
+    {
+        get => isPageEditorSheetVisible;
+        private set => SetField(ref isPageEditorSheetVisible, value);
+    }
+
+    public bool IsDeletePageConfirmationVisible
+    {
+        get => isDeletePageConfirmationVisible;
+        private set => SetField(ref isDeletePageConfirmationVisible, value);
+    }
+
     public string ShortcutCountText => $"{Shortcuts.Count} shortcuts";
+
+    public string PagePositionText
+    {
+        get
+        {
+            var ordered = Pages.ToArray();
+            var index = Array.FindIndex(ordered, page => page.PageId == SelectedPage.PageId);
+            return ordered.Length == 0 || index < 0 ? "No pages" : $"Page {index + 1} of {ordered.Length}";
+        }
+    }
+
+    public string DeletePagePrompt => $"Delete \"{SelectedPageTitle}\" page?";
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -153,6 +257,7 @@ public sealed class PagesViewModel : INotifyPropertyChanged
 
         SelectedPage = page;
         RebuildCards();
+        CloseSheets();
         await Task.CompletedTask;
     }
 
@@ -291,6 +396,20 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         StatusText = "Page added";
     }
 
+    private Task OpenDeleteConfirmationAsync(CancellationToken cancellationToken)
+    {
+        if (layoutState.Pages.Count <= 1)
+        {
+            StatusText = "Keep at least one page";
+            return Task.CompletedTask;
+        }
+
+        IsDeletePageConfirmationVisible = true;
+        IsAddItemsSheetVisible = false;
+        IsPageEditorSheetVisible = false;
+        return Task.CompletedTask;
+    }
+
     private async Task RemoveSelectedPageAsync(CancellationToken cancellationToken)
     {
         if (layoutState.Pages.Count <= 1)
@@ -303,6 +422,7 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         await SaveLayoutAsync(layoutState with { Pages = pages }, cancellationToken);
         SelectedPage = layoutState.Pages.First();
         RebuildCards();
+        IsDeletePageConfirmationVisible = false;
         StatusText = "Page removed";
     }
 
@@ -353,6 +473,9 @@ public sealed class PagesViewModel : INotifyPropertyChanged
                 new AsyncRelayCommand(cancellationToken => MovePageAsync(page.PageId, 1, cancellationToken))))
             .ToArray();
 
+        OnPropertyChanged(nameof(PagePositionText));
+        OnPropertyChanged(nameof(DeletePagePrompt));
+
         Shortcuts = SelectedPage.Items
             .OrderBy(item => item.SortIndex)
             .Select(layout =>
@@ -376,6 +499,14 @@ public sealed class PagesViewModel : INotifyPropertyChanged
             .ToArray();
 
         RemovePageCommand.RaiseCanExecuteChanged();
+        ConfirmRemovePageCommand.RaiseCanExecuteChanged();
+    }
+
+    private void CloseSheets()
+    {
+        IsAddItemsSheetVisible = false;
+        IsPageEditorSheetVisible = false;
+        IsDeletePageConfirmationVisible = false;
     }
 
     private GalleryPageShortcutCard CreateShortcutCard(GalleryPageItemLayout layout, GalleryItem item) =>

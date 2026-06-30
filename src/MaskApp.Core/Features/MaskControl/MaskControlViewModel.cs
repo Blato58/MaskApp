@@ -29,6 +29,10 @@ public sealed class MaskControlViewModel : INotifyPropertyChanged
         transport.TransportStateChanged += OnTransportStateChanged;
 
         ApplyBrightnessCommand = new AsyncRelayCommand(ApplyBrightnessAsync, CanSendCommand);
+        SetBrightness25Command = new AsyncRelayCommand(cancellationToken => SetBrightnessPresetAsync(25, cancellationToken), CanSendCommand);
+        SetBrightness50Command = new AsyncRelayCommand(cancellationToken => SetBrightnessPresetAsync(50, cancellationToken), CanSendCommand);
+        SetBrightness75Command = new AsyncRelayCommand(cancellationToken => SetBrightnessPresetAsync(75, cancellationToken), CanSendCommand);
+        SetBrightness100Command = new AsyncRelayCommand(cancellationToken => SetBrightnessPresetAsync(100, cancellationToken), CanSendCommand);
         TogglePowerCommand = new AsyncRelayCommand(TogglePowerAsync, CanSendCommand);
         BlackoutCommand = new AsyncRelayCommand(BlackoutAsync, CanSendCommand);
         RestoreBrightnessCommand = new AsyncRelayCommand(RestoreBrightnessAsync, CanSendCommand);
@@ -45,6 +49,14 @@ public sealed class MaskControlViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public AsyncRelayCommand ApplyBrightnessCommand { get; }
+
+    public AsyncRelayCommand SetBrightness25Command { get; }
+
+    public AsyncRelayCommand SetBrightness50Command { get; }
+
+    public AsyncRelayCommand SetBrightness75Command { get; }
+
+    public AsyncRelayCommand SetBrightness100Command { get; }
 
     public AsyncRelayCommand TogglePowerCommand { get; }
 
@@ -173,6 +185,18 @@ public sealed class MaskControlViewModel : INotifyPropertyChanged
     private async Task ApplyBrightnessAsync(CancellationToken cancellationToken)
     {
         var targetBrightness = Math.Clamp(Brightness, 1, 100);
+        await ApplyBrightnessLevelAsync(targetBrightness, cancellationToken);
+    }
+
+    private Task SetBrightnessPresetAsync(int targetBrightness, CancellationToken cancellationToken)
+    {
+        Brightness = targetBrightness;
+        return ApplyBrightnessLevelAsync(targetBrightness, cancellationToken);
+    }
+
+    private async Task ApplyBrightnessLevelAsync(int targetBrightness, CancellationToken cancellationToken)
+    {
+        targetBrightness = Math.Clamp(targetBrightness, 1, 100);
         var result = await SendCommandAsync(MaskCommandBuilder.Brightness(targetBrightness), cancellationToken);
         if (!result.Succeeded)
         {
@@ -279,6 +303,10 @@ public sealed class MaskControlViewModel : INotifyPropertyChanged
     private void RaiseCommandStates()
     {
         ApplyBrightnessCommand.RaiseCanExecuteChanged();
+        SetBrightness25Command.RaiseCanExecuteChanged();
+        SetBrightness50Command.RaiseCanExecuteChanged();
+        SetBrightness75Command.RaiseCanExecuteChanged();
+        SetBrightness100Command.RaiseCanExecuteChanged();
         TogglePowerCommand.RaiseCanExecuteChanged();
         BlackoutCommand.RaiseCanExecuteChanged();
         RestoreBrightnessCommand.RaiseCanExecuteChanged();

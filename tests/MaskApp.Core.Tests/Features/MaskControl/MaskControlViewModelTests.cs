@@ -65,6 +65,23 @@ public sealed class MaskControlViewModelTests
     }
 
     [Fact]
+    public async Task BrightnessPresetCommands_SendPresetLevels()
+    {
+        var transport = new SimulatedMaskCommandTransport();
+        var viewModel = new MaskControlViewModel(transport);
+
+        await viewModel.SetBrightness25Command.ExecuteAsync();
+        await viewModel.SetBrightness75Command.ExecuteAsync();
+
+        Assert.Equal(2, transport.SentCommands.Count);
+        Assert.Equal(25, transport.SentCommands[0].Plaintext.Span[6]);
+        Assert.Equal(75, transport.SentCommands[1].Plaintext.Span[6]);
+        Assert.Equal(75, viewModel.Brightness);
+        Assert.Equal(75, viewModel.PreviewBrightness);
+        Assert.False(viewModel.IsDimmed);
+    }
+
+    [Fact]
     public async Task EffectPresetCommand_UpdatesCurrentEffectAfterSuccess()
     {
         var transport = new SimulatedMaskCommandTransport();

@@ -10,22 +10,22 @@
             <visuals:QuickActionIconConverter x:Key="QuickActionIconConverter" />
             <visuals:TransportStateColorConverter x:Key="TransportStateColorConverter" />
 
-            <Color x:Key="PageBackgroundColor">#05070D</Color>
-            <Color x:Key="SurfaceColor">#0B0F18</Color>
-            <Color x:Key="PanelColor">#101622</Color>
-            <Color x:Key="PanelRaisedColor">#151C2A</Color>
-            <Color x:Key="PanelBorderColor">#263246</Color>
+            <Color x:Key="PageBackgroundColor">#030407</Color>
+            <Color x:Key="SurfaceColor">#0A0C12</Color>
+            <Color x:Key="PanelColor">#12151C</Color>
+            <Color x:Key="PanelRaisedColor">#1A1D26</Color>
+            <Color x:Key="PanelBorderColor">#30343F</Color>
             <Color x:Key="PrimaryTextColor">#F8FAFC</Color>
-            <Color x:Key="SecondaryTextColor">#A9B3C6</Color>
-            <Color x:Key="MutedTextColor">#64748B</Color>
-            <Color x:Key="AccentColor">#A78BFA</Color>
-            <Color x:Key="AccentBlueColor">#52E3FF</Color>
-            <Color x:Key="AccentGreenColor">#22C55E</Color>
+            <Color x:Key="SecondaryTextColor">#B8BEC9</Color>
+            <Color x:Key="MutedTextColor">#8A909C</Color>
+            <Color x:Key="AccentColor">#2F7DFF</Color>
+            <Color x:Key="AccentBlueColor">#2F7DFF</Color>
+            <Color x:Key="AccentGreenColor">#4ADE80</Color>
             <Color x:Key="AccentYellowColor">#FACC15</Color>
             <Color x:Key="AccentPinkColor">#FF3D8B</Color>
             <Color x:Key="DangerColor">#FF5C54</Color>
-            <Color x:Key="ChipBackgroundColor">#171E2C</Color>
-            <Color x:Key="InputBackgroundColor">#0A0E16</Color>
+            <Color x:Key="ChipBackgroundColor">#20232B</Color>
+            <Color x:Key="InputBackgroundColor">#20232B</Color>
             <Color x:Key="DisabledActionColor">#475569</Color>
             <Thickness x:Key="PagePadding">18,16</Thickness>
 
@@ -80,7 +80,7 @@
                 <Setter Property="StrokeThickness" Value="1" />
                 <Setter Property="StrokeShape">
                     <Setter.Value>
-                        <RoundRectangle CornerRadius="8" />
+                        <RoundRectangle CornerRadius="18" />
                     </Setter.Value>
                 </Setter>
             </Style>
@@ -94,7 +94,7 @@
                 <Setter Property="StrokeThickness" Value="1" />
                 <Setter Property="StrokeShape">
                     <Setter.Value>
-                        <RoundRectangle CornerRadius="8" />
+                        <RoundRectangle CornerRadius="16" />
                     </Setter.Value>
                 </Setter>
             </Style>
@@ -105,23 +105,24 @@
                 <Setter Property="StrokeThickness" Value="1" />
                 <Setter Property="StrokeShape">
                     <Setter.Value>
-                        <RoundRectangle CornerRadius="8" />
+                        <RoundRectangle CornerRadius="14" />
                     </Setter.Value>
                 </Setter>
             </Style>
             <Style TargetType="Button">
-                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="CornerRadius" Value="14" />
                 <Setter Property="FontAttributes" Value="Bold" />
-                <Setter Property="Padding" Value="14,10" />
+                <Setter Property="Padding" Value="16,12" />
                 <Setter Property="BackgroundColor" Value="{StaticResource PanelRaisedColor}" />
                 <Setter Property="BorderColor" Value="{StaticResource PanelBorderColor}" />
                 <Setter Property="BorderWidth" Value="1" />
                 <Setter Property="TextColor" Value="{StaticResource PrimaryTextColor}" />
                 <Setter Property="LineBreakMode" Value="WordWrap" />
+                <Setter Property="MinimumHeightRequest" Value="48" />
             </Style>
             <Style x:Key="PrimaryButtonStyle" TargetType="Button">
-                <Setter Property="BackgroundColor" Value="#7C3AED" />
-                <Setter Property="BorderColor" Value="#A78BFA" />
+                <Setter Property="BackgroundColor" Value="{StaticResource AccentBlueColor}" />
+                <Setter Property="BorderColor" Value="#7AB0FF" />
                 <Setter Property="BorderWidth" Value="1" />
                 <Setter Property="TextColor" Value="#FFFFFF" />
             </Style>
@@ -149,6 +150,12 @@
                 <Setter Property="TextColor" Value="{StaticResource PrimaryTextColor}" />
                 <Setter Property="PlaceholderColor" Value="{StaticResource MutedTextColor}" />
                 <Setter Property="ClearButtonVisibility" Value="WhileEditing" />
+            </Style>
+            <Style TargetType="SearchBar">
+                <Setter Property="BackgroundColor" Value="{StaticResource InputBackgroundColor}" />
+                <Setter Property="TextColor" Value="{StaticResource PrimaryTextColor}" />
+                <Setter Property="PlaceholderColor" Value="{StaticResource MutedTextColor}" />
+                <Setter Property="CancelButtonColor" Value="{StaticResource AccentBlueColor}" />
             </Style>
             <Style TargetType="Editor">
                 <Setter Property="BackgroundColor" Value="{StaticResource InputBackgroundColor}" />
