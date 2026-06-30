@@ -30,6 +30,8 @@ public sealed class MaskControlViewModel : INotifyPropertyChanged
 
         ApplyBrightnessCommand = new AsyncRelayCommand(ApplyBrightnessAsync, CanSendCommand);
         TogglePowerCommand = new AsyncRelayCommand(TogglePowerAsync, CanSendCommand);
+        BlackoutCommand = new AsyncRelayCommand(BlackoutAsync, CanSendCommand);
+        RestoreBrightnessCommand = new AsyncRelayCommand(RestoreBrightnessAsync, CanSendCommand);
 
         EffectPresets =
         [
@@ -45,6 +47,10 @@ public sealed class MaskControlViewModel : INotifyPropertyChanged
     public AsyncRelayCommand ApplyBrightnessCommand { get; }
 
     public AsyncRelayCommand TogglePowerCommand { get; }
+
+    public AsyncRelayCommand BlackoutCommand { get; }
+
+    public AsyncRelayCommand RestoreBrightnessCommand { get; }
 
     public IReadOnlyList<MaskEffectPreset> EffectPresets { get; }
 
@@ -196,6 +202,38 @@ public sealed class MaskControlViewModel : INotifyPropertyChanged
         IsDimmed = targetBrightness <= 1;
     }
 
+    private async Task BlackoutAsync(CancellationToken cancellationToken)
+    {
+        if (Brightness > 1)
+        {
+            restoreBrightness = Brightness;
+        }
+
+        var result = await SendCommandAsync(MaskCommandBuilder.Brightness(1), cancellationToken);
+        if (!result.Succeeded)
+        {
+            return;
+        }
+
+        Brightness = 1;
+        PreviewBrightness = 1;
+        IsDimmed = true;
+    }
+
+    private async Task RestoreBrightnessAsync(CancellationToken cancellationToken)
+    {
+        var targetBrightness = Math.Clamp(restoreBrightness, 2, 100);
+        var result = await SendCommandAsync(MaskCommandBuilder.Brightness(targetBrightness), cancellationToken);
+        if (!result.Succeeded)
+        {
+            return;
+        }
+
+        Brightness = targetBrightness;
+        PreviewBrightness = targetBrightness;
+        IsDimmed = false;
+    }
+
     private async Task SendEffectAsync(MaskCommand command, CancellationToken cancellationToken)
     {
         var result = await SendCommandAsync(command, cancellationToken);
@@ -242,6 +280,8 @@ public sealed class MaskControlViewModel : INotifyPropertyChanged
     {
         ApplyBrightnessCommand.RaiseCanExecuteChanged();
         TogglePowerCommand.RaiseCanExecuteChanged();
+        BlackoutCommand.RaiseCanExecuteChanged();
+        RestoreBrightnessCommand.RaiseCanExecuteChanged();
         foreach (var preset in EffectPresets)
         {
             preset.ApplyCommand.RaiseCanExecuteChanged();

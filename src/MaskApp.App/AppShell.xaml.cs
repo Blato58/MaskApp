@@ -1,8 +1,6 @@
 using MaskApp.App.Features.Connect;
 using MaskApp.App.Features.BuiltIns;
-using MaskApp.App.Features.Home;
-using MaskApp.App.Features.React;
-using MaskApp.App.Features.Rave;
+using MaskApp.App.Features.Gallery;
 using MaskApp.App.Features.Text;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,16 +12,15 @@ public partial class AppShell : Shell
     {
         InitializeComponent();
         Routing.RegisterRoute("text", typeof(TextPage));
+        Routing.RegisterRoute("builtins", typeof(BuiltInsPage));
 
         Items.Add(new TabBar
         {
             Items =
             {
-                CreateShellContent<HomePage>("Control", "control", "icon_control.svg", services),
-                CreateShellContent<ReactPage>("React", "react", "icon_react.svg", services),
-                CreateShellContent<RavePage>("RAVE", "rave", "icon_rave.svg", services),
-                CreateShellContent<BuiltInsPage>("Faces", "builtins", "icon_builtins.svg", services),
-                CreateShellContent<ConnectPage>("Connect", "connect", "icon_connect.svg", services)
+                CreateShellContent<GalleryPage>("Gallery", "gallery", "icon_gallery.svg", services),
+                CreateShellContent<PagesPage>("Pages", "pages", "icon_pages.svg", services),
+                CreateShellContent<ConnectPage>("Control", "control", "icon_control.svg", services)
             }
         });
     }

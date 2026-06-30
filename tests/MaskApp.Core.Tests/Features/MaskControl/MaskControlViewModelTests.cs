@@ -46,6 +46,25 @@ public sealed class MaskControlViewModelTests
     }
 
     [Fact]
+    public async Task BlackoutAndRestoreCommands_UsePreviousBrightness()
+    {
+        var transport = new SimulatedMaskCommandTransport();
+        var viewModel = new MaskControlViewModel(transport)
+        {
+            Brightness = 74
+        };
+
+        await viewModel.BlackoutCommand.ExecuteAsync();
+        await viewModel.RestoreBrightnessCommand.ExecuteAsync();
+
+        Assert.Equal(2, transport.SentCommands.Count);
+        Assert.Equal(1, transport.SentCommands[0].Plaintext.Span[6]);
+        Assert.Equal(74, transport.SentCommands[1].Plaintext.Span[6]);
+        Assert.Equal(74, viewModel.Brightness);
+        Assert.False(viewModel.IsDimmed);
+    }
+
+    [Fact]
     public async Task EffectPresetCommand_UpdatesCurrentEffectAfterSuccess()
     {
         var transport = new SimulatedMaskCommandTransport();

@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="MaskApp.App.Features.Gallery.PagesPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:gallery="clr-namespace:MaskApp.Core.Features.Gallery;assembly=MaskApp.Core"
+    x:DataType="gallery:PagesViewModel"
+    Title="Pages"
+    BackgroundColor="{StaticResource PageBackgroundColor}">
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <Border Margin="18,16,18,8" Style="{StaticResource PanelBorderStyle}">
+            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="Pages" Style="{StaticResource PageTitleLabelStyle}" />
+                        <Label Text="{Binding ShortcutCountText}" Style="{StaticResource TinyLabelStyle}" />
+                    </VerticalStackLayout>
+                    <ActivityIndicator
+                        Grid.Column="1"
+                        IsRunning="{Binding IsSending}"
+                        IsVisible="{Binding IsSending}"
+                        VerticalOptions="Center" />
+                </Grid>
+
+                <CollectionView
+                    Grid.Row="1"
+                    HeightRequest="76"
+                    ItemsSource="{Binding Pages}"
+                    SelectionMode="None">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="gallery:GalleryPageTab">
+                            <Border
+                                Padding="10"
+                                Stroke="{Binding ColorHex}"
+                                StrokeThickness="1"
+                                WidthRequest="132">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                                    <Label Text="{Binding Title}" FontAttributes="Bold" LineBreakMode="TailTruncation" />
+                                    <Button Grid.Column="1" Text="‹" Command="{Binding MoveEarlierCommand}" />
+                                    <Button Grid.Column="2" Text="›" Command="{Binding MoveLaterCommand}" />
+                                    <Button
+                                        Grid.Row="1"
+                                        Grid.ColumnSpan="3"
+                                        Text="Open"
+                                        Command="{Binding SelectCommand}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                    <Entry Placeholder="Page name" Text="{Binding NewPageTitle, Mode=TwoWay}" />
+                    <Button Grid.Column="1" Text="Add page" Command="{Binding AddPageCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                    <Button Grid.Column="2" Text="Color" Command="{Binding CyclePageColorCommand}" />
+                </Grid>
+            </Grid>
+        </Border>
+
+        <Border Margin="18,0,18,8" Style="{StaticResource CompactPanelBorderStyle}" Stroke="{Binding SelectedPageColorHex}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="{Binding SelectedPageTitle}" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="{Binding StatusText}" Style="{StaticResource TinyLabelStyle}" />
+                </VerticalStackLayout>
+                <Button Grid.Column="1" Text="Remove page" Command="{Binding RemovePageCommand}" />
+            </Grid>
+        </Border>
+
+        <CollectionView
+            Grid.Row="2"
+            Margin="18,0"
+            ItemsSource="{Binding Shortcuts}"
+            SelectionMode="None">
+            <CollectionView.ItemsLayout>
+                <GridItemsLayout Orientation="Vertical" Span="4" />
+            </CollectionView.ItemsLayout>
+            <CollectionView.EmptyView>
+                <Grid Padding="18">
+                    <Label
+                        HorizontalTextAlignment="Center"
+                        Text="Add created gallery items below."
+                        Style="{StaticResource MutedLabelStyle}" />
+                </Grid>
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="gallery:GalleryPageShortcutCard">
+                    <VerticalStackLayout Margin="0,0,8,14" Spacing="6">
+                        <Border
+                            BackgroundColor="{Binding ColorHex}"
+                            HeightRequest="62"
+                            Stroke="{Binding ColorHex}"
+                            WidthRequest="62"
+                            HorizontalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <Label
+                                Text="{Binding IconLabel}"
+                                TextColor="#05070D"
+                                FontSize="10"
+                                FontAttributes="Bold"
+                                HorizontalTextAlignment="Center"
+                                VerticalTextAlignment="Center" />
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding SendCommand}" />
+                            </Border.GestureRecognizers>
+                        </Border>
+                        <Label
+                            Text="{Binding Label}"
+                            FontSize="11"
+                            HorizontalTextAlignment="Center"
+                            LineBreakMode="TailTruncation"
+                            MaxLines="2" />
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="4">
+                            <Button Text="‹" Command="{Binding MoveEarlierCommand}" Padding="6,4" />
+                            <Button Grid.Column="1" Text="›" Command="{Binding MoveLaterCommand}" Padding="6,4" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="4">
+                            <Button Text="I" Command="{Binding CycleIconCommand}" Padding="6,4" />
+                            <Button Grid.Column="1" Text="C" Command="{Binding CycleColorCommand}" Padding="6,4" />
+                        </Grid>
+                        <Button Text="Remove" Command="{Binding RemoveCommand}" Padding="6,4" />
+                    </VerticalStackLayout>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Border Grid.Row="3" Margin="18,8,18,16" Style="{StaticResource PanelBorderStyle}">
+            <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                <Label Text="Add existing item" Style="{StaticResource SectionTitleLabelStyle}" />
+                <CollectionView
+                    Grid.Row="1"
+                    HeightRequest="172"
+                    ItemsSource="{Binding AvailableItems}"
+                    SelectionMode="None">
+                    <CollectionView.ItemsLayout>
+                        <GridItemsLayout Orientation="Vertical" Span="2" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="gallery:GalleryAvailableItemCard">
+                            <Border
+                                Margin="0,0,8,8"
+                                Style="{StaticResource ActionCardBorderStyle}"
+                                Stroke="{Binding ColorHex}">
+                                <Grid ColumnDefinitions="42,*,Auto" ColumnSpacing="8">
+                                    <Border BackgroundColor="{Binding ColorHex}" HeightRequest="36" WidthRequest="42">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="8" />
+                                        </Border.StrokeShape>
+                                        <Label
+                                            Text="{Binding IconLabel}"
+                                            TextColor="#05070D"
+                                            FontSize="9"
+                                            FontAttributes="Bold"
+                                            HorizontalTextAlignment="Center"
+                                            VerticalTextAlignment="Center" />
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="1">
+                                        <Label Text="{Binding Title}" FontAttributes="Bold" LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding Subtitle}" Style="{StaticResource TinyLabelStyle}" />
+                                    </VerticalStackLayout>
+                                    <Button Grid.Column="2" Text="Add" Command="{Binding AddCommand}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Grid>
+        </Border>
+    </Grid>
+</ContentPage>
