@@ -3,6 +3,7 @@ using CoreBluetooth;
 using Foundation;
 using MaskApp.Core.Bluetooth;
 using MaskApp.Core.Features.Connect;
+using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.Text;
 using Microsoft.Maui.ApplicationModel;
@@ -13,7 +14,7 @@ using Microsoft.Extensions.Logging;
 
 namespace MaskApp.App.Infrastructure.Bluetooth;
 
-public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleDeviceConnection, IMaskCommandTransport, ITextUploadTransport
+public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleDeviceConnection, IMaskCommandTransport, ITextUploadTransport, IFaceUploadTransport
 {
     private static readonly CBUUID MaskServiceUuid = CBUUID.FromString(MaskBleProtocol.ServiceUuid);
     private static readonly CBUUID CommandCharacteristicUuid = CBUUID.FromString(MaskBleProtocol.CommandCharacteristicUuid);
@@ -28,8 +29,11 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
     private CBCharacteristic? textNotifyCharacteristic;
     private MaskPeripheralDelegate? connectedPeripheralDelegate;
     private TaskCompletionSource<TextUploadAcknowledgement>? pendingTextAcknowledgement;
+    private TaskCompletionSource<FaceUploadAcknowledgement>? pendingFaceAcknowledgement;
     private TextUploadTransportState textUploadState = TextUploadTransportState.Disconnected;
+    private FaceUploadTransportState faceUploadState = FaceUploadTransportState.Disconnected;
     private event EventHandler<TextUploadTransportStateChangedEventArgs>? TextUploadStateChanged;
+    private event EventHandler<FaceUploadTransportStateChangedEventArgs>? FaceUploadStateChanged;
 #if DEBUG
     private readonly ILogger<IosBleAdapter> logger;
 
@@ -48,6 +52,11 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         add => TextUploadStateChanged += value;
         remove => TextUploadStateChanged -= value;
     }
+    event EventHandler<FaceUploadTransportStateChangedEventArgs>? IFaceUploadTransport.StateChanged
+    {
+        add => FaceUploadStateChanged += value;
+        remove => FaceUploadStateChanged -= value;
+    }
 
     public bool IsScanning { get; private set; }
     public BleConnectionState State { get; private set; } = BleConnectionState.Disconnected;
@@ -60,6 +69,7 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         && TransportState == MaskCommandTransportState.Ready;
     public bool SupportsAcknowledgements => textNotifyCharacteristic is not null;
     TextUploadTransportState ITextUploadTransport.State => textUploadState;
+    FaceUploadTransportState IFaceUploadTransport.State => faceUploadState;
     public string StatusText => textUploadState switch
     {
         TextUploadTransportState.Ready => "Text upload ready with ACK confirmation.",
@@ -110,6 +120,8 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         connectedPeripheralDelegate = null;
         pendingTextAcknowledgement?.TrySetCanceled();
         pendingTextAcknowledgement = null;
+        pendingFaceAcknowledgement?.TrySetCanceled();
+        pendingFaceAcknowledgement = null;
         State = BleConnectionState.Connecting;
         SetTransportState(MaskCommandTransportState.Disconnected, "Connecting to mask...");
         ConnectionStateChanged?.Invoke(this, new BleConnectionStateChangedEventArgs(State, $"Connecting to {device.Name}..."));
@@ -132,6 +144,8 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         connectedPeripheralDelegate = null;
         pendingTextAcknowledgement?.TrySetCanceled();
         pendingTextAcknowledgement = null;
+        pendingFaceAcknowledgement?.TrySetCanceled();
+        pendingFaceAcknowledgement = null;
         State = BleConnectionState.Disconnected;
         SetTransportState(MaskCommandTransportState.Disconnected, "Disconnected.");
         ConnectionStateChanged?.Invoke(this, new BleConnectionStateChangedEventArgs(State, "Disconnected."));
@@ -239,6 +253,130 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
             logger.LogDebug(ex, "Failed to upload text payload.");
 #endif
             return TextUploadResult.Failure(ex.Message, 0);
+        }
+    }
+
+    public async Task<FaceUploadResult> UploadAsync(
+        FaceUploadPackage package,
+        FaceUploadOptions options,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!IsReady)
+        {
+            return FaceUploadResult.Failure(StatusText, 0);
+        }
+
+        if (options.CompatibilityWriteOnly || !options.AckRequired)
+        {
+            return await UploadFaceWriteOnlyAsync(package, options, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (!SupportsAcknowledgements)
+        {
+            return FaceUploadResult.Failure(
+                "Face upload ACK notifications are unavailable. Enable write-only compatibility mode to send without confirmation.",
+                0);
+        }
+
+        try
+        {
+            var startAck = await WriteFaceCommandAndWaitAsync(
+                package.StartCommand,
+                FaceUploadAcknowledgement.StartAccepted,
+                cancellationToken).ConfigureAwait(false);
+            if (startAck != FaceUploadAcknowledgement.StartAccepted)
+            {
+                return FaceUploadResult.Failure($"Face upload start failed: {startAck}.", 0);
+            }
+
+            var framesSent = 0;
+            foreach (var frame in package.Frames)
+            {
+                var frameAckTask = WaitForFaceAcknowledgementAsync(
+                    FaceUploadAcknowledgement.FrameAccepted,
+                    cancellationToken);
+                WriteFaceFrame(frame);
+                var frameAck = await frameAckTask.ConfigureAwait(false);
+                if (frameAck != FaceUploadAcknowledgement.FrameAccepted)
+                {
+                    return FaceUploadResult.Failure($"Face frame {frame.Index} failed: {frameAck}.", framesSent);
+                }
+
+                framesSent++;
+            }
+
+            var finishAck = await WriteFaceCommandAndWaitAsync(
+                package.FinishCommand,
+                FaceUploadAcknowledgement.Complete,
+                cancellationToken).ConfigureAwait(false);
+            if (finishAck != FaceUploadAcknowledgement.Complete)
+            {
+                return FaceUploadResult.Failure($"Face upload finish failed: {finishAck}.", framesSent);
+            }
+
+            await DelayFaceWriteAsync(options.PostUploadDelay, cancellationToken).ConfigureAwait(false);
+            var playAck = await WriteFaceCommandAndWaitAsync(
+                package.PlayCommand,
+                FaceUploadAcknowledgement.PlayAccepted,
+                cancellationToken).ConfigureAwait(false);
+            if (playAck != FaceUploadAcknowledgement.PlayAccepted)
+            {
+                return FaceUploadResult.Failure($"Face play failed: {playAck}.", framesSent);
+            }
+
+            return FaceUploadResult.Success($"Uploaded and played DIY face slot {package.Slot} ({framesSent} frame(s)).", framesSent);
+        }
+        catch (OperationCanceledException)
+        {
+            return FaceUploadResult.Failure("Face upload was cancelled.", 0);
+        }
+        catch (Exception ex)
+        {
+#if DEBUG
+            logger.LogDebug(ex, "Failed to upload face payload.");
+#endif
+            return FaceUploadResult.Failure(ex.Message, 0);
+        }
+    }
+
+    private async Task<FaceUploadResult> UploadFaceWriteOnlyAsync(
+        FaceUploadPackage package,
+        FaceUploadOptions options,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            WriteEncryptedCommand(package.StartCommand);
+            await DelayBetweenFaceWritesAsync(options, cancellationToken).ConfigureAwait(false);
+
+            var framesSent = 0;
+            foreach (var frame in package.Frames)
+            {
+                WriteFaceFrame(frame);
+                framesSent++;
+                await DelayBetweenFaceWritesAsync(options, cancellationToken).ConfigureAwait(false);
+            }
+
+            WriteEncryptedCommand(package.FinishCommand);
+            await DelayFaceWriteAsync(options.PostUploadDelay, cancellationToken).ConfigureAwait(false);
+            WriteEncryptedCommand(package.PlayCommand);
+
+            return FaceUploadResult.Success(
+                $"Sent DIY face slot {package.Slot} without ACK confirmation ({framesSent} frame(s)).",
+                framesSent);
+        }
+        catch (OperationCanceledException)
+        {
+            return FaceUploadResult.Failure("Face upload was cancelled.", 0);
+        }
+        catch (Exception ex)
+        {
+#if DEBUG
+            logger.LogDebug(ex, "Failed to upload face payload without ACK confirmation.");
+#endif
+            return FaceUploadResult.Failure(ex.Message, 0);
         }
     }
 
@@ -363,6 +501,18 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         connectedPeripheral.WriteValue(payload, writeCharacteristic, CBCharacteristicWriteType.WithoutResponse);
     }
 
+    private void WriteFaceFrame(FaceUploadFrame frame)
+    {
+        var writeCharacteristic = textUploadWriteCharacteristic ?? generalWriteCharacteristic;
+        if (connectedPeripheral is null || writeCharacteristic is null)
+        {
+            throw new InvalidOperationException("Mask controls are not ready.");
+        }
+
+        using var payload = NSData.FromArray(frame.Data.ToArray());
+        connectedPeripheral.WriteValue(payload, writeCharacteristic, CBCharacteristicWriteType.WithoutResponse);
+    }
+
     public override void UpdatedState(CBCentralManager central)
     {
         var message = central.State switch
@@ -434,6 +584,8 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         connectedPeripheralDelegate = null;
         pendingTextAcknowledgement?.TrySetCanceled();
         pendingTextAcknowledgement = null;
+        pendingFaceAcknowledgement?.TrySetCanceled();
+        pendingFaceAcknowledgement = null;
         SetTransportState(MaskCommandTransportState.Failed, message);
         MainThread.BeginInvokeOnMainThread(() =>
             ConnectionStateChanged?.Invoke(this, new BleConnectionStateChangedEventArgs(State, message)));
@@ -450,6 +602,8 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         connectedPeripheralDelegate = null;
         pendingTextAcknowledgement?.TrySetCanceled();
         pendingTextAcknowledgement = null;
+        pendingFaceAcknowledgement?.TrySetCanceled();
+        pendingFaceAcknowledgement = null;
         SetTransportState(MaskCommandTransportState.Disconnected, message);
         MainThread.BeginInvokeOnMainThread(() =>
             ConnectionStateChanged?.Invoke(this, new BleConnectionStateChangedEventArgs(State, message)));
@@ -594,6 +748,7 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         TransportState = state;
         TransportStatusText = message;
         RefreshTextUploadState(message);
+        RefreshFaceUploadState(message);
         MainThread.BeginInvokeOnMainThread(() =>
             TransportStateChanged?.Invoke(this, new MaskCommandTransportStateChangedEventArgs(state, message)));
     }
@@ -627,10 +782,47 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
                     IsReady)));
     }
 
+    private void RefreshFaceUploadState(string fallbackMessage)
+    {
+        var state = TransportState switch
+        {
+            MaskCommandTransportState.Ready when IsReady && SupportsAcknowledgements => FaceUploadTransportState.Ready,
+            MaskCommandTransportState.Ready when IsReady => FaceUploadTransportState.CompatibilityReady,
+            MaskCommandTransportState.Discovering => FaceUploadTransportState.Discovering,
+            MaskCommandTransportState.Failed => FaceUploadTransportState.Failed,
+            _ => FaceUploadTransportState.Disconnected
+        };
+
+        var message = state switch
+        {
+            FaceUploadTransportState.Ready => "Face upload ready with ACK confirmation.",
+            FaceUploadTransportState.CompatibilityReady => "Face upload write-only compatibility ready. ACK notifications were not found.",
+            _ => fallbackMessage
+        };
+
+        faceUploadState = state;
+        MainThread.BeginInvokeOnMainThread(() =>
+            FaceUploadStateChanged?.Invoke(
+                this,
+                new FaceUploadTransportStateChangedEventArgs(
+                    state,
+                    message,
+                    SupportsAcknowledgements,
+                    IsReady)));
+    }
+
     private static Task DelayBetweenTextWritesAsync(TextUploadOptions options, CancellationToken cancellationToken) =>
         DelayTextWriteAsync(options.InterFrameDelay, cancellationToken);
 
     private static Task DelayTextWriteAsync(TimeSpan delay, CancellationToken cancellationToken) =>
+        delay > TimeSpan.Zero
+            ? Task.Delay(delay, cancellationToken)
+            : Task.CompletedTask;
+
+    private static Task DelayBetweenFaceWritesAsync(FaceUploadOptions options, CancellationToken cancellationToken) =>
+        DelayFaceWriteAsync(options.InterFrameDelay, cancellationToken);
+
+    private static Task DelayFaceWriteAsync(TimeSpan delay, CancellationToken cancellationToken) =>
         delay > TimeSpan.Zero
             ? Task.Delay(delay, cancellationToken)
             : Task.CompletedTask;
@@ -680,6 +872,45 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         return acknowledgement == TextUploadAcknowledgement.Error ? acknowledgement : expectedAcknowledgement == acknowledgement ? acknowledgement : TextUploadAcknowledgement.Unknown;
     }
 
+    private async Task<FaceUploadAcknowledgement> WriteFaceCommandAndWaitAsync(
+        MaskCommand command,
+        FaceUploadAcknowledgement expectedAcknowledgement,
+        CancellationToken cancellationToken)
+    {
+        var acknowledgementTask = WaitForFaceAcknowledgementAsync(expectedAcknowledgement, cancellationToken);
+        WriteEncryptedCommand(command);
+        return await acknowledgementTask.ConfigureAwait(false);
+    }
+
+    private async Task<FaceUploadAcknowledgement> WaitForFaceAcknowledgementAsync(
+        FaceUploadAcknowledgement expectedAcknowledgement,
+        CancellationToken cancellationToken)
+    {
+        var acknowledgementSource = new TaskCompletionSource<FaceUploadAcknowledgement>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        pendingFaceAcknowledgement = acknowledgementSource;
+
+        using var cancellationRegistration = cancellationToken.Register(() =>
+            acknowledgementSource.TrySetCanceled(cancellationToken));
+        var completedTask = await Task.WhenAny(
+            acknowledgementSource.Task,
+            Task.Delay(TimeSpan.FromSeconds(5), cancellationToken)).ConfigureAwait(false);
+
+        if (completedTask != acknowledgementSource.Task)
+        {
+            pendingFaceAcknowledgement = null;
+            return FaceUploadAcknowledgement.Unknown;
+        }
+
+        var acknowledgement = await acknowledgementSource.Task.ConfigureAwait(false);
+        pendingFaceAcknowledgement = null;
+        return acknowledgement == FaceUploadAcknowledgement.Error
+            ? acknowledgement
+            : expectedAcknowledgement == acknowledgement
+                ? acknowledgement
+                : FaceUploadAcknowledgement.Unknown;
+    }
+
     private void HandleTextAcknowledgement(CBCharacteristic characteristic, NSError? error)
     {
         if (error is not null || textNotifyCharacteristic is null || !IsUuid(characteristic.UUID, textNotifyCharacteristic.UUID) || characteristic.Value is null)
@@ -691,6 +922,12 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         if (acknowledgement != TextUploadAcknowledgement.Unknown)
         {
             pendingTextAcknowledgement?.TrySetResult(acknowledgement);
+        }
+
+        var faceAcknowledgement = FaceUploadProtocol.ParseEncryptedAcknowledgement(ToByteArray(characteristic.Value));
+        if (faceAcknowledgement != FaceUploadAcknowledgement.Unknown)
+        {
+            pendingFaceAcknowledgement?.TrySetResult(faceAcknowledgement);
         }
     }
 

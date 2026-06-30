@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using MaskApp.Core.Features.BuiltIns;
 using MaskApp.Core.Features.Connect;
+using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.QuickActions;
 using MaskApp.Core.Features.TextPresets;
 
@@ -22,6 +23,7 @@ public sealed class PageAddItemViewModel : INotifyPropertyChanged
     private readonly GalleryCatalogBuilder catalogBuilder;
     private readonly ITextPresetStore textPresetStore;
     private readonly IBuiltInAssetArchiveStore builtInArchiveStore;
+    private readonly IFacePatternStore facePatternStore;
     private readonly IGalleryLayoutStore layoutStore;
     private GalleryLayoutState layoutState = new();
     private IReadOnlyList<GalleryItem> allItems = [];
@@ -43,11 +45,13 @@ public sealed class PageAddItemViewModel : INotifyPropertyChanged
         QuickActionCatalog quickActionCatalog,
         ITextPresetStore textPresetStore,
         IBuiltInAssetArchiveStore builtInArchiveStore,
+        IFacePatternStore facePatternStore,
         IGalleryLayoutStore layoutStore)
     {
         catalogBuilder = new GalleryCatalogBuilder(quickActionCatalog);
         this.textPresetStore = textPresetStore;
         this.builtInArchiveStore = builtInArchiveStore;
+        this.facePatternStore = facePatternStore;
         this.layoutStore = layoutStore;
     }
 
@@ -195,7 +199,8 @@ public sealed class PageAddItemViewModel : INotifyPropertyChanged
         layoutState = (await layoutStore.LoadAsync(cancellationToken)).Normalize();
         var textState = await textPresetStore.LoadAsync(cancellationToken);
         var archive = await builtInArchiveStore.LoadAsync(cancellationToken);
-        allItems = catalogBuilder.Build(textState, archive, layoutState.Order);
+        var faces = await facePatternStore.LoadAsync(cancellationToken);
+        allItems = catalogBuilder.Build(textState, archive, faces, layoutState.Order);
         selectedPage = layoutState.Pages.FirstOrDefault(page => page.PageId == pageId)
             ?? layoutState.Pages.First();
         pageId = selectedPage.PageId;

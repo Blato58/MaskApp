@@ -1,5 +1,6 @@
 using MaskApp.App.Features.Connect;
 using MaskApp.App.Features.BuiltIns;
+using MaskApp.App.Features.Faces;
 using MaskApp.App.Features.Gallery;
 using MaskApp.App.Features.Text;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +14,7 @@ public partial class AppShell : Shell
         InitializeComponent();
         Routing.RegisterRoute("text", typeof(TextPage));
         Routing.RegisterRoute("builtins", typeof(BuiltInsPage));
+        Routing.RegisterRoute("faces", typeof(FaceStudioPage));
         Routing.RegisterRoute("library-add", typeof(LibraryAddPage));
         Routing.RegisterRoute("page-add-item", typeof(PageAddItemPage));
 

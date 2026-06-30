@@ -1,4 +1,5 @@
 using MaskApp.Core.Features.BuiltIns;
+using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.QuickActions;
 using MaskApp.Core.Features.TextPresets;
 
@@ -42,11 +43,14 @@ public sealed record GalleryItem
 
     public BuiltInAssetRecord? BuiltInAssetRecord { get; init; }
 
+    public FacePattern? FacePattern { get; init; }
+
     public string TypeLabel => Type switch
     {
         GalleryItemType.TextPreset => "Text",
         GalleryItemType.BuiltInStaticImage => "Face",
         GalleryItemType.BuiltInAnimation => "Animation",
+        GalleryItemType.CustomStaticFace => "DIY Face",
         GalleryItemType.QuickAction => "Quick",
         GalleryItemType.FutureCustomImage => "Image Lab",
         GalleryItemType.FutureCustomAnimation => "Animation Lab",

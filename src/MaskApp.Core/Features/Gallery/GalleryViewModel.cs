@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using MaskApp.Core.Features.BuiltIns;
 using MaskApp.Core.Features.Connect;
+using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.QuickActions;
 using MaskApp.Core.Features.Text;
@@ -14,11 +15,13 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
     private readonly GalleryCatalogBuilder catalogBuilder;
     private readonly ITextPresetStore textPresetStore;
     private readonly IBuiltInAssetArchiveStore builtInArchiveStore;
+    private readonly IFacePatternStore facePatternStore;
     private readonly IGalleryLayoutStore layoutStore;
     private readonly IQuickActionDispatcher quickActionDispatcher;
     private readonly ITextPresetDispatcher textPresetDispatcher;
     private readonly IMaskCommandTransport commandTransport;
     private readonly ITextUploadTransport textTransport;
+    private readonly IFaceUploadTransport faceTransport;
     private readonly HashSet<string> selectedItemIds = new(StringComparer.Ordinal);
     private GalleryLayoutState layoutState = new();
     private IReadOnlyList<GalleryItem> allItems = [];
@@ -42,20 +45,24 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         QuickActionCatalog quickActionCatalog,
         ITextPresetStore textPresetStore,
         IBuiltInAssetArchiveStore builtInArchiveStore,
+        IFacePatternStore facePatternStore,
         IGalleryLayoutStore layoutStore,
         IQuickActionDispatcher quickActionDispatcher,
         ITextPresetDispatcher textPresetDispatcher,
         IMaskCommandTransport commandTransport,
-        ITextUploadTransport textTransport)
+        ITextUploadTransport textTransport,
+        IFaceUploadTransport faceTransport)
     {
         catalogBuilder = new GalleryCatalogBuilder(quickActionCatalog);
         this.textPresetStore = textPresetStore;
         this.builtInArchiveStore = builtInArchiveStore;
+        this.facePatternStore = facePatternStore;
         this.layoutStore = layoutStore;
         this.quickActionDispatcher = quickActionDispatcher;
         this.textPresetDispatcher = textPresetDispatcher;
         this.commandTransport = commandTransport;
         this.textTransport = textTransport;
+        this.faceTransport = faceTransport;
         GroupingOptions =
         [
             new GalleryGroupingOption("Manual groups", GalleryGroupingMode.Manual),
@@ -71,7 +78,7 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
             new GalleryAddOption(GalleryAddOptionKind.EditTextPresets, "Manage text presets", "Open the saved text preset editor.", "txt", "#A78BFA", true),
             new GalleryAddOption(GalleryAddOptionKind.ScanBuiltInStaticFace, "Scan built-in face", "Send and mark IMAG IDs in the hidden scanner.", "face", "#52E3FF", true),
             new GalleryAddOption(GalleryAddOptionKind.ScanBuiltInAnimation, "Scan built-in animation", "Send and mark ANIM IDs in the hidden scanner.", "anim", "#FF3D8B", true),
-            new GalleryAddOption(GalleryAddOptionKind.ImportCustomImage, "Import custom image", "Future/Labs until image upload is implemented.", "face", "#475569", false),
+            new GalleryAddOption(GalleryAddOptionKind.ImportCustomImage, "Create custom face", "Draw, import, save, upload, and play a 36x12 DIY face.", "face", "#FACC15", true),
             new GalleryAddOption(GalleryAddOptionKind.ImportCustomAnimation, "Import animation", "Future/Labs until DIY playback is verified.", "anim", "#475569", false),
             new GalleryAddOption(GalleryAddOptionKind.ImportMaskPack, "Import MaskPack", "Manifest support exists; playback remains future work.", "pack", "#475569", false)
         ];
@@ -370,6 +377,7 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
     public string ManagedItemEditorLabel => ManagedItem?.ManageTarget switch
     {
         "text" => "Open Text Composer",
+        "faces" => "Open Face Studio",
         "builtins" => "Open Built-in Scanner",
         _ => "Editor unavailable"
     };
@@ -379,7 +387,8 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         layoutState = (await layoutStore.LoadAsync(cancellationToken)).Normalize();
         var textState = await textPresetStore.LoadAsync(cancellationToken);
         var builtIns = await builtInArchiveStore.LoadAsync(cancellationToken);
-        allItems = catalogBuilder.Build(textState, builtIns, layoutState.Order);
+        var faces = await facePatternStore.LoadAsync(cancellationToken);
+        allItems = catalogBuilder.Build(textState, builtIns, faces, layoutState.Order);
         RebuildGroups();
     }
 
@@ -403,6 +412,8 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
                     await SendTextPresetAsync(item.TextPreset, cancellationToken),
                 GalleryItemType.BuiltInStaticImage or GalleryItemType.BuiltInAnimation when item.BuiltInAssetRecord is not null =>
                     await SendBuiltInAsync(item.BuiltInAssetRecord, cancellationToken),
+                GalleryItemType.CustomStaticFace when item.FacePattern is not null =>
+                    await SendFaceAsync(item.FacePattern, cancellationToken),
                 GalleryItemType.QuickAction when item.QuickActionId.HasValue =>
                     await SendQuickActionAsync(item.QuickActionId.Value, cancellationToken),
                 _ => "Not implemented yet"
@@ -596,6 +607,7 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
             GalleryItemType.TextPreset => textTransport.IsReady,
             GalleryItemType.BuiltInStaticImage or GalleryItemType.BuiltInAnimation
                 => commandTransport.TransportState == MaskCommandTransportState.Ready,
+            GalleryItemType.CustomStaticFace => faceTransport.IsReady,
             GalleryItemType.QuickAction => item.QuickActionKind switch
             {
                 QuickActionKind.Text or QuickActionKind.Random => textTransport.IsReady,
@@ -626,6 +638,28 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
 
         var result = await commandTransport.SendAsync(BuiltInAssetCommandFactory.CreateCommand(record), cancellationToken);
         return result.Succeeded ? "Sent, confirm on mask" : result.Message;
+    }
+
+    private async Task<string> SendFaceAsync(FacePattern pattern, CancellationToken cancellationToken)
+    {
+        if (!faceTransport.IsReady)
+        {
+            return "Face upload not ready";
+        }
+
+        var normalized = pattern.Normalize();
+        var options = faceTransport.SupportsAcknowledgements
+            ? FaceUploadOptions.RequireAcknowledgements
+            : FaceUploadOptions.WriteOnlyCompatibility;
+        var package = FaceUploadProtocol.CreatePackage(normalized, normalized.PreferredSlot);
+        var result = await faceTransport.UploadAsync(package, options, cancellationToken);
+        var status = result.Succeeded
+            ? $"Uploaded slot {normalized.PreferredSlot}; needs real-mask visual confirmation."
+            : result.Message;
+        var state = await facePatternStore.LoadAsync(cancellationToken);
+        await facePatternStore.SaveAsync(state.MarkUploaded(normalized.Id, status, DateTimeOffset.UtcNow), cancellationToken);
+        await InitializeAsync(cancellationToken);
+        return status;
     }
 
     private async Task<string> SendQuickActionAsync(QuickActionId actionId, CancellationToken cancellationToken)

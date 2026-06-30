@@ -41,6 +41,9 @@ public partial class LibraryAddPage : ContentPage
             case GalleryAddOptionKind.ScanBuiltInAnimation:
                 await Shell.Current.GoToAsync("builtins");
                 break;
+            case GalleryAddOptionKind.ImportCustomImage:
+                await Shell.Current.GoToAsync("faces");
+                break;
         }
     }
 }

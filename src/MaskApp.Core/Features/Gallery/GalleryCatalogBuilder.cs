@@ -1,4 +1,5 @@
 using MaskApp.Core.Features.BuiltIns;
+using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.QuickActions;
 using MaskApp.Core.Features.TextPresets;
 
@@ -16,6 +17,7 @@ public sealed class GalleryCatalogBuilder
     public IReadOnlyList<GalleryItem> Build(
         TextPresetStoreState textPresetState,
         BuiltInAssetArchive builtInArchive,
+        FacePatternStoreState faceState,
         GalleryOrderState orderState)
     {
         var items = new List<GalleryItem>();
@@ -27,6 +29,9 @@ public sealed class GalleryCatalogBuilder
 
         items.AddRange(builtInArchive.FavoriteOrTestedRecords()
             .Select(record => CreateBuiltInItem(record, sortIndex++)));
+
+        items.AddRange(faceState.Normalize().Patterns
+            .Select(pattern => CreateFaceItem(pattern, sortIndex++)));
 
         items.AddRange(quickActionCatalog.Actions
             .Where(action => action.Kind is QuickActionKind.Text or QuickActionKind.Command or QuickActionKind.BuiltInImage or QuickActionKind.BuiltInAnimation or QuickActionKind.Random)
@@ -80,6 +85,35 @@ public sealed class GalleryCatalogBuilder
         };
     }
 
+    private static GalleryItem CreateFaceItem(FacePattern pattern, int sortIndex)
+    {
+        var normalized = pattern.Normalize();
+        return new GalleryItem
+        {
+            Id = $"face:{normalized.Id}",
+            Type = GalleryItemType.CustomStaticFace,
+            Title = normalized.DisplayName,
+            Subtitle = $"{normalized.SourceLabel} / Slot {normalized.PreferredSlot}",
+            GroupName = normalized.IsBuiltIn ? "Built-in smileys" : "Custom faces",
+            IsFavorite = normalized.IsFavorite,
+            ColorHex = normalized.AccentColorHex,
+            IconKey = normalized.Emotion switch
+            {
+                FaceEmotion.Happy => "lucide:smile",
+                FaceEmotion.Meh => "lucide:meh",
+                FaceEmotion.Wink => "lucide:laugh",
+                _ => "face"
+            },
+            SortIndex = sortIndex,
+            LastSentAt = normalized.LastUploadedAt,
+            LastSendStatus = string.IsNullOrWhiteSpace(normalized.LastUploadStatus)
+                ? "DIY upload needs real-mask test"
+                : normalized.LastUploadStatus,
+            ManageTarget = "faces",
+            FacePattern = normalized
+        };
+    }
+
     private static GalleryItem CreateQuickActionItem(QuickActionDefinition action, int sortIndex) =>
         new()
         {
@@ -103,20 +137,6 @@ public sealed class GalleryCatalogBuilder
     {
         yield return new GalleryItem
         {
-            Id = "future:custom-image",
-            Type = GalleryItemType.FutureCustomImage,
-            Title = "Custom static face",
-            Subtitle = "Image upload remains future/Labs until implemented and tested.",
-            GroupName = "Labs",
-            ColorHex = "#475569",
-            IconKey = "face",
-            SortIndex = startSortIndex,
-            CanSend = false,
-            CanManage = false,
-            LastSendStatus = "Not implemented"
-        };
-        yield return new GalleryItem
-        {
             Id = "future:custom-animation",
             Type = GalleryItemType.FutureCustomAnimation,
             Title = "Custom animation",
@@ -124,7 +144,7 @@ public sealed class GalleryCatalogBuilder
             GroupName = "Labs",
             ColorHex = "#475569",
             IconKey = "anim",
-            SortIndex = startSortIndex + 1,
+            SortIndex = startSortIndex,
             CanSend = false,
             CanManage = false,
             LastSendStatus = "Not implemented"

@@ -72,6 +72,12 @@ public partial class GalleryPage : ContentPage
         if (string.Equals(item.ManageTarget, "builtins", StringComparison.Ordinal))
         {
             await Shell.Current.GoToAsync("builtins");
+            return;
+        }
+
+        if (string.Equals(item.ManageTarget, "faces", StringComparison.Ordinal))
+        {
+            await Shell.Current.GoToAsync("faces");
         }
     }
 

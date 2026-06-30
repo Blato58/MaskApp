@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="MaskApp.App.Features.Faces.FaceStudioPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:faces="clr-namespace:MaskApp.Core.Features.Faces;assembly=MaskApp.Core"
+    x:DataType="faces:FaceStudioViewModel"
+    Title="Face Studio"
+    BackgroundColor="{StaticResource PageBackgroundColor}">
+    <ScrollView>
+        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="16">
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Face Studio" Style="{StaticResource PageTitleLabelStyle}" />
+                            <Label Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="1" Style="{StaticResource StatusPillBorderStyle}">
+                            <Label Text="{Binding SlotSummaryText}" Style="{StaticResource ChipLabelStyle}" />
+                        </Border>
+                    </Grid>
+
+                    <Entry
+                        Grid.Row="1"
+                        Placeholder="Face name"
+                        Text="{Binding FaceName, Mode=TwoWay}" />
+
+                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <Slider
+                            Minimum="1"
+                            Maximum="20"
+                            Value="{Binding SelectedSlot, Mode=TwoWay}" />
+                        <Label
+                            Grid.Column="1"
+                            Text="{Binding SelectedSlot, StringFormat='Slot {0}'}"
+                            Style="{StaticResource MetricLabelStyle}"
+                            VerticalTextAlignment="Center" />
+                    </Grid>
+
+                    <Grid Grid.Row="3" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                        <Button Text="Pick Photo" Clicked="OnPickPhotoClicked" />
+                        <Button Grid.Column="1" Text="Camera" Clicked="OnCapturePhotoClicked" />
+                        <Button Grid.Row="1" Text="New Blank" Command="{Binding NewBlankCommand}" />
+                        <Button Grid.Row="1" Grid.Column="1" Text="Upload + Play" Command="{Binding UploadCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="36x12 editor" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Label Text="{Binding CurrentPatternSubtitle}" Style="{StaticResource TinyLabelStyle}" />
+                        </VerticalStackLayout>
+                        <ActivityIndicator
+                            Grid.Column="1"
+                            IsRunning="{Binding IsSending}"
+                            IsVisible="{Binding IsSending}" />
+                    </Grid>
+
+                    <GraphicsView
+                        x:Name="FaceCanvas"
+                        Grid.Row="1"
+                        HeightRequest="220"
+                        StartInteraction="OnCanvasInteraction"
+                        DragInteraction="OnCanvasInteraction" />
+
+                    <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                        <Switch IsToggled="{Binding IsEraseMode, Mode=TwoWay}" />
+                        <Label Grid.Column="1" Text="{Binding DrawModeText}" VerticalTextAlignment="Center" />
+                        <Label Grid.Column="2" Text="{Binding SelectedColorSummary}" Style="{StaticResource TinyLabelStyle}" VerticalTextAlignment="Center" />
+                    </Grid>
+
+                    <Grid Grid.Row="3" RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                        <Button BackgroundColor="#FACC15" BorderColor="#FACC15" Clicked="OnColorClicked" CommandParameter="Yellow" HeightRequest="42" Text="" WidthRequest="46" />
+                        <Button Grid.Column="1" BackgroundColor="#FFFFFF" BorderColor="#D1D5DB" BorderWidth="1" Clicked="OnColorClicked" CommandParameter="White" HeightRequest="42" Text="" WidthRequest="46" />
+                        <Button Grid.Column="2" BackgroundColor="#52E3FF" BorderColor="#52E3FF" Clicked="OnColorClicked" CommandParameter="Cyan" HeightRequest="42" Text="" WidthRequest="46" />
+                        <Button Grid.Column="3" BackgroundColor="#F472B6" BorderColor="#F472B6" Clicked="OnColorClicked" CommandParameter="Pink" HeightRequest="42" Text="" WidthRequest="46" />
+                        <Button Grid.Column="4" BackgroundColor="#22C55E" BorderColor="#22C55E" Clicked="OnColorClicked" CommandParameter="Green" HeightRequest="42" Text="" WidthRequest="46" />
+                        <Button Grid.Column="5" BackgroundColor="#EF4444" BorderColor="#EF4444" Clicked="OnColorClicked" CommandParameter="Red" HeightRequest="42" Text="" WidthRequest="46" />
+                        <Button Grid.Column="6" BackgroundColor="#A855F7" BorderColor="#A855F7" Clicked="OnColorClicked" CommandParameter="Purple" HeightRequest="42" Text="" WidthRequest="46" />
+
+                        <Button Grid.Row="1" Text="Clear" Command="{Binding ClearCommand}" />
+                        <Button Grid.Row="1" Grid.Column="1" Text="Mirror" Command="{Binding MirrorCommand}" />
+                        <Button Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Text="Save" Command="{Binding SaveCommand}" />
+                        <Button Grid.Row="1" Grid.Column="4" Grid.ColumnSpan="2" Text="Save Copy" Command="{Binding SaveAsCopyCommand}" />
+                        <Button Grid.Row="1" Grid.Column="6" Text="Delete" Command="{Binding DeleteCommand}" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Saved faces" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Label Text="{Binding StoreStatusText}" Style="{StaticResource TinyLabelStyle}" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="1" Style="{StaticResource StatusPillBorderStyle}">
+                            <Label Text="{Binding PatternCards.Count, StringFormat='{0} faces'}" Style="{StaticResource ChipLabelStyle}" />
+                        </Border>
+                    </Grid>
+
+                    <CollectionView Grid.Row="1" HeightRequest="430" ItemsSource="{Binding PatternCards}" SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="faces:FacePatternCard">
+                                <Border Margin="0,0,0,10" Style="{StaticResource ActionCardBorderStyle}" Stroke="{Binding AccentColorHex}">
+                                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                            <Border BackgroundColor="{Binding AccentColorHex}" HeightRequest="38" Stroke="{Binding AccentColorHex}" WidthRequest="44">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="10" />
+                                                </Border.StrokeShape>
+                                                <Label Text="FACE" TextColor="#05070D" FontSize="9" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                            </Border>
+                                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                                <Label Text="{Binding DisplayName}" FontSize="18" FontAttributes="Bold" />
+                                                <Label Text="{Binding Subtitle}" Style="{StaticResource MutedLabelStyle}" />
+                                            </VerticalStackLayout>
+                                        </Grid>
+                                        <Label Grid.Row="1" Text="{Binding StatusText}" Style="{StaticResource TinyLabelStyle}" />
+                                        <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                            <Button Text="Open" Command="{Binding OpenCommand}" />
+                                            <Button Grid.Column="1" Text="Upload" Command="{Binding UploadCommand}" Style="{StaticResource NeonBlueButtonStyle}" />
+                                            <Button Grid.Column="2" Text="Delete" Command="{Binding DeleteCommand}" />
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="{Binding ActiveTransportText}" Style="{StaticResource MutedLabelStyle}" />
+                            <Label Text="{Binding AcknowledgementModeText}" Style="{StaticResource TinyLabelStyle}" />
+                        </VerticalStackLayout>
+                        <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
+                            <Label Text="Write-only" Style="{StaticResource TinyLabelStyle}" VerticalTextAlignment="Center" />
+                            <Switch IsEnabled="{Binding CanUseCompatibilityWriteOnly}" IsToggled="{Binding UseCompatibilityWriteOnly, Mode=TwoWay}" />
+                        </HorizontalStackLayout>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+                    <Label Text="Diagnostics" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Grid Grid.Row="1" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="4">
+                        <Label Text="Command" Style="{StaticResource TinyLabelStyle}" />
+                        <Label Grid.Column="1" Text="{Binding LastCommandText}" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Grid.Row="1" Text="Frames" Style="{StaticResource TinyLabelStyle}" />
+                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding FrameCount}" Style="{StaticResource MutedLabelStyle}" />
+                        <Label Grid.Row="2" Text="Payload" Style="{StaticResource TinyLabelStyle}" />
+                        <Label Grid.Row="2" Grid.Column="1" FontSize="12" LineBreakMode="CharacterWrap" Text="{Binding LastPayloadHex}" TextColor="{StaticResource SecondaryTextColor}" />
+                    </Grid>
+                </Grid>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

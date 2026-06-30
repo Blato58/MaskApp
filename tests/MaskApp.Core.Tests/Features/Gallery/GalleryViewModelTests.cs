@@ -1,4 +1,5 @@
 using MaskApp.Core.Features.BuiltIns;
+using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.Gallery;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.QuickActions;
@@ -229,16 +230,19 @@ public sealed class GalleryViewModelTests
     {
         textStore ??= new InMemoryTextPresetStore(new TextPresetStoreState { Presets = textPresets ?? [] });
         var builtInStore = new InMemoryBuiltInAssetArchiveStore(archive ?? BuiltInAssetArchive.Empty);
+        var faceStore = new InMemoryFacePatternStore();
         var textTransport = new RecordingTextTransport();
         return new GalleryViewModel(
             new QuickActionCatalog(),
             textStore,
             builtInStore,
+            faceStore,
             layoutStore ?? new RecordingGalleryLayoutStore(),
             quickDispatcher ?? new RecordingQuickActionDispatcher(),
             presetDispatcher ?? new RecordingTextPresetDispatcher(),
             commandTransport ?? new RecordingCommandTransport(),
-            textTransport);
+            textTransport,
+            new RecordingFaceTransport());
     }
 
     private static GalleryItemCard[] Flatten(GalleryViewModel viewModel) =>
@@ -347,5 +351,32 @@ public sealed class GalleryViewModelTests
             TextUploadOptions options,
             CancellationToken cancellationToken = default) =>
             Task.FromResult(TextUploadResult.Success("Sent.", package.Frames.Count));
+    }
+
+    private sealed class RecordingFaceTransport : IFaceUploadTransport
+    {
+        public event EventHandler<FaceUploadTransportStateChangedEventArgs>? StateChanged
+        {
+            add { }
+            remove { }
+        }
+
+        public string TransportDisplayName => "Face";
+
+        public bool IsSimulated => true;
+
+        public bool IsReady => true;
+
+        public bool SupportsAcknowledgements => true;
+
+        public FaceUploadTransportState State => FaceUploadTransportState.Ready;
+
+        public string StatusText => "Ready.";
+
+        public Task<FaceUploadResult> UploadAsync(
+            FaceUploadPackage package,
+            FaceUploadOptions options,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(FaceUploadResult.Success("Sent.", package.Frames.Count));
     }
 }
