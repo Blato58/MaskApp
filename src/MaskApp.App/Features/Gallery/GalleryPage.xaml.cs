@@ -19,27 +19,43 @@ public partial class GalleryPage : ContentPage
         await viewModel.InitializeAsync();
     }
 
-    private void OnManageClicked(object? sender, EventArgs e)
-    {
-        if (sender is not Button { CommandParameter: GalleryItem item } || !item.CanManage)
-        {
-            return;
-        }
+    private void OnSearchDone(object? sender, EventArgs e) => DismissSearch();
 
-        viewModel.OpenManageSheet(item);
+    private void OnDismissSearchClicked(object? sender, EventArgs e) => DismissSearch();
+
+    private async void OnAddClicked(object? sender, EventArgs e)
+    {
+        DismissSearch();
+        await Shell.Current.GoToAsync("library-add");
     }
 
-    private async void OnOpenManagedEditorClicked(object? sender, EventArgs e)
+    private async void OnBrowseCardTapped(object? sender, TappedEventArgs e)
     {
-        var item = viewModel.ManagedItem;
-        if (item is null || !item.CanManage)
+        DismissSearch();
+        if (e.Parameter is GalleryItem item)
         {
-            return;
+            await viewModel.SendAsync(item);
         }
+    }
 
+    private async void OnEditClicked(object? sender, EventArgs e)
+    {
+        DismissSearch();
+        if (sender is Button { CommandParameter: GalleryItem item })
+        {
+            await OpenEditorAsync(item);
+        }
+    }
+
+    private static async Task OpenEditorAsync(GalleryItem item)
+    {
         if (string.Equals(item.ManageTarget, "text", StringComparison.Ordinal))
         {
-            await Shell.Current.GoToAsync("text");
+            var presetId = item.TextPreset?.Id.Value;
+            var route = string.IsNullOrWhiteSpace(presetId)
+                ? "text"
+                : $"text?presetId={Uri.EscapeDataString(presetId)}";
+            await Shell.Current.GoToAsync(route);
             return;
         }
 
@@ -49,23 +65,5 @@ public partial class GalleryPage : ContentPage
         }
     }
 
-    private static async void OnAddOptionClicked(object? sender, EventArgs e)
-    {
-        if (sender is not Button { CommandParameter: GalleryAddOption option } || !option.IsAvailable)
-        {
-            return;
-        }
-
-        switch (option.Kind)
-        {
-            case GalleryAddOptionKind.NewTextPreset:
-            case GalleryAddOptionKind.EditTextPresets:
-                await Shell.Current.GoToAsync("text");
-                break;
-            case GalleryAddOptionKind.ScanBuiltInStaticFace:
-            case GalleryAddOptionKind.ScanBuiltInAnimation:
-                await Shell.Current.GoToAsync("builtins");
-                break;
-        }
-    }
+    private void DismissSearch() => SearchBox.Unfocus();
 }

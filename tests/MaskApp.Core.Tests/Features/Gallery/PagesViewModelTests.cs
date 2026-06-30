@@ -82,6 +82,26 @@ public sealed class PagesViewModelTests
     }
 
     [Fact]
+    public async Task PageDotsAndSelection_UpdateCurrentPagePosition()
+    {
+        var viewModel = CreateViewModel();
+
+        await viewModel.InitializeAsync();
+        await viewModel.AddPageCommand.ExecuteAsync();
+
+        Assert.Equal(3, viewModel.Pages.Count);
+        Assert.Equal("Page 3 of 3", viewModel.PagePositionText);
+        Assert.Equal("ON", viewModel.Pages[2].DotText);
+        Assert.Equal("OFF", viewModel.Pages[0].DotText);
+
+        await viewModel.Pages[0].SelectCommand.ExecuteAsync();
+
+        Assert.Equal("Page 1 of 3", viewModel.PagePositionText);
+        Assert.Equal("ON", viewModel.Pages[0].DotText);
+        Assert.Equal("OFF", viewModel.Pages[2].DotText);
+    }
+
+    [Fact]
     public async Task RemovePageCommand_RequiresConfirmationAndKeepsLibraryItems()
     {
         var preset = CreatePreset("Delete page source");

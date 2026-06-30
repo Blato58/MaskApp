@@ -7,13 +7,19 @@ public sealed class GalleryItemCard
     public GalleryItemCard(
         GalleryItem item,
         bool isEditMode,
+        bool isSelected,
         AsyncRelayCommand sendCommand,
+        AsyncRelayCommand toggleSelectionCommand,
+        AsyncRelayCommand editCommand,
         AsyncRelayCommand moveEarlierCommand,
         AsyncRelayCommand moveLaterCommand)
     {
         Item = item;
         IsEditMode = isEditMode;
+        IsSelected = isSelected;
         SendCommand = sendCommand;
+        ToggleSelectionCommand = toggleSelectionCommand;
+        EditCommand = editCommand;
         MoveEarlierCommand = moveEarlierCommand;
         MoveLaterCommand = moveLaterCommand;
     }
@@ -21,6 +27,8 @@ public sealed class GalleryItemCard
     public GalleryItem Item { get; }
 
     public bool IsEditMode { get; }
+
+    public bool IsSelected { get; }
 
     public bool IsNormalMode => !IsEditMode;
 
@@ -48,7 +56,17 @@ public sealed class GalleryItemCard
 
     public bool CanManage => Item.CanManage;
 
+    public bool CanDelete => Item.Type == GalleryItemType.TextPreset;
+
+    public string SelectionText => IsSelected ? "Selected" : "Select";
+
+    public string DeleteEligibilityText => CanDelete ? "Can delete" : "Edit only";
+
     public AsyncRelayCommand SendCommand { get; }
+
+    public AsyncRelayCommand ToggleSelectionCommand { get; }
+
+    public AsyncRelayCommand EditCommand { get; }
 
     public AsyncRelayCommand MoveEarlierCommand { get; }
 

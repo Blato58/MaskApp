@@ -672,6 +672,21 @@ public sealed class TextUploadViewModel : INotifyPropertyChanged
         return Task.CompletedTask;
     }
 
+    public async Task OpenPresetByIdAsync(string presetId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(presetId))
+        {
+            return;
+        }
+
+        if (SavedPresets.Count == 0)
+        {
+            await RefreshSavedPresetsAsync(cancellationToken);
+        }
+
+        await OpenPresetAsync(new TextPresetId(presetId.Trim()), cancellationToken);
+    }
+
     private async Task SendPresetAsync(TextPresetId id, CancellationToken cancellationToken)
     {
         var preset = SavedPresets.FirstOrDefault(item => item.Id == id);

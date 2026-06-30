@@ -13,6 +13,7 @@ public partial class AppShell : Shell
         InitializeComponent();
         Routing.RegisterRoute("text", typeof(TextPage));
         Routing.RegisterRoute("builtins", typeof(BuiltInsPage));
+        Routing.RegisterRoute("library-add", typeof(LibraryAddPage));
 
         Items.Add(new TabBar
         {

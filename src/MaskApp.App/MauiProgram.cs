@@ -38,6 +38,7 @@ public static class MauiProgram
         builder.Services.AddTransient<BuiltInsViewModel>();
         builder.Services.AddTransient<GalleryPage>();
         builder.Services.AddTransient<GalleryViewModel>();
+        builder.Services.AddTransient<LibraryAddPage>();
         builder.Services.AddTransient<PagesPage>();
         builder.Services.AddTransient<PagesViewModel>();
         builder.Services.AddTransient<MaskControlViewModel>();

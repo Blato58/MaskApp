@@ -29,6 +29,8 @@ public sealed class GalleryViewModelTests
         Assert.Contains(items, item => item.Item.Id == $"text:{preset.Id.Value}" && item.IsFavorite);
         Assert.Contains(items, item => item.Item.Id == "built-in:StaticImage:7");
         Assert.Contains(items, item => item.Item.Id == $"quick:{QuickActionId.Lol}");
+        Assert.Contains(viewModel.Rows, row => row.IsGroupHeader);
+        Assert.Contains(viewModel.Rows, row => row.IsItemRow);
     }
 
     [Fact]
@@ -121,6 +123,66 @@ public sealed class GalleryViewModelTests
     }
 
     [Fact]
+    public async Task SelectionDelete_RemovesTextPresetsAndPageShortcutsOnly()
+    {
+        var deletable = CreatePreset("Delete me", "Delete Pack");
+        var keep = CreatePreset("Keep me", "Delete Pack");
+        var textStore = new InMemoryTextPresetStore(new TextPresetStoreState { Presets = [deletable, keep] });
+        var layoutStore = new RecordingGalleryLayoutStore
+        {
+            State = new GalleryLayoutState
+            {
+                Pages =
+                [
+                    new GalleryPageLayout
+                    {
+                        Title = "Main",
+                        Items =
+                        [
+                            new GalleryPageItemLayout { GalleryItemId = $"text:{deletable.Id.Value}", Label = deletable.DisplayName },
+                            new GalleryPageItemLayout { GalleryItemId = $"text:{keep.Id.Value}", Label = keep.DisplayName },
+                            new GalleryPageItemLayout { GalleryItemId = $"quick:{QuickActionId.Lol}", Label = "LOL" }
+                        ]
+                    }
+                ]
+            }
+        };
+        var viewModel = CreateViewModel(textStore: textStore, layoutStore: layoutStore);
+
+        await viewModel.InitializeAsync();
+        var deleteCard = Flatten(viewModel).Single(card => card.Id == $"text:{deletable.Id.Value}");
+        var quickCard = Flatten(viewModel).Single(card => card.Id == $"quick:{QuickActionId.Lol}");
+
+        await deleteCard.ToggleSelectionCommand.ExecuteAsync();
+        await quickCard.ToggleSelectionCommand.ExecuteAsync();
+        await viewModel.DeleteSelectedCommand.ExecuteAsync();
+
+        var state = await textStore.LoadAsync();
+        Assert.DoesNotContain(state.Presets, preset => preset.Id == deletable.Id);
+        Assert.Contains(state.Presets, preset => preset.Id == keep.Id);
+        Assert.DoesNotContain(layoutStore.State.Pages.Single().Items, item => item.GalleryItemId == $"text:{deletable.Id.Value}");
+        Assert.Contains(layoutStore.State.Pages.Single().Items, item => item.GalleryItemId == $"quick:{QuickActionId.Lol}");
+        Assert.Equal(0, viewModel.SelectedCount);
+    }
+
+    [Fact]
+    public async Task SelectionCanBeClearedWithoutChangingSearch()
+    {
+        var preset = CreatePreset("Search keep", "Search Pack");
+        var viewModel = CreateViewModel(textPresets: [preset]);
+
+        await viewModel.InitializeAsync();
+        viewModel.SearchText = "Search";
+        await Flatten(viewModel).Single(card => card.Id == $"text:{preset.Id.Value}").ToggleSelectionCommand.ExecuteAsync();
+
+        await viewModel.ClearSelectionCommand.ExecuteAsync();
+
+        Assert.Equal("Search", viewModel.SearchText);
+        Assert.Equal(0, viewModel.SelectedCount);
+        Assert.Contains(Flatten(viewModel), card => card.Id == $"text:{preset.Id.Value}");
+    }
+
+    [Fact]
     public async Task SendAsync_RoutesTextBuiltInAndQuickActionItems()
     {
         var preset = CreatePreset("Send text route", "Send Pack");
@@ -159,12 +221,13 @@ public sealed class GalleryViewModelTests
     private static GalleryViewModel CreateViewModel(
         IReadOnlyList<TextPreset>? textPresets = null,
         BuiltInAssetArchive? archive = null,
+        ITextPresetStore? textStore = null,
         RecordingGalleryLayoutStore? layoutStore = null,
         RecordingQuickActionDispatcher? quickDispatcher = null,
         RecordingTextPresetDispatcher? presetDispatcher = null,
         RecordingCommandTransport? commandTransport = null)
     {
-        var textStore = new InMemoryTextPresetStore(new TextPresetStoreState { Presets = textPresets ?? [] });
+        textStore ??= new InMemoryTextPresetStore(new TextPresetStoreState { Presets = textPresets ?? [] });
         var builtInStore = new InMemoryBuiltInAssetArchiveStore(archive ?? BuiltInAssetArchive.Empty);
         var textTransport = new RecordingTextTransport();
         return new GalleryViewModel(
@@ -194,7 +257,7 @@ public sealed class GalleryViewModelTests
 
     private sealed class RecordingGalleryLayoutStore : IGalleryLayoutStore
     {
-        public GalleryLayoutState State { get; private set; } = new();
+        public GalleryLayoutState State { get; set; } = new();
 
         public Task<GalleryLayoutState> LoadAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(State);

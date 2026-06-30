@@ -19,9 +19,12 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
     private readonly ITextPresetDispatcher textPresetDispatcher;
     private readonly IMaskCommandTransport commandTransport;
     private readonly ITextUploadTransport textTransport;
+    private readonly HashSet<string> selectedItemIds = new(StringComparer.Ordinal);
     private GalleryLayoutState layoutState = new();
     private IReadOnlyList<GalleryItem> allItems = [];
     private IReadOnlyList<GalleryGroupCard> groups = [];
+    private IReadOnlyList<GalleryListRow> rows = [];
+    private IReadOnlyList<GallerySelectionAction> selectionActions = [];
     private string searchText = string.Empty;
     private bool showFavoritesOnly;
     private GalleryGroupingOption selectedGroupingMode;
@@ -111,6 +114,7 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         SetBrowseModeCommand = new AsyncRelayCommand(_ =>
         {
             IsEditMode = false;
+            ClearSelection();
             return Task.CompletedTask;
         });
         SetArrangeModeCommand = new AsyncRelayCommand(_ =>
@@ -136,6 +140,24 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
             ManagedItem = null;
             return Task.CompletedTask;
         });
+        ClearSelectionCommand = new AsyncRelayCommand(_ =>
+        {
+            ClearSelection();
+            return Task.CompletedTask;
+        });
+        DeleteSelectedCommand = new AsyncRelayCommand(DeleteSelectedAsync, () => SelectedDeletableCount > 0);
+        SelectionActions =
+        [
+            new GallerySelectionAction(
+                "Delete selected text",
+                "Deletes selected text presets and removes their page shortcuts.",
+                DeleteSelectedCommand,
+                isDestructive: true),
+            new GallerySelectionAction(
+                "Clear selection",
+                "Keeps all Library items and exits the current selection.",
+                ClearSelectionCommand)
+        ];
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -160,12 +182,34 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
 
     public AsyncRelayCommand CloseManageSheetCommand { get; }
 
+    public AsyncRelayCommand ClearSelectionCommand { get; }
+
+    public AsyncRelayCommand DeleteSelectedCommand { get; }
+
+    public IReadOnlyList<GallerySelectionAction> SelectionActions
+    {
+        get => selectionActions;
+        private set => selectionActions = value;
+    }
+
     public IReadOnlyList<GalleryGroupCard> Groups
     {
         get => groups;
         private set
         {
             if (SetField(ref groups, value))
+            {
+                OnPropertyChanged(nameof(VisibleItemCountText));
+            }
+        }
+    }
+
+    public IReadOnlyList<GalleryListRow> Rows
+    {
+        get => rows;
+        private set
+        {
+            if (SetField(ref rows, value))
             {
                 OnPropertyChanged(nameof(VisibleItemCountText));
             }
@@ -292,6 +336,17 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
 
     public string VisibleItemCountText => $"{Groups.Sum(group => group.Items.Count)} items";
 
+    public int SelectedCount => selectedItemIds.Count;
+
+    public int SelectedDeletableCount =>
+        allItems.Count(item => selectedItemIds.Contains(item.Id) && item.Type == GalleryItemType.TextPreset);
+
+    public bool HasSelection => SelectedCount > 0;
+
+    public string SelectedCountText => SelectedCount == 0
+        ? "No items selected"
+        : $"{SelectedCount} selected / {SelectedDeletableCount} deletable text";
+
     public string FilterSummaryText => ShowFavoritesOnly ? "Favorites only" : "All implemented items";
 
     public string GroupSummaryText => SelectedGroupingMode.Label;
@@ -368,6 +423,54 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         IsAddOptionsVisible = false;
         IsFilterSheetVisible = false;
         IsGroupSheetVisible = false;
+    }
+
+    public void ToggleSelection(string itemId)
+    {
+        if (!selectedItemIds.Add(itemId))
+        {
+            selectedItemIds.Remove(itemId);
+        }
+
+        RebuildGroups();
+        NotifySelectionChanged();
+    }
+
+    private async Task DeleteSelectedAsync(CancellationToken cancellationToken)
+    {
+        var selectedTextIds = allItems
+            .Where(item => selectedItemIds.Contains(item.Id) && item.Type == GalleryItemType.TextPreset && item.TextPreset is not null)
+            .Select(item => item.TextPreset!.Id)
+            .ToArray();
+        if (selectedTextIds.Length == 0)
+        {
+            StatusText = "Select text presets to delete.";
+            return;
+        }
+
+        foreach (var id in selectedTextIds)
+        {
+            await textPresetStore.DeleteAsync(id, cancellationToken);
+        }
+
+        var deletedGalleryIds = selectedTextIds.Select(id => $"text:{id.Value}").ToHashSet(StringComparer.Ordinal);
+        layoutState = layoutState with
+        {
+            Pages = layoutState.Pages
+                .Select(page => page with
+                {
+                    Items = page.Items
+                        .Where(item => !deletedGalleryIds.Contains(item.GalleryItemId))
+                        .ToArray()
+                })
+                .ToArray()
+        };
+        await layoutStore.SaveAsync(layoutState, cancellationToken);
+
+        selectedItemIds.Clear();
+        await InitializeAsync(cancellationToken);
+        NotifySelectionChanged();
+        StatusText = selectedTextIds.Length == 1 ? "Deleted 1 text preset." : $"Deleted {selectedTextIds.Length} text presets.";
     }
 
     public async Task MoveItemAsync(string itemId, int delta, CancellationToken cancellationToken = default)
@@ -448,13 +551,42 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
                 new AsyncRelayCommand(cancellationToken => MoveGroupAsync($"{SelectedGroupingMode.Mode}:{group.Key}", -1, cancellationToken)),
                 new AsyncRelayCommand(cancellationToken => MoveGroupAsync($"{SelectedGroupingMode.Mode}:{group.Key}", 1, cancellationToken))))
             .ToArray();
+        Rows = BuildRows(Groups);
+    }
+
+    private static IReadOnlyList<GalleryListRow> BuildRows(IReadOnlyList<GalleryGroupCard> groups)
+    {
+        var result = new List<GalleryListRow>();
+        foreach (var group in groups)
+        {
+            result.Add(GalleryListRow.GroupHeader(group.Title, group.Items.Count));
+            for (var index = 0; index < group.Items.Count; index += 2)
+            {
+                result.Add(GalleryListRow.ItemPair(
+                    group.Items[index],
+                    index + 1 < group.Items.Count ? group.Items[index + 1] : null));
+            }
+        }
+
+        return result;
     }
 
     private GalleryItemCard CreateCard(GalleryItem item) =>
         new(
             item,
             IsEditMode,
+            selectedItemIds.Contains(item.Id),
             new AsyncRelayCommand(cancellationToken => SendAsync(item, cancellationToken), () => item.CanSend && CanSend(item)),
+            new AsyncRelayCommand(_ =>
+            {
+                ToggleSelection(item.Id);
+                return Task.CompletedTask;
+            }),
+            new AsyncRelayCommand(_ =>
+            {
+                OpenManageSheet(item);
+                return Task.CompletedTask;
+            }, () => item.CanManage),
             new AsyncRelayCommand(cancellationToken => MoveItemAsync(item.Id, -1, cancellationToken)),
             new AsyncRelayCommand(cancellationToken => MoveItemAsync(item.Id, 1, cancellationToken)));
 
@@ -534,4 +666,26 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+    private void ClearSelection()
+    {
+        if (selectedItemIds.Count == 0)
+        {
+            return;
+        }
+
+        selectedItemIds.Clear();
+        RebuildGroups();
+        NotifySelectionChanged();
+    }
+
+    private void NotifySelectionChanged()
+    {
+        OnPropertyChanged(nameof(SelectedCount));
+        OnPropertyChanged(nameof(SelectedDeletableCount));
+        OnPropertyChanged(nameof(HasSelection));
+        OnPropertyChanged(nameof(SelectedCountText));
+        DeleteSelectedCommand.RaiseCanExecuteChanged();
+        ClearSelectionCommand.RaiseCanExecuteChanged();
+    }
 }

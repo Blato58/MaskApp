@@ -6,11 +6,13 @@ public sealed class GalleryPageTab
 {
     public GalleryPageTab(
         GalleryPageLayout page,
+        bool isSelected,
         AsyncRelayCommand selectCommand,
         AsyncRelayCommand moveEarlierCommand,
         AsyncRelayCommand moveLaterCommand)
     {
         Page = page;
+        IsSelected = isSelected;
         SelectCommand = selectCommand;
         MoveEarlierCommand = moveEarlierCommand;
         MoveLaterCommand = moveLaterCommand;
@@ -23,6 +25,10 @@ public sealed class GalleryPageTab
     public string Title => Page.Title;
 
     public string ColorHex => Page.ColorHex;
+
+    public bool IsSelected { get; }
+
+    public string DotText => IsSelected ? "ON" : "OFF";
 
     public AsyncRelayCommand SelectCommand { get; }
 

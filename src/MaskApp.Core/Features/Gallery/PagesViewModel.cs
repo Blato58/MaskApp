@@ -468,6 +468,7 @@ public sealed class PagesViewModel : INotifyPropertyChanged
             .OrderBy(page => page.SortIndex)
             .Select(page => new GalleryPageTab(
                 page,
+                page.PageId == SelectedPage.PageId,
                 new AsyncRelayCommand(cancellationToken => SelectPageAsync(page.PageId, cancellationToken)),
                 new AsyncRelayCommand(cancellationToken => MovePageAsync(page.PageId, -1, cancellationToken)),
                 new AsyncRelayCommand(cancellationToken => MovePageAsync(page.PageId, 1, cancellationToken))))

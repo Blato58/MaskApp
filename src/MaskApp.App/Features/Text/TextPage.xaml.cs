@@ -2,12 +2,22 @@ using MaskApp.Core.Features.Text;
 
 namespace MaskApp.App.Features.Text;
 
-public partial class TextPage : ContentPage
+public partial class TextPage : ContentPage, IQueryAttributable
 {
+    private string? pendingPresetId;
+
     public TextPage(TextUploadViewModel viewModel)
     {
         InitializeComponent();
         BindingContext = viewModel;
+    }
+
+    public void ApplyQueryAttributes(IDictionary<string, object> query)
+    {
+        if (query.TryGetValue("presetId", out var value))
+        {
+            pendingPresetId = Uri.UnescapeDataString(value?.ToString() ?? string.Empty);
+        }
     }
 
     protected override async void OnAppearing()
@@ -16,6 +26,11 @@ public partial class TextPage : ContentPage
         if (BindingContext is TextUploadViewModel viewModel)
         {
             await viewModel.InitializeAsync();
+            if (!string.IsNullOrWhiteSpace(pendingPresetId))
+            {
+                await viewModel.OpenPresetByIdAsync(pendingPresetId);
+                pendingPresetId = null;
+            }
         }
     }
 
