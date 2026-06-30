@@ -29,6 +29,7 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
     private string lastActionText = "None";
     private bool isSending;
     private bool isAddOptionsVisible;
+    private bool isEditMode;
 
     public GalleryViewModel(
         QuickActionCatalog quickActionCatalog,
@@ -154,6 +155,21 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         private set => SetField(ref isAddOptionsVisible, value);
     }
 
+    public bool IsEditMode
+    {
+        get => isEditMode;
+        set
+        {
+            if (SetField(ref isEditMode, value))
+            {
+                RebuildGroups();
+                OnPropertyChanged(nameof(GalleryModeText));
+            }
+        }
+    }
+
+    public string GalleryModeText => IsEditMode ? "Edit mode" : "Send mode";
+
     public string VisibleItemCountText => $"{Groups.Sum(group => group.Items.Count)} items";
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -271,6 +287,7 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
             .Select(group => new GalleryGroupCard(
                 $"{SelectedGroupingMode.Mode}:{group.Key}",
                 group.Title,
+                IsEditMode,
                 group.Items.Select(CreateCard).ToArray(),
                 new AsyncRelayCommand(cancellationToken => MoveGroupAsync($"{SelectedGroupingMode.Mode}:{group.Key}", -1, cancellationToken)),
                 new AsyncRelayCommand(cancellationToken => MoveGroupAsync($"{SelectedGroupingMode.Mode}:{group.Key}", 1, cancellationToken))))
@@ -280,6 +297,7 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
     private GalleryItemCard CreateCard(GalleryItem item) =>
         new(
             item,
+            IsEditMode,
             new AsyncRelayCommand(cancellationToken => SendAsync(item, cancellationToken), () => item.CanSend && CanSend(item)),
             new AsyncRelayCommand(cancellationToken => MoveItemAsync(item.Id, -1, cancellationToken)),
             new AsyncRelayCommand(cancellationToken => MoveItemAsync(item.Id, 1, cancellationToken)));

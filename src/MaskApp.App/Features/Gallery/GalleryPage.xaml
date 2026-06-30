@@ -32,7 +32,7 @@
                     Placeholder="Search text, faces, anims, groups"
                     Text="{Binding SearchText, Mode=TwoWay}" />
 
-                <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
                     <Picker
                         ItemsSource="{Binding GroupingOptions}"
                         ItemDisplayBinding="{Binding Label}"
@@ -40,6 +40,10 @@
                     <HorizontalStackLayout Grid.Column="1" Spacing="8">
                         <Switch IsToggled="{Binding ShowFavoritesOnly, Mode=TwoWay}" />
                         <Label Text="Favorites" VerticalTextAlignment="Center" />
+                    </HorizontalStackLayout>
+                    <HorizontalStackLayout Grid.Column="2" Spacing="8">
+                        <Switch IsToggled="{Binding IsEditMode, Mode=TwoWay}" />
+                        <Label Text="{Binding GalleryModeText}" VerticalTextAlignment="Center" />
                     </HorizontalStackLayout>
                 </Grid>
 
@@ -56,13 +60,13 @@
                 <DataTemplate x:DataType="gallery:GalleryGroupCard">
                     <Border Margin="0,0,0,14" Style="{StaticResource PanelBorderStyle}">
                         <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
-                            <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                                 <VerticalStackLayout Spacing="2">
                                     <Label Text="{Binding Title}" Style="{StaticResource SectionTitleLabelStyle}" />
                                     <Label Text="{Binding Count, StringFormat='{}{0} items'}" Style="{StaticResource TinyLabelStyle}" />
                                 </VerticalStackLayout>
-                                <Button Grid.Column="1" Text="Up" Command="{Binding MoveEarlierCommand}" />
-                                <Button Grid.Column="2" Text="Down" Command="{Binding MoveLaterCommand}" />
+                                <Button Grid.Column="1" Text="Up" Command="{Binding MoveEarlierCommand}" IsVisible="{Binding IsEditMode}" />
+                                <Button Grid.Column="2" Text="Down" Command="{Binding MoveLaterCommand}" IsVisible="{Binding IsEditMode}" />
                             </Grid>
 
                             <CollectionView
@@ -74,50 +78,63 @@
                                 </CollectionView.ItemsLayout>
                                 <CollectionView.ItemTemplate>
                                     <DataTemplate x:DataType="gallery:GalleryItemCard">
-                                        <Border
-                                            Margin="0,0,8,10"
-                                            MinimumHeightRequest="184"
-                                            Style="{StaticResource ActionCardBorderStyle}"
-                                            Stroke="{Binding ColorHex}">
-                                            <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="7">
-                                                <Grid ColumnDefinitions="48,*" ColumnSpacing="10">
+                                        <Grid>
+                                            <Border
+                                                Margin="0,0,8,10"
+                                                IsVisible="{Binding IsNormalMode}"
+                                                MinimumHeightRequest="78"
+                                                Style="{StaticResource ActionCardBorderStyle}"
+                                                Stroke="{Binding ColorHex}">
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding SendCommand}" />
+                                                </Border.GestureRecognizers>
+                                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                                                     <Border
                                                         BackgroundColor="{Binding ColorHex}"
-                                                        HeightRequest="42"
+                                                        HeightRequest="34"
                                                         Stroke="{Binding ColorHex}"
-                                                        WidthRequest="48">
+                                                        WidthRequest="44">
                                                         <Border.StrokeShape>
                                                             <RoundRectangle CornerRadius="8" />
                                                         </Border.StrokeShape>
                                                         <Label
                                                             Text="{Binding IconKey}"
                                                             TextColor="#05070D"
-                                                            FontSize="10"
+                                                            FontSize="9"
                                                             FontAttributes="Bold"
                                                             HorizontalTextAlignment="Center"
                                                             VerticalTextAlignment="Center" />
                                                     </Border>
-                                                    <VerticalStackLayout Grid.Column="1" Spacing="1">
-                                                        <Label Text="{Binding Title}" FontAttributes="Bold" LineBreakMode="TailTruncation" />
+                                                    <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
                                                         <Label Text="{Binding TypeLabel}" Style="{StaticResource TinyLabelStyle}" />
+                                                        <Label Text="{Binding Title}" FontAttributes="Bold" LineBreakMode="TailTruncation" />
                                                     </VerticalStackLayout>
                                                 </Grid>
-                                                <Label Grid.Row="1" Text="{Binding Subtitle}" Style="{StaticResource MutedLabelStyle}" MaxLines="2" />
-                                                <Label Grid.Row="2" Text="{Binding LastSendStatus}" Style="{StaticResource TinyLabelStyle}" />
-                                                <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="8">
-                                                    <Button Text="Send" Command="{Binding SendCommand}" Style="{StaticResource NeonBlueButtonStyle}" />
-                                                    <Button
-                                                        Grid.Column="1"
-                                                        Text="Manage"
-                                                        Clicked="OnManageClicked"
-                                                        CommandParameter="{Binding Item}" />
+                                            </Border>
+
+                                            <Border
+                                                Margin="0,0,8,10"
+                                                IsVisible="{Binding IsEditMode}"
+                                                MinimumHeightRequest="160"
+                                                Style="{StaticResource ActionCardBorderStyle}"
+                                                Stroke="{Binding ColorHex}">
+                                                <Grid ColumnDefinitions="*,96" ColumnSpacing="10">
+                                                    <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                                                        <Label Text="{Binding TypeLabel}" Style="{StaticResource TinyLabelStyle}" />
+                                                        <Label Text="{Binding Title}" FontAttributes="Bold" LineBreakMode="TailTruncation" />
+                                                    </VerticalStackLayout>
+                                                    <VerticalStackLayout Grid.Column="1" Spacing="7">
+                                                        <Button Text="Move up" Command="{Binding MoveEarlierCommand}" />
+                                                        <Button
+                                                            Text="Manage"
+                                                            Clicked="OnManageClicked"
+                                                            CommandParameter="{Binding Item}"
+                                                            IsVisible="{Binding CanManage}" />
+                                                        <Button Text="Move down" Command="{Binding MoveLaterCommand}" />
+                                                    </VerticalStackLayout>
                                                 </Grid>
-                                                <Grid Grid.Row="4" ColumnDefinitions="*,*" ColumnSpacing="8">
-                                                    <Button Text="Move up" Command="{Binding MoveEarlierCommand}" />
-                                                    <Button Grid.Column="1" Text="Move down" Command="{Binding MoveLaterCommand}" />
-                                                </Grid>
-                                            </Grid>
-                                        </Border>
+                                            </Border>
+                                        </Grid>
                                     </DataTemplate>
                                 </CollectionView.ItemTemplate>
                             </CollectionView>

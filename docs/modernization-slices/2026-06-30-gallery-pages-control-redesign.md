@@ -112,7 +112,7 @@ Out of scope:
 
 - Changes made: unified Gallery, page organizer, slim Control tab, JSON layout storage, tests, docs.
 - Commands run: `dotnet test tests\MaskApp.Core.Tests\MaskApp.Core.Tests.csproj --no-restore`, `dotnet build src\MaskApp.App\MaskApp.App.csproj -f net10.0-ios --no-restore`, `dotnet build src\MaskApp.App\MaskApp.App.csproj -f net10.0-android --no-restore`, `git diff --check`.
-- Result: 190 core tests passed; iOS and Android target builds passed with 0 warnings and 0 errors.
+- Result: 191 core tests passed; iOS and Android target builds passed with 0 warnings and 0 errors.
 - Remaining risk: physical BLE/mask behavior and rendered mobile layout need device validation.
 
 ## Next slice candidate

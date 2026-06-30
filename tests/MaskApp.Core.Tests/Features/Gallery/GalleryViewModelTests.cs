@@ -72,6 +72,24 @@ public sealed class GalleryViewModelTests
     }
 
     [Fact]
+    public async Task IsEditMode_RebuildsCardsIntoEditState()
+    {
+        var preset = CreatePreset("Editable gallery item", "Edit Pack");
+        var viewModel = CreateViewModel(textPresets: [preset]);
+
+        await viewModel.InitializeAsync();
+        var normalCard = Flatten(viewModel).Single(card => card.Id == $"text:{preset.Id.Value}");
+
+        viewModel.IsEditMode = true;
+        var editCard = Flatten(viewModel).Single(card => card.Id == $"text:{preset.Id.Value}");
+
+        Assert.True(normalCard.IsNormalMode);
+        Assert.False(normalCard.IsEditMode);
+        Assert.True(editCard.IsEditMode);
+        Assert.False(editCard.IsNormalMode);
+    }
+
+    [Fact]
     public async Task SendAsync_RoutesTextBuiltInAndQuickActionItems()
     {
         var preset = CreatePreset("Send text route", "Send Pack");

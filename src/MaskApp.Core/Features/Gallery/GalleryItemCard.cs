@@ -6,17 +6,23 @@ public sealed class GalleryItemCard
 {
     public GalleryItemCard(
         GalleryItem item,
+        bool isEditMode,
         AsyncRelayCommand sendCommand,
         AsyncRelayCommand moveEarlierCommand,
         AsyncRelayCommand moveLaterCommand)
     {
         Item = item;
+        IsEditMode = isEditMode;
         SendCommand = sendCommand;
         MoveEarlierCommand = moveEarlierCommand;
         MoveLaterCommand = moveLaterCommand;
     }
 
     public GalleryItem Item { get; }
+
+    public bool IsEditMode { get; }
+
+    public bool IsNormalMode => !IsEditMode;
 
     public string Id => Item.Id;
 

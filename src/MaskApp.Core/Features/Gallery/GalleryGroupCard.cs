@@ -7,12 +7,14 @@ public sealed class GalleryGroupCard
     public GalleryGroupCard(
         string key,
         string title,
+        bool isEditMode,
         IReadOnlyList<GalleryItemCard> items,
         AsyncRelayCommand moveEarlierCommand,
         AsyncRelayCommand moveLaterCommand)
     {
         Key = key;
         Title = title;
+        IsEditMode = isEditMode;
         Items = items;
         MoveEarlierCommand = moveEarlierCommand;
         MoveLaterCommand = moveLaterCommand;
@@ -21,6 +23,8 @@ public sealed class GalleryGroupCard
     public string Key { get; }
 
     public string Title { get; }
+
+    public bool IsEditMode { get; }
 
     public IReadOnlyList<GalleryItemCard> Items { get; }
 
