@@ -282,6 +282,8 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
 
         try
         {
+            await DeleteFaceSlotBeforeUploadAsync(package, options, cancellationToken).ConfigureAwait(false);
+
             var startAck = await WriteFaceCommandAndWaitAsync(
                 package.StartCommand,
                 FaceUploadAcknowledgement.StartAccepted,
@@ -348,6 +350,8 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
     {
         try
         {
+            await DeleteFaceSlotBeforeUploadWriteOnlyAsync(package, options, cancellationToken).ConfigureAwait(false);
+
             WriteEncryptedCommand(package.StartCommand);
             await DelayBetweenFaceWritesAsync(options, cancellationToken).ConfigureAwait(false);
 
@@ -378,6 +382,39 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
 #endif
             return FaceUploadResult.Failure(ex.Message, 0);
         }
+    }
+
+    private async Task DeleteFaceSlotBeforeUploadAsync(
+        FaceUploadPackage package,
+        FaceUploadOptions options,
+        CancellationToken cancellationToken)
+    {
+        if (!options.DeleteSlotBeforeUpload)
+        {
+            return;
+        }
+
+        var deleteCommand = FaceUploadProtocol.BuildDeleteCommand([package.Slot]);
+        _ = await WriteFaceCommandAndWaitAsync(
+            deleteCommand,
+            FaceUploadAcknowledgement.DeleteAccepted,
+            cancellationToken,
+            options.DeleteAcknowledgementTimeout).ConfigureAwait(false);
+        await DelayFaceWriteAsync(options.PreUploadDeleteDelay, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task DeleteFaceSlotBeforeUploadWriteOnlyAsync(
+        FaceUploadPackage package,
+        FaceUploadOptions options,
+        CancellationToken cancellationToken)
+    {
+        if (!options.DeleteSlotBeforeUpload)
+        {
+            return;
+        }
+
+        WriteEncryptedCommand(FaceUploadProtocol.BuildDeleteCommand([package.Slot]));
+        await DelayFaceWriteAsync(options.PreUploadDeleteDelay, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<TextUploadResult> UploadWriteOnlyAsync(
@@ -875,40 +912,55 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
     private async Task<FaceUploadAcknowledgement> WriteFaceCommandAndWaitAsync(
         MaskCommand command,
         FaceUploadAcknowledgement expectedAcknowledgement,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        TimeSpan? timeout = null)
     {
-        var acknowledgementTask = WaitForFaceAcknowledgementAsync(expectedAcknowledgement, cancellationToken);
+        var acknowledgementTask = WaitForFaceAcknowledgementAsync(expectedAcknowledgement, cancellationToken, timeout);
         WriteEncryptedCommand(command);
         return await acknowledgementTask.ConfigureAwait(false);
     }
 
     private async Task<FaceUploadAcknowledgement> WaitForFaceAcknowledgementAsync(
         FaceUploadAcknowledgement expectedAcknowledgement,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        TimeSpan? timeout = null)
     {
-        var acknowledgementSource = new TaskCompletionSource<FaceUploadAcknowledgement>(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-        pendingFaceAcknowledgement = acknowledgementSource;
-
-        using var cancellationRegistration = cancellationToken.Register(() =>
-            acknowledgementSource.TrySetCanceled(cancellationToken));
-        var completedTask = await Task.WhenAny(
-            acknowledgementSource.Task,
-            Task.Delay(TimeSpan.FromSeconds(5), cancellationToken)).ConfigureAwait(false);
-
-        if (completedTask != acknowledgementSource.Task)
+        var deadline = DateTimeOffset.UtcNow + (timeout ?? TimeSpan.FromSeconds(5));
+        while (!cancellationToken.IsCancellationRequested)
         {
+            var remaining = deadline - DateTimeOffset.UtcNow;
+            if (remaining <= TimeSpan.Zero)
+            {
+                pendingFaceAcknowledgement = null;
+                return FaceUploadAcknowledgement.Unknown;
+            }
+
+            var acknowledgementSource = new TaskCompletionSource<FaceUploadAcknowledgement>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            pendingFaceAcknowledgement = acknowledgementSource;
+
+            using var cancellationRegistration = cancellationToken.Register(() =>
+                acknowledgementSource.TrySetCanceled(cancellationToken));
+            var completedTask = await Task.WhenAny(
+                acknowledgementSource.Task,
+                Task.Delay(remaining, cancellationToken)).ConfigureAwait(false);
+
+            if (completedTask != acknowledgementSource.Task)
+            {
+                pendingFaceAcknowledgement = null;
+                return FaceUploadAcknowledgement.Unknown;
+            }
+
+            var acknowledgement = await acknowledgementSource.Task.ConfigureAwait(false);
             pendingFaceAcknowledgement = null;
-            return FaceUploadAcknowledgement.Unknown;
+            if (acknowledgement == FaceUploadAcknowledgement.Error || acknowledgement == expectedAcknowledgement)
+            {
+                return acknowledgement;
+            }
         }
 
-        var acknowledgement = await acknowledgementSource.Task.ConfigureAwait(false);
         pendingFaceAcknowledgement = null;
-        return acknowledgement == FaceUploadAcknowledgement.Error
-            ? acknowledgement
-            : expectedAcknowledgement == acknowledgement
-                ? acknowledgement
-                : FaceUploadAcknowledgement.Unknown;
+        return FaceUploadAcknowledgement.Unknown;
     }
 
     private void HandleTextAcknowledgement(CBCharacteristic characteristic, NSError? error)

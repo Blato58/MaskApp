@@ -39,9 +39,10 @@ and Pages flows as captions and quick actions.
 - Static DIY faces use the Java-backed 36x12 payload shape from
   `UCropActivity` and `BitmapUtils.getBitmapData`: 432 RGB triplets ordered
   column-first (`x`, then `y`) with no packed LED-byte prefix.
-- Upload uses `DATS`, chunked frames, `DATCP` with a current Unix image
-  timestamp, and delayed automatic `PLAY` through the existing BLE
-  command/image-upload characteristics.
+- Upload best-effort clears the selected DIY slot with `DELE`, then uses
+  `DATS`, chunked frames, `DATCP` with a current Unix image timestamp, and
+  delayed automatic `PLAY` through the existing BLE command/image-upload
+  characteristics.
 - `CHEC`, `DELE`, slot capacity behavior, fast sequencing, and visual output
   are not physically verified yet.
 - Custom animation, GIF-ish playback, MaskPack playback, and firmware changes
@@ -125,6 +126,9 @@ Out of scope:
   Java-style current Unix timestamp instead of defaulting to zero, and
   automatic `PLAY` waits 1 second after upload completion to reduce stale slot
   reads.
+- A later physical retry still failed, so the upload flow now best-effort
+  deletes the selected slot before sending. This matches the original crop
+  flow's first-unused-slot behavior more closely than direct overwrite.
 - Remaining risk: physical DIY upload behavior, rendered Face Studio ergonomics,
   camera/photo picker UX, slot overwrite, `CHEC`, and `DELE`.
 

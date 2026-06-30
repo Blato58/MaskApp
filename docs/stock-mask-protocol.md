@@ -150,22 +150,26 @@ Static DIY face upload has Java evidence from `UCropActivity` and
 payload should not include a packed LED-byte prefix. Java also sets
 `CropImage.timeInt` to the current Unix timestamp before upload and sends those
 four big-endian bytes in `DATCP`; real uploads should not use a zero timestamp.
+The original crop flow assigns the first unused `CropImage.imageIndex` rather
+than overwriting an existing slot, so MaskApp clears the selected slot with
+`DELE` before upload until overwrite behavior is physically proven.
 
 Expected procedure:
 
 1. Transform source artwork into the mask's LED bitmap shape and color limits.
-2. Start the upload with an encrypted command on the command characteristic.
+2. Best-effort delete the target DIY slot with encrypted `DELE` before upload.
+3. Start the upload with an encrypted command on the command characteristic.
    Face Studio uses the Java-evidenced `DATS` length, DIY slot id, and
    `DATCP` timestamp shape; slot overwrite behavior still needs physical
    validation on the user's mask.
-3. Write unencrypted payload chunks to the image/text upload characteristic.
-4. Complete the upload with encrypted `DATCP` carrying the image timestamp.
-5. Track `DATOK`/`DATSOK`, `REOK`/`REOKOK`, and `DATCPOK` when notifications are
+4. Write unencrypted payload chunks to the image/text upload characteristic.
+5. Complete the upload with encrypted `DATCP` carrying the image timestamp.
+6. Track `DELEOK`, `DATOK`/`DATSOK`, `REOK`/`REOKOK`, and `DATCPOK` when notifications are
    available.
-6. Use `CHEC` to inspect DIY slot count where supported.
-7. Use `PLAY` to display uploaded DIY slots only after slot IDs and timing are
+7. Use `CHEC` to inspect DIY slot count where supported.
+8. Use `PLAY` to display uploaded DIY slots only after slot IDs and timing are
    physically verified.
-8. Use `DELE` only after delete response behavior is understood; avoid making
+9. Use standalone `DELE` only after delete response behavior is understood; avoid making
    destructive UI easy to trigger.
 
 Until physical tests pass, custom image upload visual output, DIY sequencing,

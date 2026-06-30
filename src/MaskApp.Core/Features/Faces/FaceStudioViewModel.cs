@@ -421,7 +421,8 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
 
         var pattern = BuildDraftPattern(forceNewId: false);
         var package = FaceUploadProtocol.CreatePackage(pattern, SelectedSlot);
-        LastCommandText = $"{package.StartCommand.DisplayName}; {package.FinishCommand.DisplayName}; {package.PlayCommand.DisplayName}";
+        var deleteCommand = FaceUploadProtocol.BuildDeleteCommand([SelectedSlot]);
+        LastCommandText = $"{deleteCommand.DisplayName}; {package.StartCommand.DisplayName}; {package.FinishCommand.DisplayName}; {package.PlayCommand.DisplayName}";
         LastPayloadHex = TruncateDiagnosticHex(Convert.ToHexString(package.Payload));
         FrameCount = package.Frames.Count;
 

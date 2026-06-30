@@ -89,8 +89,23 @@ public sealed class FaceUploadProtocolTests
     [Fact]
     public void FaceUploadOptions_WaitBeforeAutoPlayToAllowSlotCommit()
     {
+        Assert.True(FaceUploadOptions.RequireAcknowledgements.DeleteSlotBeforeUpload);
+        Assert.True(FaceUploadOptions.WriteOnlyCompatibility.DeleteSlotBeforeUpload);
+        Assert.Equal(TimeSpan.FromMilliseconds(500), FaceUploadOptions.RequireAcknowledgements.PreUploadDeleteDelay);
+        Assert.Equal(TimeSpan.FromMilliseconds(500), FaceUploadOptions.WriteOnlyCompatibility.PreUploadDeleteDelay);
+        Assert.Equal(TimeSpan.FromMilliseconds(1500), FaceUploadOptions.RequireAcknowledgements.DeleteAcknowledgementTimeout);
+        Assert.Equal(TimeSpan.FromMilliseconds(1500), FaceUploadOptions.WriteOnlyCompatibility.DeleteAcknowledgementTimeout);
         Assert.Equal(TimeSpan.FromMilliseconds(1000), FaceUploadOptions.RequireAcknowledgements.PostUploadDelay);
         Assert.Equal(TimeSpan.FromMilliseconds(1000), FaceUploadOptions.WriteOnlyCompatibility.PostUploadDelay);
+    }
+
+    [Fact]
+    public void BuildDeleteCommand_UsesJavaDeleShapeForSelectedSlot()
+    {
+        var command = FaceUploadProtocol.BuildDeleteCommand([4]);
+
+        Assert.Equal(MaskCommandKind.FaceDelete, command.Kind);
+        Assert.Equal(Convert.FromHexString("0644454C450104000000000000000000"), command.Plaintext.ToArray());
     }
 
     [Theory]
