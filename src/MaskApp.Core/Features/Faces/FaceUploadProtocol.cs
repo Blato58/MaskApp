@@ -14,7 +14,7 @@ public static class FaceUploadProtocol
         FacePattern pattern,
         int slot,
         bool useLargeMtu = false,
-        uint finishTimestamp = 0)
+        uint? finishTimestamp = null)
     {
         pattern = pattern.Normalize();
         slot = Math.Clamp(slot, FacePattern.MinSlot, FacePattern.MaxSlot);
@@ -22,6 +22,7 @@ public static class FaceUploadProtocol
         var payload = BuildPayload(pattern);
         var framePayloadLength = useLargeMtu ? LargeMtuFramePayloadLength : DefaultFramePayloadLength;
         var frames = SplitFrames(payload, framePayloadLength);
+        var timestamp = finishTimestamp ?? GetCurrentUnixTimestamp();
 
         return new FaceUploadPackage(
             pattern,
@@ -30,7 +31,7 @@ public static class FaceUploadProtocol
             payload,
             frames,
             BuildStartCommand(payload.Length, slot),
-            BuildFinishCommand(finishTimestamp),
+            BuildFinishCommand(timestamp),
             BuildPlayCommand([slot]));
     }
 
@@ -311,4 +312,7 @@ public static class FaceUploadProtocol
 
         return [(byte)(value / 256), (byte)(value % 256)];
     }
+
+    private static uint GetCurrentUnixTimestamp() =>
+        checked((uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds());
 }

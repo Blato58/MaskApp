@@ -39,8 +39,9 @@ and Pages flows as captions and quick actions.
 - Static DIY faces use the Java-backed 36x12 payload shape from
   `UCropActivity` and `BitmapUtils.getBitmapData`: 432 RGB triplets ordered
   column-first (`x`, then `y`) with no packed LED-byte prefix.
-- Upload uses `DATS`, chunked frames, `DATCP`, and immediate `PLAY` through
-  the existing BLE command/image-upload characteristics.
+- Upload uses `DATS`, chunked frames, `DATCP` with a current Unix image
+  timestamp, and delayed automatic `PLAY` through the existing BLE
+  command/image-upload characteristics.
 - `CHEC`, `DELE`, slot capacity behavior, fast sequencing, and visual output
   are not physically verified yet.
 - Custom animation, GIF-ish playback, MaskPack playback, and firmware changes
@@ -119,6 +120,11 @@ Out of scope:
 - Post-validation correction: real-mask feedback showed the first upload
   encoder produced split white/yellow output with black patches. The static
   DIY payload was corrected to Java-compatible RGB-only column-major bytes.
+- Follow-up physical feedback still showed a white Sad Smiley with a black
+  edge line and slot-dependent artifacts. The finish command now uses the
+  Java-style current Unix timestamp instead of defaulting to zero, and
+  automatic `PLAY` waits 1 second after upload completion to reduce stale slot
+  reads.
 - Remaining risk: physical DIY upload behavior, rendered Face Studio ergonomics,
   camera/photo picker UX, slot overwrite, `CHEC`, and `DELE`.
 

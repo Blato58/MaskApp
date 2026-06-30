@@ -4,7 +4,7 @@ public sealed record FaceUploadOptions
 {
     public static FaceUploadOptions RequireAcknowledgements { get; } = new()
     {
-        PostUploadDelay = TimeSpan.FromMilliseconds(120),
+        PostUploadDelay = TimeSpan.FromMilliseconds(1000),
         CommandDelay = TimeSpan.FromMilliseconds(40)
     };
 
@@ -13,7 +13,7 @@ public sealed record FaceUploadOptions
         AckRequired = false,
         CompatibilityWriteOnly = true,
         InterFrameDelay = TimeSpan.FromMilliseconds(40),
-        PostUploadDelay = TimeSpan.FromMilliseconds(150),
+        PostUploadDelay = TimeSpan.FromMilliseconds(1000),
         CommandDelay = TimeSpan.FromMilliseconds(40)
     };
 

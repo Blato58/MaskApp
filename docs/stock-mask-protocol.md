@@ -147,27 +147,29 @@ remain protocol-documented, not proven product behavior.
 Static DIY face upload has Java evidence from `UCropActivity` and
 `BitmapUtils.getBitmapData`: `CropImage.imageData` is 432 RGB triplets for a
 36x12 image, ordered column-first (`x`, then `y`). The static Face Studio upload
-payload should not include a packed LED-byte prefix.
+payload should not include a packed LED-byte prefix. Java also sets
+`CropImage.timeInt` to the current Unix timestamp before upload and sends those
+four big-endian bytes in `DATCP`; real uploads should not use a zero timestamp.
 
 Expected procedure:
 
 1. Transform source artwork into the mask's LED bitmap shape and color limits.
 2. Start the upload with an encrypted command on the command characteristic.
-   Reverse-engineered evidence points to the same `DATS`/`DATCP` family used by
-   text/image payload transfers, but exact image metadata must be confirmed
-   before user-facing upload is exposed.
+   Face Studio uses the Java-evidenced `DATS` length, DIY slot id, and
+   `DATCP` timestamp shape; slot overwrite behavior still needs physical
+   validation on the user's mask.
 3. Write unencrypted payload chunks to the image/text upload characteristic.
-4. Track `DATOK`/`DATSOK`, `REOK`/`REOKOK`, and `DATCPOK` when notifications are
+4. Complete the upload with encrypted `DATCP` carrying the image timestamp.
+5. Track `DATOK`/`DATSOK`, `REOK`/`REOKOK`, and `DATCPOK` when notifications are
    available.
-5. Use `CHEC` to inspect DIY slot count where supported.
-6. Use `PLAY` to display uploaded DIY slots only after slot IDs and timing are
+6. Use `CHEC` to inspect DIY slot count where supported.
+7. Use `PLAY` to display uploaded DIY slots only after slot IDs and timing are
    physically verified.
-7. Use `DELE` only after delete response behavior is understood; avoid making
+8. Use `DELE` only after delete response behavior is understood; avoid making
    destructive UI easy to trigger.
 
-Until this is implemented and tested, custom image upload, DIY sequencing,
-GIF-ish playback, and fast slot playback remain Protocol-documented or
-Experimental, not proven product capability.
+Until physical tests pass, custom image upload visual output, DIY sequencing,
+GIF-ish playback, and fast slot playback remain unproven product capability.
 
 ## Audio Visualization Protocol
 
@@ -214,7 +216,7 @@ blocks and plaintext fallback.
 | Built-in animation | `ANIM` | Implemented command builder and scanner/fallback UI | Needs real-mask test |
 | Text upload | `DATS`, upload frames, `DATCP`, `MODE`, `SPEED` | Implemented MVP | Needs real-mask test |
 | Text colors/effects | `M`, `FC`, `BC` | Protocol-documented | Needs real-mask test |
-| DIY/custom image upload | `DATS`/payload/`DATCP`, `CHEC`, `PLAY`, `DELE` | Not implemented as product flow | Needs real-mask test |
+| DIY/custom image upload | `DATS`/payload/`DATCP`, `CHEC`, `PLAY`, `DELE` | Implemented Face Studio MVP | Needs real-mask test |
 | Audio visualizer | audio characteristic encrypted packets | Documented only | Needs real-mask test |
 | RAVE command fallbacks | `LIGHT`, `IMAG`, `ANIM` | Implemented as test/fallback controls | Needs real-mask test |
 | Drop Detector / Voice Mouth / Bass Face | App-layer composition over visualizer/text/DIY | Labs/Experimental | Needs real-mask test |

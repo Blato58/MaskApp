@@ -67,6 +67,32 @@ public sealed class FaceUploadProtocolTests
         Assert.Equal(Convert.FromHexString("06504C41590104000000000000000000"), package.PlayCommand.Plaintext.ToArray());
     }
 
+    [Fact]
+    public void CreatePackage_DefaultsFinishTimestampToCurrentUnixTime()
+    {
+        var pattern = FacePatternFactory.CreateBuiltIns().Single(face => face.Emotion == FaceEmotion.Sad);
+        var before = (uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        var package = FaceUploadProtocol.CreatePackage(pattern, slot: 2);
+
+        var after = (uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var plaintext = package.FinishCommand.Plaintext.Span;
+        var timestamp = ((uint)plaintext[6] << 24)
+            | ((uint)plaintext[7] << 16)
+            | ((uint)plaintext[8] << 8)
+            | plaintext[9];
+
+        Assert.InRange(timestamp, before, after);
+        Assert.NotEqual(0u, timestamp);
+    }
+
+    [Fact]
+    public void FaceUploadOptions_WaitBeforeAutoPlayToAllowSlotCommit()
+    {
+        Assert.Equal(TimeSpan.FromMilliseconds(1000), FaceUploadOptions.RequireAcknowledgements.PostUploadDelay);
+        Assert.Equal(TimeSpan.FromMilliseconds(1000), FaceUploadOptions.WriteOnlyCompatibility.PostUploadDelay);
+    }
+
     [Theory]
     [InlineData("07444154534F4B000000000000000000", FaceUploadAcknowledgement.StartAccepted)]
     [InlineData("0452454F4B0000000000000000000000", FaceUploadAcknowledgement.FrameAccepted)]
