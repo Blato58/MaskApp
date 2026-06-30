@@ -23,6 +23,16 @@ public partial class GalleryPage : ContentPage
 
     private void OnDismissSearchClicked(object? sender, EventArgs e) => DismissSearch();
 
+    private void OnToggleHeaderClicked(object? sender, EventArgs e)
+    {
+        LibraryHeaderDetails.IsVisible = !LibraryHeaderDetails.IsVisible;
+        LibraryHeaderToggleButton.Text = LibraryHeaderDetails.IsVisible ? "Hide" : "Tools";
+        if (!LibraryHeaderDetails.IsVisible)
+        {
+            DismissSearch();
+        }
+    }
+
     private async void OnAddClicked(object? sender, EventArgs e)
     {
         DismissSearch();

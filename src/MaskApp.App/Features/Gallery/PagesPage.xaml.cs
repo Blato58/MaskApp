@@ -19,6 +19,12 @@ public partial class PagesPage : ContentPage
         await viewModel.InitializeAsync();
     }
 
+    private void OnToggleHeaderClicked(object? sender, EventArgs e)
+    {
+        PagesHeaderDetails.IsVisible = !PagesHeaderDetails.IsVisible;
+        PagesHeaderToggleButton.Text = PagesHeaderDetails.IsVisible ? "Hide" : "Tools";
+    }
+
     private async void OnAddItemsClicked(object? sender, EventArgs e)
     {
         var pageId = Uri.EscapeDataString(viewModel.SelectedPage.PageId);

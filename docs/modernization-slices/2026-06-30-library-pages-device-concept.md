@@ -59,6 +59,11 @@ the label, color, and icon, and saves the shortcut back to the selected page.
 Shortcut icon options are organized into curated Mask, Lucide, Material, and
 Phosphor packs, with source licensing recorded in `docs/icon-sources.md`.
 
+Compact-header follow-up: Library and Pages now start with smaller collapsed
+headers and expose their dense controls behind a Tools toggle. Page shortcut
+tiles have explicit grid spacing, and shortcut/icon preview image sources use
+filename-based MAUI resource names so vendored SVGs can resolve at runtime.
+
 ## Current evidence
 
 - Repo files: `src/MaskApp.App`, `src/MaskApp.Core/Features/Gallery`,
@@ -81,6 +86,8 @@ In scope:
   mode-specific management controls.
 - Dedicated per-page add shortcut route, duplicate-safe draft state, custom
   shortcut label/icon/color persistence, and curated icon-pack metadata.
+- Collapsible compact Library/Pages headers, spaced page shortcut grid, and
+  filename-based icon resource references.
 - Tests and progress docs.
 
 Out of scope:
@@ -135,7 +142,9 @@ Out of scope:
   rebuilt Pages around the concept page card/grid/dots structure. Pages add-item
   follow-up replaced the inline add-items sheet with `page-add-item?pageId=...`,
   added duplicate-safe draft state, custom shortcut label/icon/color save, and
-  curated Mask/Lucide/Material/Phosphor icon catalog metadata.
+  curated Mask/Lucide/Material/Phosphor icon catalog metadata. Compact-header
+  follow-up collapsed the oversized first panels by default, added page shortcut
+  gaps, and switched icon preview paths to MAUI-resolvable filenames.
 - Commands run:
   - `dotnet test tests\MaskApp.Core.Tests\MaskApp.Core.Tests.csproj --no-restore`
   - `dotnet build src\MaskApp.App\MaskApp.App.csproj -f net10.0-ios --no-restore`

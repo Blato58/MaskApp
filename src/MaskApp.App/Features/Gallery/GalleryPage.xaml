@@ -8,42 +8,45 @@
     Title="Library"
     BackgroundColor="{StaticResource PageBackgroundColor}">
     <Grid RowDefinitions="Auto,*,Auto">
-        <Border Margin="18,18,18,10" Style="{StaticResource PanelBorderStyle}">
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <Border Margin="18,18,18,8" Style="{StaticResource CompactPanelBorderStyle}">
+            <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                     <VerticalStackLayout Spacing="2">
-                        <Label Text="Library" Style="{StaticResource PageTitleLabelStyle}" />
+                        <Label Text="Library" FontSize="30" FontAttributes="Bold" />
                         <Label Text="{Binding VisibleItemCountText}" Style="{StaticResource TinyLabelStyle}" />
                     </VerticalStackLayout>
-                    <Button Grid.Column="1" Text="+ Add" Clicked="OnAddClicked" Style="{StaticResource PrimaryButtonStyle}" />
+                    <Button Grid.Column="1" x:Name="LibraryHeaderToggleButton" Text="Tools" Clicked="OnToggleHeaderClicked" />
+                    <Button Grid.Column="2" Text="+ Add" Clicked="OnAddClicked" Style="{StaticResource PrimaryButtonStyle}" />
                 </Grid>
 
-                <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                    <SearchBar
-                        x:Name="SearchBox"
-                        Placeholder="Search items"
-                        SearchButtonPressed="OnSearchDone"
-                        Text="{Binding SearchText, Mode=TwoWay}" />
-                    <Button Grid.Column="1" Text="Done" Clicked="OnSearchDone" />
-                </Grid>
+                <Grid x:Name="LibraryHeaderDetails" Grid.Row="1" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8" IsVisible="False">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <SearchBar
+                            x:Name="SearchBox"
+                            Placeholder="Search items"
+                            SearchButtonPressed="OnSearchDone"
+                            Text="{Binding SearchText, Mode=TwoWay}" />
+                        <Button Grid.Column="1" Text="Done" Clicked="OnSearchDone" />
+                    </Grid>
 
-                <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="8">
-                    <Button Text="Browse" Command="{Binding SetBrowseModeCommand}" Clicked="OnDismissSearchClicked" Style="{StaticResource PrimaryButtonStyle}" />
-                    <Button Grid.Column="1" Text="Arrange" Command="{Binding SetArrangeModeCommand}" Clicked="OnDismissSearchClicked" />
-                </Grid>
+                    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <Button Text="Browse" Command="{Binding SetBrowseModeCommand}" Clicked="OnDismissSearchClicked" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Grid.Column="1" Text="Arrange" Command="{Binding SetArrangeModeCommand}" Clicked="OnDismissSearchClicked" />
+                    </Grid>
 
-                <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                    <Button Text="{Binding FilterSummaryText, StringFormat='Filter: {0}'}" Command="{Binding ToggleFilterSheetCommand}" Clicked="OnDismissSearchClicked" />
-                    <Border Grid.Column="1" Style="{StaticResource StatusPillBorderStyle}">
-                        <Label Text="{Binding GalleryModeText}" Style="{StaticResource ChipLabelStyle}" />
-                    </Border>
-                </Grid>
+                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <Button Text="{Binding FilterSummaryText, StringFormat='Filter: {0}'}" Command="{Binding ToggleFilterSheetCommand}" Clicked="OnDismissSearchClicked" />
+                        <Border Grid.Column="1" Style="{StaticResource StatusPillBorderStyle}">
+                            <Label Text="{Binding GalleryModeText}" Style="{StaticResource ChipLabelStyle}" />
+                        </Border>
+                    </Grid>
 
-                <Button
-                    Grid.Row="4"
-                    Text="{Binding GroupSummaryText, StringFormat='Group: {0}'}"
-                    Command="{Binding ToggleGroupSheetCommand}"
-                    Clicked="OnDismissSearchClicked" />
+                    <Button
+                        Grid.Row="3"
+                        Text="{Binding GroupSummaryText, StringFormat='Group: {0}'}"
+                        Command="{Binding ToggleGroupSheetCommand}"
+                        Clicked="OnDismissSearchClicked" />
+                </Grid>
             </Grid>
         </Border>
 

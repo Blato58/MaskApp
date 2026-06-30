@@ -9,30 +9,33 @@
     Title="Pages"
     BackgroundColor="{StaticResource PageBackgroundColor}">
     <Grid RowDefinitions="Auto,Auto,*,Auto">
-        <Border Margin="18,18,18,10" Style="{StaticResource PanelBorderStyle}">
-            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <Border Margin="18,18,18,8" Style="{StaticResource CompactPanelBorderStyle}">
+            <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                     <VerticalStackLayout Spacing="2">
-                        <Label Text="Pages" Style="{StaticResource PageTitleLabelStyle}" />
+                        <Label Text="Pages" FontSize="30" FontAttributes="Bold" />
                         <Label Text="{Binding PagePositionText}" Style="{StaticResource TinyLabelStyle}" />
                     </VerticalStackLayout>
                     <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsSending}" IsVisible="{Binding IsSending}" VerticalOptions="Center" />
+                    <Button Grid.Column="2" x:Name="PagesHeaderToggleButton" Text="Tools" Clicked="OnToggleHeaderClicked" />
                 </Grid>
 
-                <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="8">
-                    <Button Text="Use" Command="{Binding SetUseModeCommand}" Style="{StaticResource PrimaryButtonStyle}" />
-                    <Button Grid.Column="1" Text="Manage" Command="{Binding SetManageModeCommand}" />
-                </Grid>
+                <Grid x:Name="PagesHeaderDetails" Grid.Row="1" RowDefinitions="Auto,Auto" RowSpacing="8" IsVisible="False">
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <Button Text="Use" Command="{Binding SetUseModeCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Grid.Column="1" Text="Manage" Command="{Binding SetManageModeCommand}" />
+                    </Grid>
 
-                <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="8" IsVisible="{Binding IsManageMode}">
-                    <Button Text="+ Page" Command="{Binding AddPageCommand}" Style="{StaticResource PrimaryButtonStyle}" />
-                    <Button Grid.Column="1" Text="Add Items" Clicked="OnAddItemsClicked" />
-                    <Button Grid.Column="2" Text="Edit Page" Command="{Binding TogglePageEditorSheetCommand}" />
+                    <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="8" IsVisible="{Binding IsManageMode}">
+                        <Button Text="+ Page" Command="{Binding AddPageCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Grid.Column="1" Text="Add Items" Clicked="OnAddItemsClicked" />
+                        <Button Grid.Column="2" Text="Edit Page" Command="{Binding TogglePageEditorSheetCommand}" />
+                    </Grid>
                 </Grid>
             </Grid>
         </Border>
 
-        <Border Grid.Row="1" Margin="18,0,18,10" Style="{StaticResource CompactPanelBorderStyle}">
+        <Border Grid.Row="1" Margin="18,0,18,8" Style="{StaticResource CompactPanelBorderStyle}">
             <CollectionView ItemsSource="{Binding Pages}" SelectionMode="None" HeightRequest="52">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8" />
@@ -66,7 +69,7 @@
 
                 <CollectionView Grid.Row="1" ItemsSource="{Binding Shortcuts}" SelectionMode="None">
                     <CollectionView.ItemsLayout>
-                        <GridItemsLayout Orientation="Vertical" Span="4" />
+                        <GridItemsLayout Orientation="Vertical" Span="4" HorizontalItemSpacing="12" VerticalItemSpacing="14" />
                     </CollectionView.ItemsLayout>
                     <CollectionView.EmptyView>
                         <Grid Padding="18">
@@ -78,7 +81,7 @@
                     </CollectionView.EmptyView>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="gallery:GalleryPageShortcutCard">
-                            <VerticalStackLayout Margin="0,0,8,16" Spacing="6">
+                            <VerticalStackLayout Margin="4,4,4,8" Spacing="6">
                                 <Grid>
                                     <Border
                                         BackgroundColor="{Binding ColorHex}"
