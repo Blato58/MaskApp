@@ -145,22 +145,23 @@ real-mask visual confirmation. Custom animation and broader image sequencing
 remain protocol-documented, not proven product behavior.
 
 Static DIY face upload has Java evidence from `UCropActivity` and
-`BitmapUtils.getBitmapData`: `CropImage.imageData` is 432 RGB triplets for a
-36x12 image, ordered column-first (`x`, then `y`). The static Face Studio upload
-payload should not include a packed LED-byte prefix. Java also sets
-`CropImage.timeInt` to the current Unix timestamp before upload and sends those
-four big-endian bytes in `DATCP`; real uploads should not use a zero timestamp.
-The original crop flow assigns the first unused `CropImage.imageIndex` rather
-than overwriting an existing slot, so MaskApp clears the selected slot with
-`DELE` before upload until overwrite behavior is physically proven.
+`BitmapUtils.getBitmapData`: the original Android crop path uses a 46x58 crop
+target, then `CropImage.imageData` stores 2668 RGB triplets ordered
+column-first (`x`, then `y`). Static image-mode uploads should not include a
+packed LED-byte prefix. Java also sets `CropImage.timeInt` to the current Unix
+timestamp before upload and sends those four big-endian bytes in `DATCP`; real
+uploads should not use a zero timestamp. The original crop flow assigns the
+first unused `CropImage.imageIndex` rather than overwriting an existing slot, so
+MaskApp clears the selected slot with `DELE` before upload until overwrite
+behavior is physically proven.
 
 The image upload frame shape is different from MaskApp's conservative text
 upload default: static DIY image data is split into 98 image bytes per packet.
 Each written packet is 100 bytes total: 1 length byte, 1 packet counter byte,
 up to 98 RGB image bytes, and zero padding for the final short packet. The
 length byte includes the packet counter byte, so a full packet starts with
-`0x63` and the final 22-byte data packet for a 1296-byte 36x12 image starts
-with `0x17`. Android requests MTU 103 before service discovery so these packets
+`0x63` and the final 66-byte data packet for an 8004-byte 46x58 image starts
+with `0x43`. Android requests MTU 103 before service discovery so these packets
 can be written as single BLE values.
 
 Expected procedure:
@@ -168,10 +169,10 @@ Expected procedure:
 1. Transform source artwork into the mask's LED bitmap shape and color limits.
 2. Best-effort delete the target DIY slot with encrypted `DELE` before upload.
 3. Start the upload with an encrypted command on the command characteristic.
-   Face Studio uses the Java-evidenced `DATS` length, DIY slot id, and
-   image toggle: two bytes for image size, two bytes for image index, and
-   `0x01` for static image upload. Slot overwrite behavior still needs
-   physical validation on the user's mask.
+   Face Studio uses the Java-evidenced 8004-byte `DATS` length, DIY slot id,
+   and image toggle: two bytes for image size, two bytes for image index, and
+   `0x01` for static image upload. Slot overwrite behavior still needs physical
+   validation on the user's mask.
 4. Write unencrypted 100-byte payload packets to the image/text upload
    characteristic. Each full packet carries 98 RGB image bytes.
 5. Complete the upload with encrypted `DATCP` carrying the image timestamp.

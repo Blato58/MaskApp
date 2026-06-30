@@ -4,8 +4,11 @@ namespace MaskApp.Core.Features.Faces;
 
 public static class FaceUploadProtocol
 {
+    public const int StaticImageWidth = 46;
+    public const int StaticImageHeight = 58;
+    public const int StaticImagePixelCount = StaticImageWidth * StaticImageHeight;
     public const int LedDataLength = FacePattern.Width * 2;
-    public const int ColorDataLength = FacePattern.PixelCount * 3;
+    public const int ColorDataLength = StaticImagePixelCount * 3;
     public const int PayloadLength = ColorDataLength;
     public const int DefaultFramePayloadLength = 98;
     public const int LargeMtuFramePayloadLength = 98;
@@ -75,10 +78,12 @@ public static class FaceUploadProtocol
         var payload = new byte[PayloadLength];
         var offset = 0;
 
-        for (var column = 0; column < FacePattern.Width; column++)
+        for (var imageColumn = 0; imageColumn < StaticImageWidth; imageColumn++)
         {
-            for (var row = 0; row < FacePattern.Height; row++)
+            var column = ScaleCoordinate(imageColumn, StaticImageWidth, FacePattern.Width);
+            for (var imageRow = 0; imageRow < StaticImageHeight; imageRow++)
             {
+                var row = ScaleCoordinate(imageRow, StaticImageHeight, FacePattern.Height);
                 var pixel = pattern.GetPixel(column, row);
                 var color = pixel.IsLit ? pixel.Color : FaceColor.Black;
                 payload[offset++] = color.Red;
@@ -89,6 +94,9 @@ public static class FaceUploadProtocol
 
         return payload;
     }
+
+    private static int ScaleCoordinate(int coordinate, int sourceSize, int targetSize) =>
+        Math.Clamp((int)Math.Floor((coordinate + 0.5) * targetSize / sourceSize), 0, targetSize - 1);
 
     public static IReadOnlyList<FaceUploadFrame> SplitFrames(ReadOnlySpan<byte> payload, int framePayloadLength)
     {

@@ -25,7 +25,7 @@ public sealed class FaceUploadProtocolTests
     }
 
     [Fact]
-    public void BuildPayload_UsesJavaColumnMajorRgbTripletsWithoutLedPrefix()
+    public void BuildPayload_UsesJavaStaticImageCanvasWithoutLedPrefix()
     {
         var pattern = CreatePattern(
             (0, 0, new FaceColor(0x01, 0x02, 0x03)),
@@ -36,13 +36,13 @@ public sealed class FaceUploadProtocolTests
         var payload = FaceUploadProtocol.BuildPayload(pattern);
 
         Assert.Equal(FaceUploadProtocol.PayloadLength, payload.Length);
-        Assert.Equal(FacePattern.PixelCount * 3, payload.Length);
+        Assert.Equal(FaceUploadProtocol.StaticImagePixelCount * 3, payload.Length);
         Assert.Equal([0x01, 0x02, 0x03], payload.Take(3).ToArray());
-        Assert.Equal([0x04, 0x05, 0x06], payload.Skip(3).Take(3).ToArray());
-        Assert.Equal([0x00, 0x00, 0x00], payload.Skip(6).Take(3).ToArray());
-        Assert.Equal([0x07, 0x08, 0x09], payload.Skip(FacePattern.Height * 3).Take(3).ToArray());
+        Assert.Equal([0x04, 0x05, 0x06], payload.Skip(5 * 3).Take(3).ToArray());
+        Assert.Equal([0x07, 0x08, 0x09], payload.Skip(FaceUploadProtocol.StaticImageHeight * 3).Take(3).ToArray());
 
-        var lastPixelOffset = ((FacePattern.Width - 1) * FacePattern.Height + (FacePattern.Height - 1)) * 3;
+        var lastPixelOffset = ((FaceUploadProtocol.StaticImageWidth - 1) * FaceUploadProtocol.StaticImageHeight
+            + (FaceUploadProtocol.StaticImageHeight - 1)) * 3;
         Assert.Equal([0xFA, 0xCC, 0x15], payload.Skip(lastPixelOffset).Take(3).ToArray());
     }
 
@@ -55,20 +55,20 @@ public sealed class FaceUploadProtocolTests
 
         Assert.Equal(4, package.Slot);
         Assert.Equal(FaceUploadProtocol.PayloadLength, package.Payload.Length);
-        Assert.Equal(14, package.Frames.Count);
+        Assert.Equal(82, package.Frames.Count);
         Assert.Equal(100, package.Frames[0].Data.Length);
         Assert.Equal(0x63, package.Frames[0].Data.Span[0]);
         Assert.Equal(0, package.Frames[0].Data.Span[1]);
         Assert.Equal(package.Payload.Take(98).ToArray(), package.Frames[0].Data.Span.Slice(2, 98).ToArray());
         var lastFrame = package.Frames[^1];
-        Assert.Equal(13, lastFrame.Index);
+        Assert.Equal(81, lastFrame.Index);
         Assert.Equal(100, lastFrame.Data.Length);
-        Assert.Equal(0x17, lastFrame.Data.Span[0]);
-        Assert.Equal(13, lastFrame.Data.Span[1]);
-        Assert.Equal(package.Payload.Skip(98 * 13).ToArray(), lastFrame.Data.Span.Slice(2, 22).ToArray());
-        Assert.All(lastFrame.Data.Span.Slice(24).ToArray(), value => Assert.Equal(0, value));
+        Assert.Equal(0x43, lastFrame.Data.Span[0]);
+        Assert.Equal(81, lastFrame.Data.Span[1]);
+        Assert.Equal(package.Payload.Skip(98 * 81).ToArray(), lastFrame.Data.Span.Slice(2, 66).ToArray());
+        Assert.All(lastFrame.Data.Span.Slice(68).ToArray(), value => Assert.Equal(0, value));
         Assert.Equal(MaskCommandKind.FaceUploadStart, package.StartCommand.Kind);
-        Assert.Equal(Convert.FromHexString("09444154530510000401000000000000"), package.StartCommand.Plaintext.ToArray());
+        Assert.Equal(Convert.FromHexString("09444154531F44000401000000000000"), package.StartCommand.Plaintext.ToArray());
         Assert.Equal(MaskCommandKind.FaceUploadFinish, package.FinishCommand.Kind);
         Assert.Equal(Convert.FromHexString("09444154435001020304000000000000"), package.FinishCommand.Plaintext.ToArray());
         Assert.Equal(MaskCommandKind.FacePlay, package.PlayCommand.Kind);

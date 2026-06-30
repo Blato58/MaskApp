@@ -36,9 +36,10 @@ and Pages flows as captions and quick actions.
 
 ## Capability claims
 
-- Static DIY faces use the Java-backed 36x12 payload shape from
-  `UCropActivity` and `BitmapUtils.getBitmapData`: 432 RGB triplets ordered
-  column-first (`x`, then `y`) with no packed LED-byte prefix.
+- Static DIY image-mode uploads use the Java-backed 46x58 crop shape from
+  `UCropActivity` and `BitmapUtils.getBitmapData`: 2668 RGB triplets ordered
+  column-first (`x`, then `y`) with no packed LED-byte prefix. Face Studio's
+  36x12 editor grid is scaled into that static image canvas before upload.
 - Upload best-effort clears the selected DIY slot with `DELE`, then uses
   `DATS`, 98-byte image chunks padded to 100-byte upload packets, `DATCP` with
   a current Unix image timestamp, and delayed automatic `PLAY` through the
@@ -63,7 +64,8 @@ and Pages flows as captions and quick actions.
 - Java evidence: `UCropActivity`, `BitmapUtils.getBitmapData`, `DiyImageFragment`, `LedViewDiy`, `DiyAgreement`, and `DiyMutiAgreement` for 36x12 editing, 20 slots, column-major RGB image data, `DATS`/frames/`DATCP`, and `PLAY`.
 - Protocol evidence: BrickCraftDream's image upload notes describe `DATS`
   image size/index/toggle arguments and 98 image bytes per upload packet with a
-  length byte, packet counter, and zero padding to 100 bytes.
+  length byte, packet counter, and zero padding to 100 bytes. Local Java
+  evidence shows the static crop path uses 46x58 images, not 36x12 images.
 - Existing tests: new Core face generator, image import, and upload protocol tests.
 - Existing validation gaps: no successful real iPhone/mask or Android/mask run has confirmed the corrected visual output.
 
@@ -90,9 +92,9 @@ Out of scope:
 ## Test plan
 
 - Unit tests: generated smiley count/emotions, 36x12 shape, Java bit packing,
-  Java-compatible column-major RGB payload length/color bytes, frame count,
-  98-byte upload packet shape, command plaintexts, ACK parsing, and image
-  import transform.
+  Java-compatible 46x58 column-major RGB payload length/color bytes, frame
+  count, 98-byte upload packet shape, command plaintexts, ACK parsing, and
+  image import transform.
 - Build validation: core tests, iOS target build, Android target build, diff check.
 - Browser/simulator/device validation: not performed; this is a MAUI mobile app
   and physical mask checks require hardware.
@@ -134,14 +136,22 @@ Out of scope:
   deletes the selected slot before sending. This matches the original crop
   flow's first-unused-slot behavior more closely than direct overwrite.
 - A protocol follow-up showed image frames must carry 98 image bytes per packet,
-  padded to 100 bytes with the length byte including the counter. Static DIY
-  face upload now sends a 1296-byte 36x12 image as 14 packets instead of the
-  text-style 72 short packets.
+  padded to 100 bytes with the length byte including the counter. The first
+  frame correction still used a 1296-byte 36x12 payload, which did not match the
+  static image-mode crop dimensions.
 - Validation after the 98-byte packet correction: 17 focused face tests and 219
   full core tests passed; iOS and Android target builds passed with 0 warnings
   and 0 errors; `git diff --check` passed. Android now requests MTU 103 before
   service discovery so 100-byte static image packets can be written as single
   BLE values.
+- Follow-up physical feedback showed a bad orientation/grid-size symptom:
+  painted editor pixels appeared in a left black strip. Rechecking the local
+  Android source found that static `UCropActivity` image mode crops to 46x58 and
+  uploads 8004 RGB bytes. Static Face Studio upload now scales the 36x12 editor
+  into that 46x58 column-major image payload, producing 82 upload packets.
+- Validation after the 46x58 canvas correction: 17 focused face tests and 219
+  full core tests passed; iOS and Android target builds passed with 0 warnings
+  and 0 errors; `git diff --check` passed.
 - Remaining risk: physical DIY upload behavior, rendered Face Studio ergonomics,
   camera/photo picker UX, slot overwrite, `CHEC`, and `DELE`.
 
