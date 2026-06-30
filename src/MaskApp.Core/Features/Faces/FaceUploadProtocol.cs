@@ -7,7 +7,7 @@ public static class FaceUploadProtocol
     public const int LedDataLength = FacePattern.Width * 2;
     public const int ColorDataLength = FacePattern.PixelCount * 3;
     public const int PayloadLength = ColorDataLength;
-    public const int DefaultFramePayloadLength = 18;
+    public const int DefaultFramePayloadLength = 98;
     public const int LargeMtuFramePayloadLength = 98;
 
     public static FaceUploadPackage CreatePackage(

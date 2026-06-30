@@ -40,9 +40,9 @@ and Pages flows as captions and quick actions.
   `UCropActivity` and `BitmapUtils.getBitmapData`: 432 RGB triplets ordered
   column-first (`x`, then `y`) with no packed LED-byte prefix.
 - Upload best-effort clears the selected DIY slot with `DELE`, then uses
-  `DATS`, chunked frames, `DATCP` with a current Unix image timestamp, and
-  delayed automatic `PLAY` through the existing BLE command/image-upload
-  characteristics.
+  `DATS`, 98-byte image chunks padded to 100-byte upload packets, `DATCP` with
+  a current Unix image timestamp, and delayed automatic `PLAY` through the
+  existing BLE command/image-upload characteristics.
 - `CHEC`, `DELE`, slot capacity behavior, fast sequencing, and visual output
   are not physically verified yet.
 - Custom animation, GIF-ish playback, MaskPack playback, and firmware changes
@@ -61,6 +61,9 @@ and Pages flows as captions and quick actions.
 
 - Repo files: `src/MaskApp.Core/Features/Faces`, `src/MaskApp.App/Features/Faces`, BLE adapters, Gallery/Pages catalog.
 - Java evidence: `UCropActivity`, `BitmapUtils.getBitmapData`, `DiyImageFragment`, `LedViewDiy`, `DiyAgreement`, and `DiyMutiAgreement` for 36x12 editing, 20 slots, column-major RGB image data, `DATS`/frames/`DATCP`, and `PLAY`.
+- Protocol evidence: BrickCraftDream's image upload notes describe `DATS`
+  image size/index/toggle arguments and 98 image bytes per upload packet with a
+  length byte, packet counter, and zero padding to 100 bytes.
 - Existing tests: new Core face generator, image import, and upload protocol tests.
 - Existing validation gaps: no successful real iPhone/mask or Android/mask run has confirmed the corrected visual output.
 
@@ -88,7 +91,8 @@ Out of scope:
 
 - Unit tests: generated smiley count/emotions, 36x12 shape, Java bit packing,
   Java-compatible column-major RGB payload length/color bytes, frame count,
-  command plaintexts, ACK parsing, and image import transform.
+  98-byte upload packet shape, command plaintexts, ACK parsing, and image
+  import transform.
 - Build validation: core tests, iOS target build, Android target build, diff check.
 - Browser/simulator/device validation: not performed; this is a MAUI mobile app
   and physical mask checks require hardware.
@@ -129,6 +133,15 @@ Out of scope:
 - A later physical retry still failed, so the upload flow now best-effort
   deletes the selected slot before sending. This matches the original crop
   flow's first-unused-slot behavior more closely than direct overwrite.
+- A protocol follow-up showed image frames must carry 98 image bytes per packet,
+  padded to 100 bytes with the length byte including the counter. Static DIY
+  face upload now sends a 1296-byte 36x12 image as 14 packets instead of the
+  text-style 72 short packets.
+- Validation after the 98-byte packet correction: 17 focused face tests and 219
+  full core tests passed; iOS and Android target builds passed with 0 warnings
+  and 0 errors; `git diff --check` passed. Android now requests MTU 103 before
+  service discovery so 100-byte static image packets can be written as single
+  BLE values.
 - Remaining risk: physical DIY upload behavior, rendered Face Studio ergonomics,
   camera/photo picker UX, slot overwrite, `CHEC`, and `DELE`.
 

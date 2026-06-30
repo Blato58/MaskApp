@@ -21,6 +21,8 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
     private static readonly UUID TextUploadCharacteristicUuid = UUID.FromString(MaskBleProtocol.TextUploadCharacteristicUuid)!;
     private static readonly UUID NotificationCharacteristicUuid = UUID.FromString(MaskBleProtocol.NotificationCharacteristicUuid)!;
     private static readonly UUID ClientCharacteristicConfigurationUuid = UUID.FromString("00002902-0000-1000-8000-00805f9b34fb")!;
+    private const int DefaultGattMtu = 23;
+    private const int RequiredImageUploadMtu = 103;
 
     private readonly Dictionary<string, BluetoothDevice> devicesById = [];
     private readonly ILogger<AndroidBleAdapter> logger;
@@ -36,6 +38,7 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
     private TaskCompletionSource<FaceUploadAcknowledgement>? pendingFaceAcknowledgement;
     private TextUploadTransportState textUploadState = TextUploadTransportState.Disconnected;
     private FaceUploadTransportState faceUploadState = FaceUploadTransportState.Disconnected;
+    private int maximumWritePayloadLength = DefaultGattMtu - 3;
     private event EventHandler<TextUploadTransportStateChangedEventArgs>? TextUploadStateChanged;
     private event EventHandler<FaceUploadTransportStateChangedEventArgs>? FaceUploadStateChanged;
 
@@ -603,9 +606,15 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
         {
             connectedGatt = gatt;
             State = BleConnectionState.Connected;
-            SetTransportState(MaskCommandTransportState.Discovering, "Connected. Discovering mask controls...");
+            SetTransportState(MaskCommandTransportState.Discovering, "Connected. Requesting image upload MTU...");
             RaiseConnectionState(State, $"Connected to {gatt.Device?.Name ?? "mask"}.");
-            gatt.DiscoverServices();
+            if (!gatt.RequestMtu(RequiredImageUploadMtu))
+            {
+                logger.LogDebug("Android BLE MTU request did not start; continuing with default write size.");
+                SetTransportState(MaskCommandTransportState.Discovering, "Connected. Discovering mask controls...");
+                gatt.DiscoverServices();
+            }
+
             return;
         }
 
@@ -629,6 +638,28 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
             SetTransportState(MaskCommandTransportState.Failed, message);
             RaiseConnectionState(State, message);
         }
+    }
+
+    private void HandleMtuChanged(BluetoothGatt? gatt, int mtu, GattStatus status)
+    {
+        if (gatt is null || connectedGatt is null)
+        {
+            return;
+        }
+
+        if (status == GattStatus.Success && mtu >= RequiredImageUploadMtu)
+        {
+            maximumWritePayloadLength = mtu - 3;
+            logger.LogDebug("Android BLE MTU changed to {Mtu}; max write payload is {PayloadLength} bytes.", mtu, maximumWritePayloadLength);
+        }
+        else
+        {
+            maximumWritePayloadLength = DefaultGattMtu - 3;
+            logger.LogDebug("Android BLE MTU request returned status {Status} and MTU {Mtu}; max write payload remains {PayloadLength} bytes.", status, mtu, maximumWritePayloadLength);
+        }
+
+        SetTransportState(MaskCommandTransportState.Discovering, "Connected. Discovering mask controls...");
+        gatt.DiscoverServices();
     }
 
     private void HandleServicesDiscovered(BluetoothGatt? gatt, GattStatus status)
@@ -768,6 +799,12 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
             throw new InvalidOperationException("Mask controls are not ready.");
         }
 
+        if (payload.Length > maximumWritePayloadLength)
+        {
+            throw new InvalidOperationException(
+                $"Android BLE write payload for {description} is {payload.Length} bytes, but the negotiated link allows {maximumWritePayloadLength} bytes.");
+        }
+
         logger.LogDebug(
             "Writing Android BLE {Description} with payload {PayloadHex}.",
             description,
@@ -897,6 +934,7 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
         generalWriteCharacteristic = null;
         textUploadWriteCharacteristic = null;
         textNotifyCharacteristic = null;
+        maximumWritePayloadLength = DefaultGattMtu - 3;
 
         if (connectedGatt is not null)
         {
@@ -1069,6 +1107,11 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
         public override void OnServicesDiscovered(BluetoothGatt? gatt, GattStatus status)
         {
             owner.HandleServicesDiscovered(gatt, status);
+        }
+
+        public override void OnMtuChanged(BluetoothGatt? gatt, int mtu, GattStatus status)
+        {
+            owner.HandleMtuChanged(gatt, mtu, status);
         }
 
         public override void OnCharacteristicChanged(BluetoothGatt? gatt, BluetoothGattCharacteristic? characteristic)

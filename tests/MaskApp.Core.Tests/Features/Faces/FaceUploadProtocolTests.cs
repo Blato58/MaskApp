@@ -55,10 +55,18 @@ public sealed class FaceUploadProtocolTests
 
         Assert.Equal(4, package.Slot);
         Assert.Equal(FaceUploadProtocol.PayloadLength, package.Payload.Length);
-        Assert.Equal(72, package.Frames.Count);
-        Assert.Equal(20, package.Frames[0].Data.Length);
-        Assert.Equal(19, package.Frames[0].Data.Span[0]);
+        Assert.Equal(14, package.Frames.Count);
+        Assert.Equal(100, package.Frames[0].Data.Length);
+        Assert.Equal(0x63, package.Frames[0].Data.Span[0]);
         Assert.Equal(0, package.Frames[0].Data.Span[1]);
+        Assert.Equal(package.Payload.Take(98).ToArray(), package.Frames[0].Data.Span.Slice(2, 98).ToArray());
+        var lastFrame = package.Frames[^1];
+        Assert.Equal(13, lastFrame.Index);
+        Assert.Equal(100, lastFrame.Data.Length);
+        Assert.Equal(0x17, lastFrame.Data.Span[0]);
+        Assert.Equal(13, lastFrame.Data.Span[1]);
+        Assert.Equal(package.Payload.Skip(98 * 13).ToArray(), lastFrame.Data.Span.Slice(2, 22).ToArray());
+        Assert.All(lastFrame.Data.Span.Slice(24).ToArray(), value => Assert.Equal(0, value));
         Assert.Equal(MaskCommandKind.FaceUploadStart, package.StartCommand.Kind);
         Assert.Equal(Convert.FromHexString("09444154530510000401000000000000"), package.StartCommand.Plaintext.ToArray());
         Assert.Equal(MaskCommandKind.FaceUploadFinish, package.FinishCommand.Kind);
