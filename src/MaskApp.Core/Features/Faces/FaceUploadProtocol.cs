@@ -6,7 +6,7 @@ public static class FaceUploadProtocol
 {
     public const int LedDataLength = FacePattern.Width * 2;
     public const int ColorDataLength = FacePattern.PixelCount * 3;
-    public const int PayloadLength = LedDataLength + ColorDataLength;
+    public const int PayloadLength = ColorDataLength;
     public const int DefaultFramePayloadLength = 18;
     public const int LargeMtuFramePayloadLength = 98;
 
@@ -71,14 +71,12 @@ public static class FaceUploadProtocol
     public static byte[] BuildPayload(FacePattern pattern)
     {
         pattern = pattern.Normalize();
-        var ledData = PackLedBits(pattern);
         var payload = new byte[PayloadLength];
-        ledData.CopyTo(payload, 0);
-        var offset = LedDataLength;
+        var offset = 0;
 
-        for (var row = 0; row < FacePattern.Height; row++)
+        for (var column = 0; column < FacePattern.Width; column++)
         {
-            for (var column = 0; column < FacePattern.Width; column++)
+            for (var row = 0; row < FacePattern.Height; row++)
             {
                 var pixel = pattern.GetPixel(column, row);
                 var color = pixel.IsLit ? pixel.Color : FaceColor.Black;

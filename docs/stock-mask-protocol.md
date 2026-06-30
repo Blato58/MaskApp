@@ -140,8 +140,14 @@ write-only mode reliably displays short text.
 
 ## Image Upload Procedure
 
-Custom image upload is protocol-documented but not yet implemented as a product
-feature in MaskApp.
+Static DIY face upload is implemented in MaskApp but still needs corrected
+real-mask visual confirmation. Custom animation and broader image sequencing
+remain protocol-documented, not proven product behavior.
+
+Static DIY face upload has Java evidence from `UCropActivity` and
+`BitmapUtils.getBitmapData`: `CropImage.imageData` is 432 RGB triplets for a
+36x12 image, ordered column-first (`x`, then `y`). The static Face Studio upload
+payload should not include a packed LED-byte prefix.
 
 Expected procedure:
 

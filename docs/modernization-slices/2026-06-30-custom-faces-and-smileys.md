@@ -37,7 +37,8 @@ and Pages flows as captions and quick actions.
 ## Capability claims
 
 - Static DIY faces use the Java-backed 36x12 payload shape from
-  `docs/stock-mask-protocol.md`: 72 packed LED bytes plus 432 RGB triplets.
+  `UCropActivity` and `BitmapUtils.getBitmapData`: 432 RGB triplets ordered
+  column-first (`x`, then `y`) with no packed LED-byte prefix.
 - Upload uses `DATS`, chunked frames, `DATCP`, and immediate `PLAY` through
   the existing BLE command/image-upload characteristics.
 - `CHEC`, `DELE`, slot capacity behavior, fast sequencing, and visual output
@@ -57,9 +58,9 @@ and Pages flows as captions and quick actions.
 ## Current evidence
 
 - Repo files: `src/MaskApp.Core/Features/Faces`, `src/MaskApp.App/Features/Faces`, BLE adapters, Gallery/Pages catalog.
-- Java evidence: `DiyImageFragment`, `LedViewDiy`, `DiyAgreement`, and `DiyMutiAgreement` for 36x12 editing, 20 slots, packed columns, `DATS`/frames/`DATCP`, and `PLAY`.
+- Java evidence: `UCropActivity`, `BitmapUtils.getBitmapData`, `DiyImageFragment`, `LedViewDiy`, `DiyAgreement`, and `DiyMutiAgreement` for 36x12 editing, 20 slots, column-major RGB image data, `DATS`/frames/`DATCP`, and `PLAY`.
 - Existing tests: new Core face generator, image import, and upload protocol tests.
-- Existing validation gaps: no real iPhone/mask or Android/mask run was performed.
+- Existing validation gaps: no successful real iPhone/mask or Android/mask run has confirmed the corrected visual output.
 
 ## Scope
 
@@ -84,8 +85,8 @@ Out of scope:
 ## Test plan
 
 - Unit tests: generated smiley count/emotions, 36x12 shape, Java bit packing,
-  payload length/color bytes, frame count, command plaintexts, ACK parsing, and
-  image import transform.
+  Java-compatible column-major RGB payload length/color bytes, frame count,
+  command plaintexts, ACK parsing, and image import transform.
 - Build validation: core tests, iOS target build, Android target build, diff check.
 - Browser/simulator/device validation: not performed; this is a MAUI mobile app
   and physical mask checks require hardware.
@@ -115,6 +116,9 @@ Out of scope:
   Gallery/Pages projection, tests, and docs.
 - Commands run: `dotnet test tests\MaskApp.Core.Tests\MaskApp.Core.Tests.csproj`, `dotnet build src\MaskApp.App\MaskApp.App.csproj -f net10.0-ios`, `dotnet build src\MaskApp.App\MaskApp.App.csproj -f net10.0-android`, `git diff --check`.
 - Result: 216 core tests passed; iOS and Android target builds passed with 0 warnings and 0 errors.
+- Post-validation correction: real-mask feedback showed the first upload
+  encoder produced split white/yellow output with black patches. The static
+  DIY payload was corrected to Java-compatible RGB-only column-major bytes.
 - Remaining risk: physical DIY upload behavior, rendered Face Studio ergonomics,
   camera/photo picker UX, slot overwrite, `CHEC`, and `DELE`.
 

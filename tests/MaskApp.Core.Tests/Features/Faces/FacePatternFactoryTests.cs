@@ -20,7 +20,7 @@ public sealed class FacePatternFactoryTests
             Assert.InRange(face.PreferredSlot, 1, 6);
             Assert.Contains(face.Pixels, pixel => pixel.IsLit);
         });
-        Assert.Equal(faces.Count, faces.Select(face => Convert.ToHexString(FaceUploadProtocol.PackLedBits(face))).Distinct().Count());
+        Assert.Equal(faces.Count, faces.Select(face => Convert.ToHexString(FaceUploadProtocol.BuildPayload(face))).Distinct().Count());
     }
 
     [Fact]

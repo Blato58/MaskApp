@@ -25,17 +25,25 @@ public sealed class FaceUploadProtocolTests
     }
 
     [Fact]
-    public void BuildPayload_AppendsRgbTripletsForEveryGridCell()
+    public void BuildPayload_UsesJavaColumnMajorRgbTripletsWithoutLedPrefix()
     {
-        var pattern = CreatePattern((2, 0));
+        var pattern = CreatePattern(
+            (0, 0, new FaceColor(0x01, 0x02, 0x03)),
+            (0, 1, new FaceColor(0x04, 0x05, 0x06)),
+            (1, 0, new FaceColor(0x07, 0x08, 0x09)),
+            (35, 11, new FaceColor(0xFA, 0xCC, 0x15)));
 
         var payload = FaceUploadProtocol.BuildPayload(pattern);
 
         Assert.Equal(FaceUploadProtocol.PayloadLength, payload.Length);
-        Assert.Equal(FaceUploadProtocol.LedDataLength, payload.Take(FaceUploadProtocol.LedDataLength).Count());
-        var colorOffset = FaceUploadProtocol.LedDataLength + (2 * 3);
-        Assert.Equal([0xFA, 0xCC, 0x15], payload.Skip(colorOffset).Take(3).ToArray());
-        Assert.Equal([0x00, 0x00, 0x00], payload.Skip(FaceUploadProtocol.LedDataLength).Take(3).ToArray());
+        Assert.Equal(FacePattern.PixelCount * 3, payload.Length);
+        Assert.Equal([0x01, 0x02, 0x03], payload.Take(3).ToArray());
+        Assert.Equal([0x04, 0x05, 0x06], payload.Skip(3).Take(3).ToArray());
+        Assert.Equal([0x00, 0x00, 0x00], payload.Skip(6).Take(3).ToArray());
+        Assert.Equal([0x07, 0x08, 0x09], payload.Skip(FacePattern.Height * 3).Take(3).ToArray());
+
+        var lastPixelOffset = ((FacePattern.Width - 1) * FacePattern.Height + (FacePattern.Height - 1)) * 3;
+        Assert.Equal([0xFA, 0xCC, 0x15], payload.Skip(lastPixelOffset).Take(3).ToArray());
     }
 
     [Fact]
@@ -47,12 +55,12 @@ public sealed class FaceUploadProtocolTests
 
         Assert.Equal(4, package.Slot);
         Assert.Equal(FaceUploadProtocol.PayloadLength, package.Payload.Length);
-        Assert.Equal(76, package.Frames.Count);
+        Assert.Equal(72, package.Frames.Count);
         Assert.Equal(20, package.Frames[0].Data.Length);
         Assert.Equal(19, package.Frames[0].Data.Span[0]);
         Assert.Equal(0, package.Frames[0].Data.Span[1]);
         Assert.Equal(MaskCommandKind.FaceUploadStart, package.StartCommand.Kind);
-        Assert.Equal(Convert.FromHexString("09444154530558000401000000000000"), package.StartCommand.Plaintext.ToArray());
+        Assert.Equal(Convert.FromHexString("09444154530510000401000000000000"), package.StartCommand.Plaintext.ToArray());
         Assert.Equal(MaskCommandKind.FaceUploadFinish, package.FinishCommand.Kind);
         Assert.Equal(Convert.FromHexString("09444154435001020304000000000000"), package.FinishCommand.Plaintext.ToArray());
         Assert.Equal(MaskCommandKind.FacePlay, package.PlayCommand.Kind);
@@ -76,10 +84,17 @@ public sealed class FaceUploadProtocolTests
 
     private static FacePattern CreatePattern(params (int Column, int Row)[] litPixels)
     {
+        return CreatePattern(litPixels
+            .Select(pixel => (pixel.Column, pixel.Row, new FaceColor(0xFA, 0xCC, 0x15)))
+            .ToArray());
+    }
+
+    private static FacePattern CreatePattern(params (int Column, int Row, FaceColor Color)[] litPixels)
+    {
         var pixels = Enumerable.Repeat(FacePixel.Off, FacePattern.PixelCount).ToArray();
-        foreach (var (column, row) in litPixels)
+        foreach (var (column, row, color) in litPixels)
         {
-            pixels[(row * FacePattern.Width) + column] = new FacePixel(true, new FaceColor(0xFA, 0xCC, 0x15));
+            pixels[(row * FacePattern.Width) + column] = new FacePixel(true, color);
         }
 
         return new FacePattern
