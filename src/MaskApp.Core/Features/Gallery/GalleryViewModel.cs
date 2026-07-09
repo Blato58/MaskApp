@@ -40,6 +40,9 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
     private bool isManageSheetVisible;
     private GalleryItem? managedItem;
     private bool isEditMode;
+    private int firstVisibleRowIndex = -1;
+    private int lastVisibleRowIndex = -1;
+    private bool reducePreviewMotion = true;
 
     public GalleryViewModel(
         QuickActionCatalog quickActionCatalog,
@@ -563,6 +566,7 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
                 new AsyncRelayCommand(cancellationToken => MoveGroupAsync($"{SelectedGroupingMode.Mode}:{group.Key}", 1, cancellationToken))))
             .ToArray();
         Rows = BuildRows(Groups);
+        ApplyPreviewAnimationState();
     }
 
     private static IReadOnlyList<GalleryListRow> BuildRows(IReadOnlyList<GalleryGroupCard> groups)
@@ -571,15 +575,41 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         foreach (var group in groups)
         {
             result.Add(GalleryListRow.GroupHeader(group.Title, group.Items.Count));
-            for (var index = 0; index < group.Items.Count; index += 2)
+            foreach (var item in group.Items)
             {
-                result.Add(GalleryListRow.ItemPair(
-                    group.Items[index],
-                    index + 1 < group.Items.Count ? group.Items[index + 1] : null));
+                result.Add(GalleryListRow.ItemRow(item));
             }
         }
 
         return result;
+    }
+
+    public void SetVisibleRowRange(int firstVisibleIndex, int lastVisibleIndex, bool reduceMotion)
+    {
+        firstVisibleRowIndex = firstVisibleIndex;
+        lastVisibleRowIndex = lastVisibleIndex;
+        reducePreviewMotion = reduceMotion;
+        ApplyPreviewAnimationState();
+    }
+
+    private void ApplyPreviewAnimationState()
+    {
+        for (var index = 0; index < Rows.Count; index++)
+        {
+            var card = Rows[index].Item;
+            card?.SetAnimationPlaying(!reducePreviewMotion && index >= firstVisibleRowIndex && index <= lastVisibleRowIndex);
+        }
+    }
+
+    public void StopPreviewAnimations()
+    {
+        firstVisibleRowIndex = -1;
+        lastVisibleRowIndex = -1;
+        reducePreviewMotion = true;
+        foreach (var row in Rows)
+        {
+            row.Item?.SetAnimationPlaying(false);
+        }
     }
 
     private GalleryItemCard CreateCard(GalleryItem item) =>

@@ -26,6 +26,11 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
     private string lastSendStatus = "Never sent";
     private IReadOnlyList<BuiltInAssetListItem> favoriteFaces = [];
     private IReadOnlyList<BuiltInAssetListItem> savedItems = [];
+    private IReadOnlyList<BuiltInAssetListItem> catalogItems = [];
+    private string searchText = string.Empty;
+    private int catalogFirstVisibleIndex = -1;
+    private int catalogLastVisibleIndex = -1;
+    private bool catalogReduceMotion = true;
 
     public BuiltInsViewModel(IMaskCommandTransport transport, IBuiltInAssetArchiveStore? archiveStore = null)
     {
@@ -94,10 +99,12 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CatalogCountText));
                 OnPropertyChanged(nameof(CatalogPositionText));
                 OnPropertyChanged(nameof(CurrentDefinition));
-                OnPropertyChanged(nameof(CurrentPreviewText));
+                OnPropertyChanged(nameof(CurrentPreviewResourceName));
+                OnPropertyChanged(nameof(CurrentPreviewIsAnimated));
                 OnPropertyChanged(nameof(CurrentPreviewBadgeText));
                 OnPropertyChanged(nameof(CurrentPreviewSourceText));
                 OnPropertyChanged(nameof(SendButtonText));
+                RefreshCatalogItems();
                 RaiseCommandStates();
             }
         }
@@ -125,7 +132,8 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CurrentHexId));
                 OnPropertyChanged(nameof(CatalogPositionText));
                 OnPropertyChanged(nameof(CurrentDefinition));
-                OnPropertyChanged(nameof(CurrentPreviewText));
+                OnPropertyChanged(nameof(CurrentPreviewResourceName));
+                OnPropertyChanged(nameof(CurrentPreviewIsAnimated));
                 OnPropertyChanged(nameof(CurrentPreviewBadgeText));
                 OnPropertyChanged(nameof(CurrentPreviewSourceText));
                 OnPropertyChanged(nameof(SendButtonText));
@@ -149,12 +157,13 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
     public BuiltInAssetDefinition CurrentDefinition =>
         BuiltInAssetCatalog.GetDefinitionOrFallback(CurrentAssetType, CurrentId);
 
-    public string CurrentPreviewText => CurrentDefinition.Preview.PreviewText;
+    public string CurrentPreviewResourceName => CurrentDefinition.Preview.ResourceName;
 
-    public string CurrentPreviewBadgeText =>
-        $"{CurrentDefinition.Preview.BadgeText} / {CurrentDefinition.Preview.FrameCountText}";
+    public bool CurrentPreviewIsAnimated => CurrentDefinition.Preview.IsAnimated;
 
-    public string CurrentPreviewSourceText => CurrentDefinition.Preview.SourceLabel;
+    public string CurrentPreviewBadgeText => CurrentDefinition.Preview.BadgeText;
+
+    public string CurrentPreviewSourceText => CurrentDefinition.Preview.Provenance;
 
     public string CatalogCountText => Mode == BuiltInScannerMode.StaticImage
         ? $"{BuiltInAssetCatalog.Count(BuiltInAssetType.StaticImage)} Android static images"
@@ -166,8 +175,8 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
             : "Archived unknown ID";
 
     public string RangeNote => Mode == BuiltInScannerMode.StaticImage
-        ? "Android image catalog exposes 70 IMAG IDs: 0-69. ImageData previews cover 0-10; the rest use generated previews until Android resources are recovered."
-        : "Android animation catalog exposes 45 ANIM IDs: 0, 1, 2, 3, and 5-45. ID 4 is skipped by the original app.";
+        ? "70 stock faces with exact original-app previews. IMAG command IDs run from 0 to 69."
+        : "45 stock animations with exact original-app previews. ANIM command ID 4 is intentionally skipped.";
 
     public string ValidationLabel => "Android catalog";
 
@@ -240,8 +249,16 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
     public bool IsFavorite
     {
         get => isFavorite;
-        set => SetField(ref isFavorite, value);
+        set
+        {
+            if (SetField(ref isFavorite, value))
+            {
+                OnPropertyChanged(nameof(FavoriteButtonText));
+            }
+        }
     }
+
+    public string FavoriteButtonText => IsFavorite ? "Remove favorite" : "Add favorite";
 
     public string LastTestedText => lastTestedAt is null
         ? "Not tested in this archive yet."
@@ -294,6 +311,35 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         ? "Edit opens a saved ID in the scanner for names, tags, and notes."
         : "No saved archive records yet.";
 
+    public IReadOnlyList<BuiltInAssetListItem> CatalogItems
+    {
+        get => catalogItems;
+        private set
+        {
+            if (SetField(ref catalogItems, value))
+            {
+                OnPropertyChanged(nameof(CatalogSummaryText));
+                OnPropertyChanged(nameof(IsCatalogEmpty));
+            }
+        }
+    }
+
+    public bool IsCatalogEmpty => CatalogItems.Count == 0;
+
+    public string CatalogSummaryText => $"{CatalogItems.Count} {ModeText.ToLowerInvariant()} previews";
+
+    public string SearchText
+    {
+        get => searchText;
+        set
+        {
+            if (SetField(ref searchText, value))
+            {
+                RefreshCatalogItems();
+            }
+        }
+    }
+
     public string SendButtonText => $"Send {ModeText} {CurrentId} ({CurrentHexId})";
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -308,13 +354,13 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
             IsLoadingArchive = true;
             archive = await archiveStore.LoadAsync(cancellationToken);
             LoadMetadataForCurrent();
-            RefreshSavedItems();
+            RefreshItems();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
             archive = BuiltInAssetArchive.Empty;
             LoadMetadataForCurrent();
-            RefreshSavedItems();
+            RefreshItems();
             StatusText = $"Archive unavailable; continuing with an empty archive. {ex.Message}";
         }
         finally
@@ -340,13 +386,13 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
     private Task PreviousAsync(CancellationToken cancellationToken)
     {
         CurrentId = BuiltInAssetCatalog.GetPreviousKnownId(CurrentAssetType, CurrentId);
-        return SendAsync(cancellationToken);
+        return Task.CompletedTask;
     }
 
     private Task NextAsync(CancellationToken cancellationToken)
     {
         CurrentId = BuiltInAssetCatalog.GetNextKnownId(CurrentAssetType, CurrentId);
-        return SendAsync(cancellationToken);
+        return Task.CompletedTask;
     }
 
     private Task BlackoutAsync(CancellationToken cancellationToken) =>
@@ -365,7 +411,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         var record = BuildCurrentRecord();
         archive = archive.Upsert(record);
         var saved = await SaveArchiveAsync(cancellationToken);
-        RefreshSavedItems();
+        RefreshItems();
         if (saved)
         {
             StatusText = "Ready";
@@ -374,12 +420,17 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
 
     private async Task ToggleFavoriteAsync(CancellationToken cancellationToken)
     {
-        IsFavorite = !IsFavorite;
+        var removingFavorite = IsFavorite;
+        IsFavorite = !removingFavorite;
+        if (removingFavorite && AssetStatus == BuiltInAssetStatus.Favorite)
+        {
+            AssetStatus = BuiltInAssetStatus.Untested;
+        }
         lastUpdatedAt = DateTimeOffset.Now;
         var record = BuildCurrentRecord();
         archive = archive.Upsert(record);
         var saved = await SaveArchiveAsync(cancellationToken);
-        RefreshSavedItems();
+        RefreshItems();
 
         if (saved)
         {
@@ -397,7 +448,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         var record = BuildCurrentRecord();
         archive = archive.Upsert(record);
         var saved = await SaveArchiveAsync(cancellationToken);
-        RefreshSavedItems();
+        RefreshItems();
 
         if (saved)
         {
@@ -443,7 +494,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(LastTestedText));
                 archive = archive.Upsert(BuildCurrentRecord());
                 await SaveArchiveAsync(cancellationToken);
-                RefreshSavedItems();
+                RefreshItems();
             }
         }
         finally
@@ -479,7 +530,52 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(LastTestedText));
     }
 
-    private void RefreshSavedItems()
+    public void SelectCatalogItem(BuiltInAssetType type, int id)
+    {
+        if (!BuiltInAssetCatalog.IsKnown(type, id))
+        {
+            return;
+        }
+
+        Mode = type == BuiltInAssetType.StaticImage
+            ? BuiltInScannerMode.StaticImage
+            : BuiltInScannerMode.Animation;
+        CurrentId = id;
+        LoadMetadataForCurrent();
+        StatusText = "Ready";
+    }
+
+    public void SetCatalogVisibleRange(int firstVisibleIndex, int lastVisibleIndex, bool reduceMotion)
+    {
+        catalogFirstVisibleIndex = firstVisibleIndex;
+        catalogLastVisibleIndex = lastVisibleIndex;
+        catalogReduceMotion = reduceMotion;
+        ApplyCatalogAnimationState();
+    }
+
+    private void ApplyCatalogAnimationState()
+    {
+        for (var index = 0; index < CatalogItems.Count; index++)
+        {
+            var isVisible = !catalogReduceMotion &&
+                index >= catalogFirstVisibleIndex &&
+                index <= catalogLastVisibleIndex;
+            CatalogItems[index].SetAnimationPlaying(isVisible);
+        }
+    }
+
+    public void StopCatalogAnimations()
+    {
+        catalogFirstVisibleIndex = -1;
+        catalogLastVisibleIndex = -1;
+        catalogReduceMotion = true;
+        foreach (var item in CatalogItems)
+        {
+            item.SetAnimationPlaying(false);
+        }
+    }
+
+    private void RefreshItems()
     {
         FavoriteFaces = archive.FavoriteDeckRecords()
             .Select(CreateSavedItem)
@@ -487,6 +583,30 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         SavedItems = archive.FavoriteOrTestedRecords()
             .Select(CreateSavedItem)
             .ToArray();
+        RefreshCatalogItems();
+    }
+
+    private void RefreshCatalogItems()
+    {
+        var query = SearchText.Trim();
+        CatalogItems = BuiltInAssetCatalog.GetDefinitions(CurrentAssetType)
+            .Select(definition => archive.TryGetRecord(definition.Type, definition.Id)
+                ?? new BuiltInAssetRecord(definition.Type, definition.Id))
+            .Where(record => MatchesSearch(record, query))
+            .Select(CreateSavedItem)
+            .ToArray();
+        ApplyCatalogAnimationState();
+    }
+
+    private static bool MatchesSearch(BuiltInAssetRecord record, string query)
+    {
+        if (query.Length == 0)
+        {
+            return true;
+        }
+
+        var searchable = $"{record.DisplayName} {record.Id} {record.HexId} {record.Status} {string.Join(' ', record.Tags)}";
+        return searchable.Contains(query, StringComparison.OrdinalIgnoreCase);
     }
 
     private BuiltInAssetListItem CreateSavedItem(BuiltInAssetRecord record)
@@ -501,17 +621,37 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
             $"ID {record.Id} / {record.HexId}",
             record.Tags.Length == 0 ? "No tags" : string.Join(", ", record.Tags),
             record.Status.ToString(),
-            record.IsFavorite || record.Status == BuiltInAssetStatus.Favorite ? "Star" : string.Empty,
-            preview.PreviewText,
-            $"{preview.BadgeText} / {preview.FrameCountText}",
-            preview.SourceLabel,
+            preview.ResourceName,
+            preview.IsAnimated,
+            preview.BadgeText,
+            preview.Provenance,
             new AsyncRelayCommand(cancellationToken => SendSavedRecordAsync(record, cancellationToken), CanSend),
             new AsyncRelayCommand(_ =>
             {
                 LoadRecord(record);
                 return Task.CompletedTask;
-            }));
+            }),
+            new AsyncRelayCommand(cancellationToken => ToggleFavoriteRecordAsync(record, cancellationToken)));
         return item;
+    }
+
+    private async Task ToggleFavoriteRecordAsync(BuiltInAssetRecord record, CancellationToken cancellationToken)
+    {
+        var updated = record with
+        {
+            IsFavorite = !(record.IsFavorite || record.Status == BuiltInAssetStatus.Favorite),
+            Status = record.Status == BuiltInAssetStatus.Favorite ? BuiltInAssetStatus.Untested : record.Status,
+            LastUpdatedAt = DateTimeOffset.Now
+        };
+        archive = archive.Upsert(updated);
+        if (await SaveArchiveAsync(cancellationToken))
+        {
+            RefreshItems();
+            if (updated.Type == CurrentAssetType && updated.Id == CurrentId)
+            {
+                LoadMetadataForCurrent();
+            }
+        }
     }
 
     private async Task SendSavedRecordAsync(BuiltInAssetRecord record, CancellationToken cancellationToken)
@@ -542,7 +682,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
             };
             archive = archive.Upsert(updated);
             await SaveArchiveAsync(cancellationToken);
-            RefreshSavedItems();
+            RefreshItems();
         }
         finally
         {
@@ -568,7 +708,8 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(CurrentHexId));
             OnPropertyChanged(nameof(CatalogPositionText));
             OnPropertyChanged(nameof(CurrentDefinition));
-            OnPropertyChanged(nameof(CurrentPreviewText));
+            OnPropertyChanged(nameof(CurrentPreviewResourceName));
+            OnPropertyChanged(nameof(CurrentPreviewIsAnimated));
             OnPropertyChanged(nameof(CurrentPreviewBadgeText));
             OnPropertyChanged(nameof(CurrentPreviewSourceText));
             OnPropertyChanged(nameof(SendButtonText));
@@ -606,10 +747,10 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
     private bool CanSend() => !IsSending && transport.TransportState == MaskCommandTransportState.Ready;
 
     private bool CanStepPrevious() =>
-        CanSend() && BuiltInAssetCatalog.GetPreviousKnownId(CurrentAssetType, CurrentId) != CurrentId;
+        BuiltInAssetCatalog.GetPreviousKnownId(CurrentAssetType, CurrentId) != CurrentId;
 
     private bool CanStepNext() =>
-        CanSend() && BuiltInAssetCatalog.GetNextKnownId(CurrentAssetType, CurrentId) != CurrentId;
+        BuiltInAssetCatalog.GetNextKnownId(CurrentAssetType, CurrentId) != CurrentId;
 
     private void OnTransportStateChanged(object? sender, MaskCommandTransportStateChangedEventArgs e)
     {
@@ -628,7 +769,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         MarkWorkingCommand.RaiseCanExecuteChanged();
         MarkBadCommand.RaiseCanExecuteChanged();
         MarkWeirdCommand.RaiseCanExecuteChanged();
-        foreach (var item in FavoriteFaces.Concat(SavedItems))
+        foreach (var item in FavoriteFaces.Concat(SavedItems).Concat(CatalogItems))
         {
             item.SendCommand.RaiseCanExecuteChanged();
         }

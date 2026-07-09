@@ -2,37 +2,46 @@ namespace MaskApp.Core.Features.BuiltIns;
 
 public sealed record BuiltInAssetPreview
 {
+    public static BuiltInAssetPreview Empty { get; } = new(string.Empty, 52, 64, false, 0, 0, "Unavailable");
+
     public BuiltInAssetPreview(
+        string resourceName,
         int width,
         int height,
-        BuiltInAssetPreviewFrame[] frames,
-        bool isDataBacked,
-        string sourceLabel)
+        bool isAnimated,
+        int frameCount,
+        int frameDurationMilliseconds,
+        string provenance)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+        ArgumentOutOfRangeException.ThrowIfNegative(frameCount);
+        ArgumentOutOfRangeException.ThrowIfNegative(frameDurationMilliseconds);
+
+        ResourceName = resourceName;
         Width = width;
         Height = height;
-        Frames = frames.Length == 0
-            ? [new BuiltInAssetPreviewFrame(width, height, Enumerable.Repeat(new string('.', width), height).ToArray())]
-            : frames;
-        IsDataBacked = isDataBacked;
-        SourceLabel = sourceLabel;
+        IsAnimated = isAnimated;
+        FrameCount = frameCount;
+        FrameDurationMilliseconds = frameDurationMilliseconds;
+        Provenance = provenance;
     }
+
+    public string ResourceName { get; }
 
     public int Width { get; }
 
     public int Height { get; }
 
-    public BuiltInAssetPreviewFrame[] Frames { get; }
+    public bool IsAnimated { get; }
 
-    public bool IsDataBacked { get; }
+    public int FrameCount { get; }
 
-    public string SourceLabel { get; }
+    public int FrameDurationMilliseconds { get; }
 
-    public BuiltInAssetPreviewFrame FirstFrame => Frames[0];
+    public string Provenance { get; }
 
-    public string PreviewText => FirstFrame.Text;
+    public bool IsAvailable => !string.IsNullOrWhiteSpace(ResourceName);
 
-    public string BadgeText => IsDataBacked ? "Android data" : "Generated preview";
-
-    public string FrameCountText => Frames.Length == 1 ? "1 frame" : $"{Frames.Length} frames";
+    public string BadgeText => IsAnimated ? $"{FrameCount} frames" : "Stock preview";
 }

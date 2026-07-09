@@ -43,6 +43,9 @@ public sealed class PagesViewModel : INotifyPropertyChanged
     private bool isSending;
     private bool isManageMode;
     private bool isPageEditorSheetVisible;
+    private int firstVisibleShortcutIndex = -1;
+    private int lastVisibleShortcutIndex = -1;
+    private bool reducePreviewMotion = true;
     private bool isDeletePageConfirmationVisible;
 
     public PagesViewModel(
@@ -467,6 +470,7 @@ public sealed class PagesViewModel : INotifyPropertyChanged
             .Where(card => card is not null)
             .Cast<GalleryPageShortcutCard>()
             .ToArray();
+        ApplyPreviewAnimationState();
 
         var usedIds = SelectedPage.Items.Select(item => item.GalleryItemId).ToHashSet(StringComparer.Ordinal);
         AvailableItems = allItems
@@ -481,6 +485,33 @@ public sealed class PagesViewModel : INotifyPropertyChanged
 
         RemovePageCommand.RaiseCanExecuteChanged();
         ConfirmRemovePageCommand.RaiseCanExecuteChanged();
+    }
+
+    public void SetVisibleShortcutRange(int firstVisibleIndex, int lastVisibleIndex, bool reduceMotion)
+    {
+        firstVisibleShortcutIndex = firstVisibleIndex;
+        lastVisibleShortcutIndex = lastVisibleIndex;
+        reducePreviewMotion = reduceMotion;
+        ApplyPreviewAnimationState();
+    }
+
+    private void ApplyPreviewAnimationState()
+    {
+        for (var index = 0; index < Shortcuts.Count; index++)
+        {
+            Shortcuts[index].SetAnimationPlaying(!reducePreviewMotion && index >= firstVisibleShortcutIndex && index <= lastVisibleShortcutIndex);
+        }
+    }
+
+    public void StopPreviewAnimations()
+    {
+        firstVisibleShortcutIndex = -1;
+        lastVisibleShortcutIndex = -1;
+        reducePreviewMotion = true;
+        foreach (var shortcut in Shortcuts)
+        {
+            shortcut.SetAnimationPlaying(false);
+        }
     }
 
     private void CloseSheets()

@@ -16,6 +16,8 @@ were removed to keep coding-agent context small.
   MaskPack parser/validator.
 - `icon-sources.md` records source and licensing notes for vendored shortcut
   icons.
+- `builtin-preview-sources.md` records stock preview provenance, exact ID/frame
+  mapping, regeneration, and validation.
 
 Update these files only when their durable facts change. Do not add per-slice
 status records or broad planning docs unless the user explicitly asks for them.

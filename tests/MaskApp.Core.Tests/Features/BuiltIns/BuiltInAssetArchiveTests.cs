@@ -29,7 +29,7 @@ public sealed class BuiltInAssetArchiveTests
 
         Assert.Equal(3, record.Id);
         Assert.Equal("0x03", record.HexId);
-        Assert.Equal("Android Animation 03", record.DisplayName);
+        Assert.Equal("Animation 03", record.DisplayName);
         Assert.Equal(BuiltInAssetStatus.Untested, record.Status);
         Assert.Equal("Never sent", record.LastSendStatus);
     }
@@ -43,8 +43,8 @@ public sealed class BuiltInAssetArchiveTests
             new BuiltInAssetRecord(BuiltInAssetType.Animation, 5) { DisplayName = "Animation 5" }
         ]);
 
-        Assert.Equal("Android Image 07", archive.GetOrCreate(BuiltInAssetType.StaticImage, 7).DisplayName);
-        Assert.Equal("Android Animation 05", archive.GetOrCreate(BuiltInAssetType.Animation, 5).DisplayName);
+        Assert.Equal("Face 07", archive.GetOrCreate(BuiltInAssetType.StaticImage, 7).DisplayName);
+        Assert.Equal("Animation 05", archive.GetOrCreate(BuiltInAssetType.Animation, 5).DisplayName);
     }
 
     [Fact]

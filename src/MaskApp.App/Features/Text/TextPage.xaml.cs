@@ -48,4 +48,10 @@ public partial class TextPage : ContentPage, IQueryAttributable
             viewModel.SelectColor(color);
         }
     }
+
+    private void OnToggleDiagnosticsClicked(object? sender, EventArgs e)
+    {
+        DiagnosticsPanel.IsVisible = !DiagnosticsPanel.IsVisible;
+        DiagnosticsToggle.Text = DiagnosticsPanel.IsVisible ? "Hide diagnostics" : "Show diagnostics";
+    }
 }

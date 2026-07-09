@@ -1,9 +1,11 @@
+using System.ComponentModel;
 using MaskApp.Core.Features.Connect;
 
 namespace MaskApp.Core.Features.Gallery;
 
-public sealed class GalleryPageShortcutCard
+public sealed class GalleryPageShortcutCard : INotifyPropertyChanged
 {
+    private bool isAnimationPlaying;
     public GalleryPageShortcutCard(
         GalleryPageItemLayout layout,
         GalleryItem item,
@@ -22,6 +24,8 @@ public sealed class GalleryPageShortcutCard
 
     public GalleryPageItemLayout Layout { get; }
 
+    public event PropertyChangedEventHandler? PropertyChanged;
+
     public GalleryItem Item { get; }
 
     public string SlotId => Layout.SlotId;
@@ -36,9 +40,26 @@ public sealed class GalleryPageShortcutCard
 
     public string ColorHex => Layout.ColorHex;
 
-    public string PreviewText => Item.PreviewText;
+    public string PreviewResourceName => Item.PreviewResourceName;
 
     public string PreviewBadgeText => Item.PreviewBadgeText;
+
+    public bool PreviewIsAnimated => Item.PreviewIsAnimated;
+
+    public bool IsAnimationPlaying
+    {
+        get => isAnimationPlaying;
+        private set
+        {
+            if (isAnimationPlaying == value)
+            {
+                return;
+            }
+
+            isAnimationPlaying = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsAnimationPlaying)));
+        }
+    }
 
     public bool HasPreview => Item.HasPreview;
 
@@ -51,4 +72,7 @@ public sealed class GalleryPageShortcutCard
     public AsyncRelayCommand MoveEarlierCommand { get; }
 
     public AsyncRelayCommand MoveLaterCommand { get; }
+
+    public void SetAnimationPlaying(bool value) =>
+        IsAnimationPlaying = PreviewIsAnimated && value;
 }

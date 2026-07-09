@@ -49,10 +49,8 @@ public sealed class BuiltInsViewModelTests
         viewModel.CurrentId = 3;
         await viewModel.NextCommand.ExecuteAsync();
 
-        var command = Assert.Single(transport.SentCommands);
         Assert.Equal(5, viewModel.CurrentId);
-        Assert.Equal(MaskCommandKind.Animation, command.Kind);
-        Assert.Equal(5, command.Plaintext.Span[5]);
+        Assert.Empty(transport.SentCommands);
     }
 
     [Fact]
@@ -64,14 +62,60 @@ public sealed class BuiltInsViewModelTests
 
         Assert.Equal(70, viewModel.AvailableIds.Count);
         Assert.Equal("70 Android static images", viewModel.CatalogCountText);
-        Assert.Equal("Android data / 1 frame", viewModel.CurrentPreviewBadgeText);
-        Assert.False(string.IsNullOrWhiteSpace(viewModel.CurrentPreviewText));
+        Assert.Equal("Stock preview", viewModel.CurrentPreviewBadgeText);
+        Assert.Equal("builtin_face_00.png", viewModel.CurrentPreviewResourceName);
+        Assert.False(viewModel.CurrentPreviewIsAnimated);
+        Assert.Equal(70, viewModel.CatalogItems.Count);
 
         await viewModel.SelectAnimationCommand.ExecuteAsync();
 
         Assert.Equal(45, viewModel.AvailableIds.Count);
         Assert.DoesNotContain(4, viewModel.AvailableIds);
         Assert.Equal("45 Android animations", viewModel.CatalogCountText);
+        Assert.Equal(45, viewModel.CatalogItems.Count);
+        Assert.All(viewModel.CatalogItems, item => Assert.True(item.PreviewIsAnimated));
+    }
+
+    [Fact]
+    public async Task CatalogSearch_FindsDecimalHexAndSavedMetadata()
+    {
+        var archive = new BuiltInAssetArchive(
+        [
+            new BuiltInAssetRecord(BuiltInAssetType.StaticImage, 10)
+            {
+                DisplayName = "Laser eyes",
+                Tags = ["rave"]
+            }
+        ]);
+        var viewModel = new BuiltInsViewModel(new RecordingCommandTransport(), new RecordingArchiveStore(archive));
+        await viewModel.InitializeAsync();
+
+        viewModel.SearchText = "rave";
+
+        var item = Assert.Single(viewModel.CatalogItems);
+        Assert.Equal(10, item.Id);
+        Assert.Equal("Laser eyes", item.Title);
+
+        viewModel.SearchText = "0x0A";
+        Assert.Equal(10, Assert.Single(viewModel.CatalogItems).Id);
+    }
+
+    [Fact]
+    public async Task VisibleRange_PlaysOnlyVisibleAnimationsAndStopsForReducedMotion()
+    {
+        var viewModel = new BuiltInsViewModel(new RecordingCommandTransport());
+        await viewModel.InitializeAsync();
+        await viewModel.SelectAnimationCommand.ExecuteAsync();
+
+        viewModel.SetCatalogVisibleRange(1, 2, reduceMotion: false);
+
+        Assert.False(viewModel.CatalogItems[0].IsAnimationPlaying);
+        Assert.True(viewModel.CatalogItems[1].IsAnimationPlaying);
+        Assert.True(viewModel.CatalogItems[2].IsAnimationPlaying);
+        Assert.False(viewModel.CatalogItems[3].IsAnimationPlaying);
+
+        viewModel.SetCatalogVisibleRange(0, 4, reduceMotion: true);
+        Assert.All(viewModel.CatalogItems, item => Assert.False(item.IsAnimationPlaying));
     }
 
     [Fact]
@@ -101,6 +145,23 @@ public sealed class BuiltInsViewModelTests
 
         Assert.Empty(transport.SentCommands);
         Assert.Equal("Connect to send", viewModel.StatusText);
+    }
+
+    [Fact]
+    public async Task CatalogNavigation_NotReady_StillBrowsesOffline()
+    {
+        var transport = new RecordingCommandTransport
+        {
+            TransportState = MaskCommandTransportState.Disconnected,
+            TransportStatusText = "Connect first."
+        };
+        var viewModel = new BuiltInsViewModel(transport);
+        viewModel.CurrentId = 1;
+
+        await viewModel.NextCommand.ExecuteAsync();
+
+        Assert.Equal(2, viewModel.CurrentId);
+        Assert.Empty(transport.SentCommands);
     }
 
     [Fact]
@@ -137,6 +198,28 @@ public sealed class BuiltInsViewModelTests
         Assert.Equal(1, store.SaveCount);
         Assert.Single(viewModel.FavoriteFaces);
         Assert.Equal("Ready", viewModel.StatusText);
+    }
+
+    [Fact]
+    public async Task ToggleFavoriteCommand_RemovesLegacyFavoriteStatus()
+    {
+        var archive = new BuiltInAssetArchive(
+        [
+            new BuiltInAssetRecord(BuiltInAssetType.StaticImage, 0)
+            {
+                Status = BuiltInAssetStatus.Favorite
+            }
+        ]);
+        var store = new RecordingArchiveStore(archive);
+        var viewModel = new BuiltInsViewModel(new RecordingCommandTransport(), store);
+        await viewModel.InitializeAsync();
+
+        await viewModel.ToggleFavoriteCommand.ExecuteAsync();
+
+        var record = Assert.Single(store.Archive.Records);
+        Assert.False(record.IsFavorite);
+        Assert.Equal(BuiltInAssetStatus.Untested, record.Status);
+        Assert.False(viewModel.IsFavorite);
     }
 
     [Fact]

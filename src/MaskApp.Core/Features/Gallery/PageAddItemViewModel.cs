@@ -40,6 +40,9 @@ public sealed class PageAddItemViewModel : INotifyPropertyChanged
     private string selectedIconKey = "txt";
     private string selectedColorHex = "#52E3FF";
     private string statusText = "Choose a Gallery item.";
+    private int firstVisibleCandidateIndex = -1;
+    private int lastVisibleCandidateIndex = -1;
+    private bool reducePreviewMotion = true;
 
     public PageAddItemViewModel(
         QuickActionCatalog quickActionCatalog,
@@ -118,6 +121,9 @@ public sealed class PageAddItemViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(SelectedItemTitle));
                 OnPropertyChanged(nameof(SelectedItemSubtitle));
                 OnPropertyChanged(nameof(HasSelectedItem));
+                OnPropertyChanged(nameof(SelectedPreviewResourceName));
+                OnPropertyChanged(nameof(SelectedPreviewIsAnimated));
+                OnPropertyChanged(nameof(SelectedItemHasPreview));
                 OnPropertyChanged(nameof(CanSave));
                 OnPropertyChanged(nameof(SaveSummaryText));
             }
@@ -131,6 +137,12 @@ public sealed class PageAddItemViewModel : INotifyPropertyChanged
         : $"{SelectedItem.TypeLabel} / {SelectedItem.GroupName}";
 
     public bool HasSelectedItem => SelectedItem is not null;
+
+    public string SelectedPreviewResourceName => SelectedItem?.PreviewResourceName ?? string.Empty;
+
+    public bool SelectedPreviewIsAnimated => SelectedItem?.PreviewIsAnimated ?? false;
+
+    public bool SelectedItemHasPreview => SelectedItem?.HasPreview ?? false;
 
     public string DraftLabel
     {
@@ -328,6 +340,34 @@ public sealed class PageAddItemViewModel : INotifyPropertyChanged
                     return Task.CompletedTask;
                 })))
             .ToArray();
+        ApplyPreviewAnimationState();
+    }
+
+    public void SetVisibleCandidateRange(int firstVisibleIndex, int lastVisibleIndex, bool reduceMotion)
+    {
+        firstVisibleCandidateIndex = firstVisibleIndex;
+        lastVisibleCandidateIndex = lastVisibleIndex;
+        reducePreviewMotion = reduceMotion;
+        ApplyPreviewAnimationState();
+    }
+
+    private void ApplyPreviewAnimationState()
+    {
+        for (var index = 0; index < AvailableItems.Count; index++)
+        {
+            AvailableItems[index].SetAnimationPlaying(!reducePreviewMotion && index >= firstVisibleCandidateIndex && index <= lastVisibleCandidateIndex);
+        }
+    }
+
+    public void StopPreviewAnimations()
+    {
+        firstVisibleCandidateIndex = -1;
+        lastVisibleCandidateIndex = -1;
+        reducePreviewMotion = true;
+        foreach (var item in AvailableItems)
+        {
+            item.SetAnimationPlaying(false);
+        }
     }
 
     private void RebuildIconPacks()

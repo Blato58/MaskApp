@@ -1,9 +1,12 @@
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using MaskApp.Core.Features.Connect;
 
 namespace MaskApp.Core.Features.Gallery;
 
-public sealed class GalleryItemCard
+public sealed class GalleryItemCard : INotifyPropertyChanged
 {
+    private bool isAnimationPlaying;
     public GalleryItemCard(
         GalleryItem item,
         bool isEditMode,
@@ -25,6 +28,8 @@ public sealed class GalleryItemCard
     }
 
     public GalleryItem Item { get; }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     public bool IsEditMode { get; }
 
@@ -52,11 +57,28 @@ public sealed class GalleryItemCard
 
     public string LastSendStatus => string.IsNullOrWhiteSpace(Item.LastSendStatus) ? "Not sent yet" : Item.LastSendStatus;
 
-    public string PreviewText => Item.PreviewText;
+    public string PreviewResourceName => Item.PreviewResourceName;
 
     public string PreviewBadgeText => Item.PreviewBadgeText;
 
     public string PreviewSourceText => Item.PreviewSourceText;
+
+    public bool PreviewIsAnimated => Item.PreviewIsAnimated;
+
+    public bool IsAnimationPlaying
+    {
+        get => isAnimationPlaying;
+        private set
+        {
+            if (isAnimationPlaying == value)
+            {
+                return;
+            }
+
+            isAnimationPlaying = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsAnimationPlaying)));
+        }
+    }
 
     public bool HasPreview => Item.HasPreview;
 
@@ -79,4 +101,7 @@ public sealed class GalleryItemCard
     public AsyncRelayCommand MoveEarlierCommand { get; }
 
     public AsyncRelayCommand MoveLaterCommand { get; }
+
+    public void SetAnimationPlaying(bool value) =>
+        IsAnimationPlaying = PreviewIsAnimated && value;
 }

@@ -86,9 +86,11 @@ public sealed class GalleryCatalogBuilder
             SortIndex = sortIndex,
             LastSentAt = record.LastTestedAt,
             LastSendStatus = record.LastSendStatus,
-            PreviewText = preview.PreviewText,
-            PreviewBadgeText = $"{preview.BadgeText} / {preview.FrameCountText}",
-            PreviewSourceText = preview.SourceLabel,
+            PreviewResourceName = preview.ResourceName,
+            PreviewBadgeText = preview.BadgeText,
+            PreviewSourceText = preview.Provenance,
+            PreviewIsAnimated = preview.IsAnimated,
+            PreviewFrameCount = preview.FrameCount,
             ManageTarget = "builtins",
             BuiltInAssetRecord = record
         };
@@ -96,13 +98,7 @@ public sealed class GalleryCatalogBuilder
 
     private static IEnumerable<BuiltInAssetRecord> GetBuiltInCatalogRecords(BuiltInAssetArchive archive)
     {
-        foreach (var definition in BuiltInAssetCatalog.Definitions)
-        {
-            yield return archive.TryGetRecord(definition.Type, definition.Id)
-                ?? new BuiltInAssetRecord(definition.Type, definition.Id);
-        }
-
-        foreach (var record in archive.Records.Where(record => !BuiltInAssetCatalog.IsKnown(record.Type, record.Id)))
+        foreach (var record in archive.Records.Where(record => BuiltInAssetCatalog.IsKnown(record.Type, record.Id)))
         {
             yield return record;
         }

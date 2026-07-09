@@ -494,3 +494,8 @@ $RECYCLE.BIN/
 *.jks
 *.keystore
 certificate_*/
+
+# Local reverse-engineering inputs; generated preview derivatives are tracked.
+decompiled-app/
+*.apk
+*.apkm

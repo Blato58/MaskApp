@@ -20,9 +20,11 @@ public sealed class GalleryAvailableItemCard
 
     public string IconLabel => GalleryIconOption.Defaults.FirstOrDefault(icon => icon.IconKey == Item.IconKey)?.Label ?? "ITEM";
 
-    public string PreviewText => Item.PreviewText;
+    public string PreviewResourceName => Item.PreviewResourceName;
 
     public string PreviewBadgeText => Item.PreviewBadgeText;
+
+    public bool PreviewIsAnimated => Item.PreviewIsAnimated;
 
     public bool HasPreview => Item.HasPreview;
 

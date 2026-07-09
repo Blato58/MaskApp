@@ -4,315 +4,101 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:builtins="clr-namespace:MaskApp.Core.Features.BuiltIns;assembly=MaskApp.Core"
+    xmlns:controls="clr-namespace:MaskApp.App.Controls"
     x:DataType="builtins:BuiltInsViewModel"
-    Title="Faces"
+    Title="Built-ins"
     BackgroundColor="{StaticResource PageBackgroundColor}">
-    <Grid RowDefinitions="*,Auto">
-        <ScrollView>
-            <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="16">
-                <Border Style="{StaticResource PanelBorderStyle}">
-                    <Grid ColumnDefinitions="86,*" ColumnSpacing="16" RowDefinitions="Auto,Auto,Auto">
-                        <Image
-                            Grid.RowSpan="3"
-                            Aspect="AspectFit"
-                            HeightRequest="82"
-                            Source="mask_neon.svg"
-                            WidthRequest="82" />
-                        <Label Grid.Column="1" Text="Faces / Expressions" Style="{StaticResource PageTitleLabelStyle}" />
-                        <Label
-                            Grid.Row="1"
-                            Grid.Column="1"
-                            Text="Send favorite stock faces fast, or scan IMAG and ANIM IDs into the archive."
-                            Style="{StaticResource MutedLabelStyle}" />
-                        <Label
-                            Grid.Row="2"
-                            Grid.Column="1"
-                            Text="{Binding TransportReadinessText}"
-                            Style="{StaticResource TinyLabelStyle}" />
-                    </Grid>
-                </Border>
-
-                <Border Style="{StaticResource PanelBorderStyle}">
-                    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                            <Label Text="Favorite Faces" Style="{StaticResource SectionTitleLabelStyle}" />
-                            <Border Grid.Column="1" Style="{StaticResource StatusPillBorderStyle}">
-                                <Label Text="IMAG / ANIM" Style="{StaticResource ChipLabelStyle}" />
-                            </Border>
-                        </Grid>
-                        <Label Grid.Row="1" Text="{Binding FavoriteFacesHintText}" Style="{StaticResource MutedLabelStyle}" />
-                        <Label
-                            Grid.Row="2"
-                            IsVisible="{Binding HasNoFavoriteFaces}"
-                            Text="Scan built-ins, then tap ⭐ or ✅ Works to build your deck."
-                            Style="{StaticResource MutedLabelStyle}" />
-                        <FlexLayout
-                            Grid.Row="3"
-                            AlignItems="Stretch"
-                            BindableLayout.ItemsSource="{Binding FavoriteFaces}"
-                            Direction="Row"
-                            IsVisible="{Binding HasFavoriteFaces}"
-                            Wrap="Wrap">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="builtins:BuiltInAssetListItem">
-                                    <Border
-                                        Margin="0,0,10,10"
-                                        MinimumWidthRequest="184"
-                                        Style="{StaticResource ActionCardBorderStyle}"
-                                        Stroke="{StaticResource AccentBlueColor}">
-                                        <Border.GestureRecognizers>
-                                            <TapGestureRecognizer Command="{Binding SendCommand}" />
-                                        </Border.GestureRecognizers>
-                                        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="5">
-                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                                <Label Text="{Binding Title}" FontAttributes="Bold" />
-                                                <Label
-                                                    Grid.Column="1"
-                                                    Text="{Binding FavoriteLabel}"
-                                                    TextColor="{StaticResource AccentYellowColor}"
-                                                    FontAttributes="Bold" />
-                                            </Grid>
-                                            <Label Grid.Row="1" Text="{Binding TypeLabel}" Style="{StaticResource TinyLabelStyle}" />
-                                            <Label Grid.Row="2" Text="{Binding IdLabel}" TextColor="{StaticResource AccentYellowColor}" FontAttributes="Bold" />
-                                            <Border Grid.Row="3" BackgroundColor="#03050A" Padding="6" Stroke="{StaticResource MutedTextColor}" StrokeThickness="1">
-                                                <Label
-                                                    Text="{Binding PreviewText}"
-                                                    FontFamily="monospace"
-                                                    FontSize="5"
-                                                    HorizontalTextAlignment="Center"
-                                                    LineBreakMode="NoWrap"
-                                                    TextColor="{StaticResource AccentBlueColor}" />
-                                            </Border>
-                                            <Label Grid.Row="4" Text="{Binding PreviewBadgeText}" Style="{StaticResource TinyLabelStyle}" />
-                                            <Label Grid.Row="5" Text="{Binding TagsLabel}" Style="{StaticResource TinyLabelStyle}" />
-                                            <Grid Grid.Row="6" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                                                <Border Style="{StaticResource StatusPillBorderStyle}">
-                                                    <Label Text="{Binding StatusLabel}" Style="{StaticResource ChipLabelStyle}" />
-                                                </Border>
-                                                <Button Grid.Column="1" Text="Send" Command="{Binding SendCommand}" Style="{StaticResource NeonBlueButtonStyle}" />
-                                                <Button Grid.Column="2" Text="Edit" Command="{Binding EditCommand}" />
-                                            </Grid>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-                        </FlexLayout>
-                    </Grid>
-                </Border>
-
-                <Border Style="{StaticResource PanelBorderStyle}">
-                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                            <Label Text="Scanner mode" Style="{StaticResource SectionTitleLabelStyle}" />
-                            <Border Grid.Column="1" Style="{StaticResource StatusPillBorderStyle}">
-                                <Label Text="{Binding ValidationLabel}" Style="{StaticResource ChipLabelStyle}" />
-                            </Border>
-                        </Grid>
-                        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="10">
-                            <Button Text="Images" Command="{Binding SelectStaticImageCommand}" Style="{StaticResource NeonBlueButtonStyle}" />
-                            <Button Grid.Column="1" Text="Animations" Command="{Binding SelectAnimationCommand}" Style="{StaticResource PrimaryButtonStyle}" />
-                        </Grid>
-                        <Label Grid.Row="2" Text="{Binding RangeNote}" Style="{StaticResource MutedLabelStyle}" />
-                    </Grid>
-                </Border>
-
-                <Border Style="{StaticResource PanelBorderStyle}">
-                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                            <Label Text="{Binding ModeText}" Style="{StaticResource SectionTitleLabelStyle}" />
-                            <Label Grid.Column="1" Text="{Binding CurrentHexId}" TextColor="{StaticResource AccentYellowColor}" FontAttributes="Bold" />
-                        </Grid>
-
-                        <Border
-                            Grid.Row="1"
-                            BackgroundColor="#03050A"
-                            Padding="14"
-                            Stroke="{StaticResource AccentYellowColor}"
-                            StrokeThickness="1">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="8" />
-                            </Border.StrokeShape>
-                            <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="7" HeightRequest="178">
-                                <Label
-                                    Text="{Binding CurrentPreviewText}"
-                                    FontFamily="monospace"
-                                    FontSize="8"
-                                    HorizontalTextAlignment="Center"
-                                    LineBreakMode="NoWrap"
-                                    TextColor="{StaticResource AccentBlueColor}" />
-                                <Label
-                                    Grid.Row="1"
-                                    Text="{Binding CurrentPreviewBadgeText}"
-                                    HorizontalTextAlignment="Center"
-                                    Style="{StaticResource TinyLabelStyle}" />
-                                <Label
-                                    Grid.Row="2"
-                                    Text="{Binding CurrentPreviewSourceText}"
-                                    HorizontalTextAlignment="Center"
-                                    Style="{StaticResource TinyLabelStyle}" />
-                                <Label
-                                    Grid.Row="3"
-                                    Text="{Binding CurrentId, StringFormat='ID {0}'}"
-                                    HorizontalTextAlignment="Center"
-                                    TextColor="{StaticResource AccentYellowColor}"
-                                    FontAttributes="Bold"
-                                    FontSize="20" />
-                            </Grid>
-                        </Border>
-
-                        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,150" ColumnSpacing="12">
-                            <Label
-                                Text="{Binding CurrentId, StringFormat='ID {0}'}"
-                                FontAttributes="Bold"
-                                FontSize="22"
-                                VerticalTextAlignment="Center" />
-                            <Label
-                                Grid.Column="1"
-                                Text="{Binding CatalogPositionText}"
-                                Style="{StaticResource TinyLabelStyle}"
-                                VerticalTextAlignment="Center" />
-                            <Picker
-                                Grid.Column="2"
-                                Title="ID"
-                                ItemsSource="{Binding AvailableIds}"
-                                SelectedItem="{Binding CurrentId, Mode=TwoWay}" />
-                        </Grid>
-                        <Grid Grid.Row="3" ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                            <Button Text="Previous" Command="{Binding PreviousCommand}" />
-                            <Button Grid.Column="1" Text="Send" Command="{Binding SendCommand}" Style="{StaticResource PrimaryButtonStyle}" />
-                            <Button Grid.Column="2" Text="Next" Command="{Binding NextCommand}" />
-                        </Grid>
-                        <Button
-                            Grid.Row="4"
-                            Text="{Binding SendButtonText}"
-                            Command="{Binding SendCommand}"
-                            Style="{StaticResource NeonBlueButtonStyle}" />
-                    </Grid>
-                </Border>
-
-                <Border Style="{StaticResource PanelBorderStyle}">
-                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
-                        <Label Text="Archive metadata" Style="{StaticResource SectionTitleLabelStyle}" />
-                        <Entry
-                            Grid.Row="1"
-                            Placeholder="Display name"
-                            Text="{Binding DisplayName, Mode=TwoWay}" />
-                        <Entry
-                            Grid.Row="2"
-                            Placeholder="Tags, comma separated"
-                            Text="{Binding TagsText, Mode=TwoWay}" />
-                        <Editor
-                            Grid.Row="3"
-                            AutoSize="TextChanges"
-                            HeightRequest="92"
-                            Placeholder="Notes"
-                            Text="{Binding Notes, Mode=TwoWay}" />
-                        <Grid Grid.Row="4" ColumnDefinitions="*,*,*,*" ColumnSpacing="8">
-                            <Button Text="Favorite" Command="{Binding ToggleFavoriteCommand}" Style="{StaticResource NeonBlueButtonStyle}" />
-                            <Button Grid.Column="1" Text="Works" Command="{Binding MarkWorkingCommand}" Style="{StaticResource PrimaryButtonStyle}" />
-                            <Button Grid.Column="2" Text="Bad" Command="{Binding MarkBadCommand}" Style="{StaticResource DangerButtonStyle}" />
-                            <Button Grid.Column="3" Text="Weird" Command="{Binding MarkWeirdCommand}" />
-                        </Grid>
-                        <Grid Grid.Row="5" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="4">
-                            <Label Text="Tested" Style="{StaticResource TinyLabelStyle}" />
-                            <Label Grid.Column="1" Text="{Binding LastTestedText}" />
-                            <Label Grid.Row="1" Text="Send" Style="{StaticResource TinyLabelStyle}" />
-                            <Label Grid.Row="1" Grid.Column="1" Text="{Binding LastSendStatus}" />
-                        </Grid>
-                        <Button
-                            Grid.Row="6"
-                            Text="Save detailed edits"
-                            Command="{Binding SaveCommand}"
-                            Style="{StaticResource PrimaryButtonStyle}" />
-                    </Grid>
-                </Border>
-
-                <Border Style="{StaticResource PanelBorderStyle}">
-                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
-                        <Label Text="Archive / Edit" Style="{StaticResource SectionTitleLabelStyle}" />
-                        <Label Grid.Row="1" Text="{Binding ArchiveHintText}" Style="{StaticResource MutedLabelStyle}" />
-                        <FlexLayout
-                            Grid.Row="2"
-                            AlignItems="Stretch"
-                            BindableLayout.ItemsSource="{Binding SavedItems}"
-                            Direction="Row"
-                            Wrap="Wrap">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="builtins:BuiltInAssetListItem">
-                                    <Border
-                                        Margin="0,0,10,10"
-                                        MinimumWidthRequest="180"
-                                        Style="{StaticResource ActionCardBorderStyle}"
-                                        Stroke="{StaticResource AccentBlueColor}">
-                                        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="5">
-                                            <Label Text="{Binding Title}" FontAttributes="Bold" />
-                                            <Label Grid.Row="1" Text="{Binding Subtitle}" Style="{StaticResource TinyLabelStyle}" />
-                                            <Border Grid.Row="2" BackgroundColor="#03050A" Padding="6" Stroke="{StaticResource MutedTextColor}" StrokeThickness="1">
-                                                <Label
-                                                    Text="{Binding PreviewText}"
-                                                    FontFamily="monospace"
-                                                    FontSize="5"
-                                                    HorizontalTextAlignment="Center"
-                                                    LineBreakMode="NoWrap"
-                                                    TextColor="{StaticResource AccentBlueColor}" />
-                                            </Border>
-                                            <Label Grid.Row="3" Text="{Binding PreviewBadgeText}" Style="{StaticResource TinyLabelStyle}" />
-                                            <Button
-                                                Grid.Row="4"
-                                                Text="Edit"
-                                                Command="{Binding EditCommand}"
-                                                Style="{StaticResource NeonBlueButtonStyle}" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-                        </FlexLayout>
-                    </Grid>
-                </Border>
-
-                <Border Style="{StaticResource CompactPanelBorderStyle}">
-                    <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
-                        <Label Text="Later: Custom / AI Packs" Style="{StaticResource SectionTitleLabelStyle}" />
-                        <Label
-                            Grid.Row="1"
-                            Text="Built-in Faces are stock IMAG/ANIM metadata. Custom Static Faces, Custom Animations, MaskPacks, and Mood/Expression categories stay future/Labs until upload and playback are implemented and physically verified."
-                            Style="{StaticResource MutedLabelStyle}" />
-                    </Grid>
-                </Border>
-
-                <Border Style="{StaticResource CompactPanelBorderStyle}">
-                    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
-                        <Label Text="Validation notes" Style="{StaticResource SectionTitleLabelStyle}" />
-                        <Label Grid.Row="1" Text="{Binding SuggestedSequence}" Style="{StaticResource MutedLabelStyle}" />
-                        <Label Grid.Row="2" Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
-                        <Grid
-                            Grid.Row="3"
-                            ColumnDefinitions="Auto,*"
-                            ColumnSpacing="10">
-                            <Label Text="Last" Style="{StaticResource TinyLabelStyle}" />
-                            <Label Grid.Column="1" Text="{Binding LastCommandText}" />
-                        </Grid>
-                    </Grid>
-                </Border>
-            </VerticalStackLayout>
-        </ScrollView>
-
-        <Grid
-            Grid.Row="1"
-            Padding="14"
-            BackgroundColor="{StaticResource SurfaceColor}"
-            ColumnDefinitions="*,Auto"
-            ColumnSpacing="10">
-            <VerticalStackLayout Spacing="2" VerticalOptions="Center">
-                <Label Text="Use BLACKOUT if an ID looks wrong" FontAttributes="Bold" />
-                <Label Text="{Binding TransportReadinessText}" Style="{StaticResource TinyLabelStyle}" />
+    <Grid RowDefinitions="Auto,Auto,*" Padding="18,14,18,0" RowSpacing="12">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <VerticalStackLayout Spacing="2">
+                <Label Text="Built-ins" Style="{StaticResource PageTitleLabelStyle}" />
+                <Label Text="{Binding CatalogSummaryText}" Style="{StaticResource TinyLabelStyle}" />
             </VerticalStackLayout>
             <Button
                 Grid.Column="1"
-                HeightRequest="56"
                 Text="BLACKOUT"
                 Command="{Binding BlackoutCommand}"
+                SemanticProperties.Hint="Immediately dims the connected mask"
                 Style="{StaticResource DangerButtonStyle}" />
         </Grid>
+
+        <Grid Grid.Row="1" RowDefinitions="Auto,Auto" RowSpacing="10">
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                <Button
+                    Text="Faces"
+                    Command="{Binding SelectStaticImageCommand}"
+                    Style="{StaticResource PrimaryButtonStyle}" />
+                <Button
+                    Grid.Column="1"
+                    Text="Animations"
+                    Command="{Binding SelectAnimationCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}" />
+            </Grid>
+            <SearchBar
+                Grid.Row="1"
+                Placeholder="Search name, ID, hex, or tag"
+                SemanticProperties.Description="Search built-in faces and animations"
+                Text="{Binding SearchText, Mode=TwoWay}" />
+        </Grid>
+
+        <CollectionView
+            x:Name="CatalogView"
+            Grid.Row="2"
+            ItemsSource="{Binding CatalogItems}"
+            Scrolled="OnCatalogScrolled"
+            SelectionMode="None">
+            <CollectionView.EmptyView>
+                <VerticalStackLayout Padding="24" Spacing="8">
+                    <Label Text="No matching built-ins" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                    <Label Text="Try a different name or ID." Style="{StaticResource MutedLabelStyle}" HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="builtins:BuiltInAssetListItem">
+                    <Border Margin="0,0,0,1" Style="{StaticResource ActionCardBorderStyle}">
+                        <Grid ColumnDefinitions="72,*,Auto" ColumnSpacing="12" MinimumHeightRequest="92">
+                            <controls:BuiltInPreviewView
+                                HeightRequest="82"
+                                WidthRequest="66"
+                                IsAnimationPlaying="{Binding IsAnimationPlaying}"
+                                SemanticDescription="{Binding Title, StringFormat='{0} preview'}"
+                                Source="{Binding PreviewResourceName}" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                                <Label Text="{Binding Title}" FontSize="17" FontAttributes="Bold" />
+                                <Label Text="{Binding IdLabel}" Style="{StaticResource TinyLabelStyle}" />
+                                <Label Text="{Binding StatusLabel}" Style="{StaticResource MutedLabelStyle}" />
+                                <Button
+                                    Text="Details"
+                                    Clicked="OnDetailsClicked"
+                                    CommandParameter="{Binding .}"
+                                    HorizontalOptions="Start"
+                                    Style="{StaticResource CompactButtonStyle}" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="2" Spacing="6" VerticalOptions="Center">
+                                <Button
+                                    Text="{Binding FavoriteLabel}"
+                                    Command="{Binding ToggleFavoriteCommand}"
+                                    SemanticProperties.Description="{Binding FavoriteAccessibilityLabel}"
+                                    Style="{StaticResource CompactButtonStyle}" />
+                                <Button
+                                    Text="Send"
+                                    Command="{Binding SendCommand}"
+                                    SemanticProperties.Hint="Sends this stock item to the connected mask"
+                                    Style="{StaticResource PrimaryButtonStyle}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+            <CollectionView.Footer>
+                <VerticalStackLayout Padding="8,18,8,28" Spacing="5">
+                    <Label Text="Stock previews" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label
+                        Text="These are the original app previews. Physical mask output can vary by hardware and firmware."
+                        Style="{StaticResource MutedLabelStyle}" />
+                    <Label Text="{Binding TransportReadinessText}" Style="{StaticResource TinyLabelStyle}" />
+                </VerticalStackLayout>
+            </CollectionView.Footer>
+        </CollectionView>
     </Grid>
 </ContentPage>

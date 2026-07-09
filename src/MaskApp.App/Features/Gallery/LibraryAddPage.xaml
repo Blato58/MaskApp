@@ -12,7 +12,7 @@
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                 <VerticalStackLayout Spacing="2">
                     <Label Text="Add Item" Style="{StaticResource PageTitleLabelStyle}" />
-                    <Label Text="Create implemented Library content or open the source tool." Style="{StaticResource MutedLabelStyle}" />
+                    <Label Text="Choose what you want to create or browse." Style="{StaticResource MutedLabelStyle}" />
                 </VerticalStackLayout>
                 <Button Grid.Column="1" Text="Done" Clicked="OnDoneClicked" />
             </Grid>
@@ -36,7 +36,7 @@
                                 </Grid>
                                 <Button
                                     Grid.Row="2"
-                                    Text="Open"
+                                    Text="Continue"
                                     IsEnabled="{Binding IsAvailable}"
                                     Clicked="OnAddOptionClicked"
                                     CommandParameter="{Binding .}"

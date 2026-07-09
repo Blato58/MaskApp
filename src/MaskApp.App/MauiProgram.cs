@@ -7,6 +7,7 @@ using MaskApp.App.Features.React;
 using MaskApp.App.Features.Rave;
 using MaskApp.App.Features.Text;
 using MaskApp.App.Infrastructure.Bluetooth;
+using MaskApp.App.Infrastructure.Accessibility;
 using MaskApp.App.Infrastructure.Media;
 using MaskApp.App.Infrastructure.Storage;
 #if ANDROID
@@ -44,7 +45,8 @@ public static class MauiProgram
         builder.Services.AddTransient<ConnectPage>();
         builder.Services.AddTransient<ConnectViewModel>();
         builder.Services.AddTransient<BuiltInsPage>();
-        builder.Services.AddTransient<BuiltInsViewModel>();
+        builder.Services.AddTransient<BuiltInDetailPage>();
+        builder.Services.AddSingleton<BuiltInsViewModel>();
         builder.Services.AddTransient<FaceStudioPage>();
         builder.Services.AddTransient<FaceStudioViewModel>();
         builder.Services.AddTransient<GalleryPage>();
@@ -72,6 +74,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IGalleryLayoutStore, JsonGalleryLayoutStore>();
 
 #if IOS
+        builder.Services.AddSingleton<IMotionPreference, IosMotionPreference>();
         builder.Services.AddSingleton<IosBleAdapter>();
         builder.Services.AddSingleton<IBleScanner>(sp => sp.GetRequiredService<IosBleAdapter>());
         builder.Services.AddSingleton<IBleDeviceConnection>(sp => sp.GetRequiredService<IosBleAdapter>());
@@ -82,6 +85,7 @@ public static class MauiProgram
             new SerializedFaceUploadTransport(sp.GetRequiredService<IosBleAdapter>()));
         builder.Services.AddSingleton<IFaceImageDecoder, IosFaceImageDecoder>();
 #elif ANDROID
+        builder.Services.AddSingleton<IMotionPreference, AndroidMotionPreference>();
         builder.Services.AddSingleton<AndroidBleAdapter>();
         builder.Services.AddSingleton<IBleScanner>(sp => sp.GetRequiredService<AndroidBleAdapter>());
         builder.Services.AddSingleton<IBleDeviceConnection>(sp => sp.GetRequiredService<AndroidBleAdapter>());

@@ -153,11 +153,12 @@
                 </Grid>
             </Border>
 
-            <Border Style="{StaticResource PanelBorderStyle}">
+            <Button x:Name="AdvancedToggle" Text="Show advanced status" Clicked="OnToggleAdvancedClicked" Style="{StaticResource SecondaryButtonStyle}" />
+            <Border x:Name="AdvancedPanel" IsVisible="False" Style="{StaticResource PanelBorderStyle}">
                 <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
-                    <Label Text="Advanced" FontSize="20" FontAttributes="Bold" />
+                    <Label Text="Advanced status" Style="{StaticResource SectionTitleLabelStyle}" />
                     <Label Grid.Row="1" Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
-                    <Label Grid.Row="2" Text="Firmware, battery, and last sync are hidden until the app has real mask telemetry for them." Style="{StaticResource TinyLabelStyle}" />
+                    <Label Grid.Row="2" Text="Firmware, battery, and last sync remain hidden until the app receives real mask telemetry." Style="{StaticResource TinyLabelStyle}" />
                 </Grid>
             </Border>
         </VerticalStackLayout>

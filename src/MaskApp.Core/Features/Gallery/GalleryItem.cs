@@ -29,13 +29,17 @@ public sealed record GalleryItem
 
     public string LastSendStatus { get; init; } = string.Empty;
 
-    public string PreviewText { get; init; } = string.Empty;
+    public string PreviewResourceName { get; init; } = string.Empty;
 
     public string PreviewBadgeText { get; init; } = string.Empty;
 
     public string PreviewSourceText { get; init; } = string.Empty;
 
-    public bool HasPreview => !string.IsNullOrWhiteSpace(PreviewText);
+    public bool PreviewIsAnimated { get; init; }
+
+    public int PreviewFrameCount { get; init; }
+
+    public bool HasPreview => !string.IsNullOrWhiteSpace(PreviewResourceName);
 
     public bool CanSend { get; init; } = true;
 

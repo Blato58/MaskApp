@@ -25,6 +25,8 @@ public sealed class GalleryListRow
 
     public GalleryItemCard? Left { get; }
 
+    public GalleryItemCard? Item => Left;
+
     public GalleryItemCard? Right { get; }
 
     public bool IsGroupHeader { get; }
@@ -38,4 +40,7 @@ public sealed class GalleryListRow
 
     public static GalleryListRow ItemPair(GalleryItemCard left, GalleryItemCard? right) =>
         new(string.Empty, string.Empty, left, right, isGroupHeader: false, isItemRow: true);
+
+    public static GalleryListRow ItemRow(GalleryItemCard item) =>
+        new(string.Empty, string.Empty, item, null, isGroupHeader: false, isItemRow: true);
 }

@@ -35,22 +35,45 @@ public sealed class GalleryViewModelTests
     }
 
     [Fact]
-    public async Task InitializeAsync_ProjectsAndroidCatalogBuiltInsWithPreviews()
+    public async Task InitializeAsync_DoesNotProjectUnsavedBuiltInCatalogPlaceholders()
     {
         var viewModel = CreateViewModel();
 
         await viewModel.InitializeAsync();
 
         var items = Flatten(viewModel);
-        var image = Assert.Single(items, item => item.Item.Id == "built-in:StaticImage:0");
+
+        Assert.DoesNotContain(items, item => item.Item.Id == "built-in:StaticImage:0");
+        Assert.DoesNotContain(items, item => item.Item.Id == "built-in:Animation:5");
+    }
+
+    [Fact]
+    public async Task InitializeAsync_ProjectsSavedBuiltInsAndSkipsUnknownIds()
+    {
+        var archive = new BuiltInAssetArchive(
+        [
+            new BuiltInAssetRecord(BuiltInAssetType.Animation, 5)
+            {
+                DisplayName = "Saved animation",
+                Status = BuiltInAssetStatus.Working
+            },
+            new BuiltInAssetRecord(BuiltInAssetType.Animation, 4)
+            {
+                DisplayName = "Skipped unknown animation",
+                IsFavorite = true
+            }
+        ]);
+        var viewModel = CreateViewModel(archive: archive);
+
+        await viewModel.InitializeAsync();
+
+        var items = Flatten(viewModel);
         var animation = Assert.Single(items, item => item.Item.Id == "built-in:Animation:5");
 
-        Assert.Equal("Android Image 00", image.Title);
-        Assert.Equal("Android Animation 05", animation.Title);
-        Assert.True(image.HasPreview);
+        Assert.Equal("Saved animation", animation.Title);
         Assert.True(animation.HasPreview);
-        Assert.Contains("Android data", image.PreviewBadgeText);
-        Assert.Contains("Generated preview", animation.PreviewBadgeText);
+        Assert.Equal("builtin_anim_05.gif", animation.PreviewResourceName);
+        Assert.Equal("10 frames", animation.PreviewBadgeText);
         Assert.DoesNotContain(items, item => item.Item.Id == "built-in:Animation:4");
     }
 

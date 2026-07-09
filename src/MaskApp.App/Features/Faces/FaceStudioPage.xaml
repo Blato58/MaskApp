@@ -74,13 +74,13 @@
                     </Grid>
 
                     <Grid Grid.Row="3" RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
-                        <Button BackgroundColor="#FACC15" BorderColor="#FACC15" Clicked="OnColorClicked" CommandParameter="Yellow" HeightRequest="42" Text="" WidthRequest="46" />
-                        <Button Grid.Column="1" BackgroundColor="#FFFFFF" BorderColor="#D1D5DB" BorderWidth="1" Clicked="OnColorClicked" CommandParameter="White" HeightRequest="42" Text="" WidthRequest="46" />
-                        <Button Grid.Column="2" BackgroundColor="#52E3FF" BorderColor="#52E3FF" Clicked="OnColorClicked" CommandParameter="Cyan" HeightRequest="42" Text="" WidthRequest="46" />
-                        <Button Grid.Column="3" BackgroundColor="#F472B6" BorderColor="#F472B6" Clicked="OnColorClicked" CommandParameter="Pink" HeightRequest="42" Text="" WidthRequest="46" />
-                        <Button Grid.Column="4" BackgroundColor="#22C55E" BorderColor="#22C55E" Clicked="OnColorClicked" CommandParameter="Green" HeightRequest="42" Text="" WidthRequest="46" />
-                        <Button Grid.Column="5" BackgroundColor="#EF4444" BorderColor="#EF4444" Clicked="OnColorClicked" CommandParameter="Red" HeightRequest="42" Text="" WidthRequest="46" />
-                        <Button Grid.Column="6" BackgroundColor="#A855F7" BorderColor="#A855F7" Clicked="OnColorClicked" CommandParameter="Purple" HeightRequest="42" Text="" WidthRequest="46" />
+                        <Button BackgroundColor="#FACC15" BorderColor="#FACC15" Clicked="OnColorClicked" CommandParameter="Yellow" HeightRequest="42" SemanticProperties.Description="Yellow drawing color" Text="" WidthRequest="46" />
+                        <Button Grid.Column="1" BackgroundColor="#FFFFFF" BorderColor="#D1D5DB" BorderWidth="1" Clicked="OnColorClicked" CommandParameter="White" HeightRequest="42" SemanticProperties.Description="White drawing color" Text="" WidthRequest="46" />
+                        <Button Grid.Column="2" BackgroundColor="#52E3FF" BorderColor="#52E3FF" Clicked="OnColorClicked" CommandParameter="Cyan" HeightRequest="42" SemanticProperties.Description="Cyan drawing color" Text="" WidthRequest="46" />
+                        <Button Grid.Column="3" BackgroundColor="#F472B6" BorderColor="#F472B6" Clicked="OnColorClicked" CommandParameter="Pink" HeightRequest="42" SemanticProperties.Description="Pink drawing color" Text="" WidthRequest="46" />
+                        <Button Grid.Column="4" BackgroundColor="#22C55E" BorderColor="#22C55E" Clicked="OnColorClicked" CommandParameter="Green" HeightRequest="42" SemanticProperties.Description="Green drawing color" Text="" WidthRequest="46" />
+                        <Button Grid.Column="5" BackgroundColor="#EF4444" BorderColor="#EF4444" Clicked="OnColorClicked" CommandParameter="Red" HeightRequest="42" SemanticProperties.Description="Red drawing color" Text="" WidthRequest="46" />
+                        <Button Grid.Column="6" BackgroundColor="#A855F7" BorderColor="#A855F7" Clicked="OnColorClicked" CommandParameter="Purple" HeightRequest="42" SemanticProperties.Description="Purple drawing color" Text="" WidthRequest="46" />
 
                         <Button Grid.Row="1" Text="Clear" Command="{Binding ClearCommand}" />
                         <Button Grid.Row="1" Grid.Column="1" Text="Mirror" Command="{Binding MirrorCommand}" />
@@ -145,7 +145,8 @@
                 </Grid>
             </Border>
 
-            <Border Style="{StaticResource PanelBorderStyle}">
+            <Button x:Name="DiagnosticsToggle" Text="Show diagnostics" Clicked="OnToggleDiagnosticsClicked" Style="{StaticResource SecondaryButtonStyle}" />
+            <Border x:Name="DiagnosticsPanel" IsVisible="False" Style="{StaticResource PanelBorderStyle}">
                 <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
                     <Label Text="Diagnostics" Style="{StaticResource SectionTitleLabelStyle}" />
                     <Grid Grid.Row="1" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="4">

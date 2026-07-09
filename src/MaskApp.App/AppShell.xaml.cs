@@ -14,6 +14,7 @@ public partial class AppShell : Shell
         InitializeComponent();
         Routing.RegisterRoute("text", typeof(TextPage));
         Routing.RegisterRoute("builtins", typeof(BuiltInsPage));
+        Routing.RegisterRoute("built-in-detail", typeof(BuiltInDetailPage));
         Routing.RegisterRoute("faces", typeof(FaceStudioPage));
         Routing.RegisterRoute("library-add", typeof(LibraryAddPage));
         Routing.RegisterRoute("page-add-item", typeof(PageAddItemPage));

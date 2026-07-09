@@ -20,4 +20,10 @@ public partial class ConnectPage : ContentPage
             await viewModel.InitializeAsync();
         }
     }
+
+    private void OnToggleAdvancedClicked(object? sender, EventArgs e)
+    {
+        AdvancedPanel.IsVisible = !AdvancedPanel.IsVisible;
+        AdvancedToggle.Text = AdvancedPanel.IsVisible ? "Hide advanced status" : "Show advanced status";
+    }
 }

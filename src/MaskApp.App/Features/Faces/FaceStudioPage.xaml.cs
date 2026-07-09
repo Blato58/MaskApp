@@ -141,4 +141,10 @@ public partial class FaceStudioPage : ContentPage
             : ex.Message;
         return message.Length <= 120 ? message : string.Concat(message.AsSpan(0, 120), "...");
     }
+
+    private void OnToggleDiagnosticsClicked(object? sender, EventArgs e)
+    {
+        DiagnosticsPanel.IsVisible = !DiagnosticsPanel.IsVisible;
+        DiagnosticsToggle.Text = DiagnosticsPanel.IsVisible ? "Hide diagnostics" : "Show diagnostics";
+    }
 }

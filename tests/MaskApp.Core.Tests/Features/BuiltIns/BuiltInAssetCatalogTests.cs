@@ -31,14 +31,33 @@ public sealed class BuiltInAssetCatalogTests
     }
 
     [Fact]
-    public void Previews_UseAndroidDataWhenAvailableAndFallbackOtherwise()
+    public void Previews_MapEveryKnownIdToExactResourceMetadata()
     {
-        var dataBacked = BuiltInAssetCatalog.GetDefinitionOrFallback(BuiltInAssetType.StaticImage, 0).Preview;
-        var fallback = BuiltInAssetCatalog.GetDefinitionOrFallback(BuiltInAssetType.StaticImage, 69).Preview;
+        var face = BuiltInAssetCatalog.GetDefinitionOrFallback(BuiltInAssetType.StaticImage, 63).Preview;
+        var animation = BuiltInAssetCatalog.GetDefinitionOrFallback(BuiltInAssetType.Animation, 45).Preview;
 
-        Assert.True(dataBacked.IsDataBacked);
-        Assert.False(fallback.IsDataBacked);
-        Assert.False(string.IsNullOrWhiteSpace(dataBacked.PreviewText));
-        Assert.False(string.IsNullOrWhiteSpace(fallback.PreviewText));
+        Assert.All(BuiltInAssetCatalog.Definitions, definition => Assert.True(definition.Preview.IsAvailable));
+        Assert.Equal("builtin_face_63.png", face.ResourceName);
+        Assert.Equal(52, face.Width);
+        Assert.Equal(64, face.Height);
+        Assert.False(face.IsAnimated);
+        Assert.Equal("builtin_anim_45.gif", animation.ResourceName);
+        Assert.True(animation.IsAnimated);
+        Assert.Equal(10, animation.FrameCount);
+        Assert.Equal(100, animation.FrameDurationMilliseconds);
+    }
+
+    [Theory]
+    [InlineData(3, 9)]
+    [InlineData(8, 4)]
+    [InlineData(21, 3)]
+    [InlineData(25, 6)]
+    [InlineData(40, 9)]
+    [InlineData(43, 4)]
+    public void AnimationPreviews_PreserveExceptionalFrameCounts(int id, int expectedFrameCount)
+    {
+        var preview = BuiltInAssetCatalog.GetDefinitionOrFallback(BuiltInAssetType.Animation, id).Preview;
+
+        Assert.Equal(expectedFrameCount, preview.FrameCount);
     }
 }

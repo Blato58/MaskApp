@@ -3,6 +3,7 @@
     x:Class="MaskApp.App.Features.Gallery.PageAddItemPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:MaskApp.App.Controls"
     xmlns:gallery="clr-namespace:MaskApp.Core.Features.Gallery;assembly=MaskApp.Core"
     x:DataType="gallery:PageAddItemViewModel"
     Title="Add Shortcut"
@@ -20,7 +21,7 @@
 
             <Border Style="{StaticResource PanelBorderStyle}" Stroke="{Binding SelectedColorHex}">
                 <Grid ColumnDefinitions="96,*" ColumnSpacing="14">
-                    <Border BackgroundColor="{Binding SelectedColorHex}" HeightRequest="96" WidthRequest="96">
+                    <Border BackgroundColor="{Binding SelectedColorHex}" HeightRequest="96" WidthRequest="96" IsVisible="{Binding SelectedItemHasPreview, Converter={StaticResource InvertedBoolConverter}}">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="20" />
                         </Border.StrokeShape>
@@ -29,6 +30,13 @@
                             <Label Grid.Row="1" Text="{Binding PreviewLabel}" TextColor="#05070D" FontSize="12" FontAttributes="Bold" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation" />
                         </Grid>
                     </Border>
+                    <controls:BuiltInPreviewView
+                        HeightRequest="96"
+                        WidthRequest="96"
+                        IsAnimationPlaying="False"
+                        IsVisible="{Binding SelectedItemHasPreview}"
+                        SemanticDescription="{Binding SelectedItemTitle, StringFormat='{0} preview'}"
+                        Source="{Binding SelectedPreviewResourceName}" />
                     <VerticalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
                         <Label Text="{Binding SelectedItemTitle}" FontSize="20" FontAttributes="Bold" />
                         <Label Text="{Binding SelectedItemSubtitle}" Style="{StaticResource MutedLabelStyle}" />
@@ -41,7 +49,7 @@
                 <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
                     <Label Text="Gallery Item" Style="{StaticResource SectionTitleLabelStyle}" />
                     <SearchBar Grid.Row="1" Placeholder="Search Library items" Text="{Binding SearchText, Mode=TwoWay}" />
-                    <CollectionView Grid.Row="2" HeightRequest="280" ItemsSource="{Binding AvailableItems}" SelectionMode="None">
+                    <CollectionView x:Name="AvailableItemsView" Grid.Row="2" HeightRequest="280" ItemsSource="{Binding AvailableItems}" Scrolled="OnAvailableItemsScrolled" SelectionMode="None">
                         <CollectionView.ItemsLayout>
                             <GridItemsLayout Orientation="Vertical" Span="2" />
                         </CollectionView.ItemsLayout>
@@ -64,15 +72,13 @@
                                                 <Label Text="{Binding Subtitle}" Style="{StaticResource TinyLabelStyle}" LineBreakMode="TailTruncation" />
                                             </VerticalStackLayout>
                                         </Grid>
-                                        <Border Grid.Row="1" BackgroundColor="#03050A" Padding="6" Stroke="{Binding ColorHex}" StrokeThickness="1" IsVisible="{Binding HasPreview}">
-                                            <Label
-                                                Text="{Binding PreviewText}"
-                                                FontFamily="monospace"
-                                                FontSize="5"
-                                                HorizontalTextAlignment="Center"
-                                                LineBreakMode="NoWrap"
-                                                TextColor="{Binding ColorHex}" />
-                                        </Border>
+                                        <controls:BuiltInPreviewView
+                                            Grid.Row="1"
+                                            HeightRequest="104"
+                                            IsAnimationPlaying="{Binding IsAnimationPlaying}"
+                                            IsVisible="{Binding HasPreview}"
+                                            SemanticDescription="{Binding Title, StringFormat='{0} preview'}"
+                                            Source="{Binding PreviewResourceName}" />
                                         <Button Grid.Row="2" Text="{Binding SelectionText}" Command="{Binding SelectCommand}" />
                                     </Grid>
                                 </Border>
