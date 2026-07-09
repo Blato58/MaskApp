@@ -11,5 +11,8 @@ public sealed record BuiltInAssetListItem(
     string TagsLabel,
     string StatusLabel,
     string FavoriteLabel,
+    string PreviewText,
+    string PreviewBadgeText,
+    string PreviewSourceText,
     AsyncRelayCommand SendCommand,
     AsyncRelayCommand EditCommand);

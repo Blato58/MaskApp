@@ -11,12 +11,12 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
     private readonly IBuiltInAssetArchiveStore archiveStore;
     private BuiltInAssetArchive archive = BuiltInAssetArchive.Empty;
     private BuiltInScannerMode mode = BuiltInScannerMode.StaticImage;
-    private int currentId = 1;
+    private int currentId = BuiltInAssetCatalog.FirstId(BuiltInAssetType.StaticImage);
     private bool isSending;
     private bool isLoadingArchive;
     private string statusText = "Ready";
     private string lastCommandText = "None";
-    private string displayName = "Image 1";
+    private string displayName = BuiltInAssetCatalog.GetDefaultName(BuiltInAssetType.StaticImage, 0);
     private string tagsText = string.Empty;
     private string notes = string.Empty;
     private BuiltInAssetStatus assetStatus = BuiltInAssetStatus.Untested;
@@ -83,13 +83,20 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         {
             if (SetField(ref mode, value))
             {
-                CurrentId = Math.Min(CurrentId, MaxId);
+                CurrentId = BuiltInAssetCatalog.ClampToKnownId(CurrentAssetType, CurrentId);
                 LoadMetadataForCurrent();
                 OnPropertyChanged(nameof(ModeText));
                 OnPropertyChanged(nameof(IsStaticImageSelected));
                 OnPropertyChanged(nameof(IsAnimationSelected));
+                OnPropertyChanged(nameof(AvailableIds));
                 OnPropertyChanged(nameof(MaxId));
                 OnPropertyChanged(nameof(RangeNote));
+                OnPropertyChanged(nameof(CatalogCountText));
+                OnPropertyChanged(nameof(CatalogPositionText));
+                OnPropertyChanged(nameof(CurrentDefinition));
+                OnPropertyChanged(nameof(CurrentPreviewText));
+                OnPropertyChanged(nameof(CurrentPreviewBadgeText));
+                OnPropertyChanged(nameof(CurrentPreviewSourceText));
                 OnPropertyChanged(nameof(SendButtonText));
                 RaiseCommandStates();
             }
@@ -110,12 +117,17 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         get => currentId;
         set
         {
-            var clamped = Math.Clamp(value, 0, MaxId);
+            var clamped = BuiltInAssetCatalog.ClampToKnownId(CurrentAssetType, value);
             if (SetField(ref currentId, clamped))
             {
                 LoadMetadataForCurrent();
                 OnPropertyChanged(nameof(CurrentIdValue));
                 OnPropertyChanged(nameof(CurrentHexId));
+                OnPropertyChanged(nameof(CatalogPositionText));
+                OnPropertyChanged(nameof(CurrentDefinition));
+                OnPropertyChanged(nameof(CurrentPreviewText));
+                OnPropertyChanged(nameof(CurrentPreviewBadgeText));
+                OnPropertyChanged(nameof(CurrentPreviewSourceText));
                 OnPropertyChanged(nameof(SendButtonText));
                 RaiseCommandStates();
             }
@@ -130,13 +142,34 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
 
     public int MaxId => BuiltInAssetRange.GetSafeMaxId(CurrentAssetType);
 
+    public IReadOnlyList<int> AvailableIds => BuiltInAssetCatalog.GetKnownIds(CurrentAssetType);
+
     public string CurrentHexId => BuiltInAssetRange.ToHexId(CurrentId);
 
-    public string RangeNote => Mode == BuiltInScannerMode.StaticImage
-        ? "IMAG useful range is expected up to about 0x69. Archive stores metadata only."
-        : "ANIM useful range is expected up to about 0x45. Archive stores metadata only.";
+    public BuiltInAssetDefinition CurrentDefinition =>
+        BuiltInAssetCatalog.GetDefinitionOrFallback(CurrentAssetType, CurrentId);
 
-    public string ValidationLabel => "Metadata only";
+    public string CurrentPreviewText => CurrentDefinition.Preview.PreviewText;
+
+    public string CurrentPreviewBadgeText =>
+        $"{CurrentDefinition.Preview.BadgeText} / {CurrentDefinition.Preview.FrameCountText}";
+
+    public string CurrentPreviewSourceText => CurrentDefinition.Preview.SourceLabel;
+
+    public string CatalogCountText => Mode == BuiltInScannerMode.StaticImage
+        ? $"{BuiltInAssetCatalog.Count(BuiltInAssetType.StaticImage)} Android static images"
+        : $"{BuiltInAssetCatalog.Count(BuiltInAssetType.Animation)} Android animations";
+
+    public string CatalogPositionText =>
+        BuiltInAssetCatalog.IsKnown(CurrentAssetType, CurrentId)
+            ? $"{BuiltInAssetCatalog.GetPosition(CurrentAssetType, CurrentId)} of {BuiltInAssetCatalog.Count(CurrentAssetType)}"
+            : "Archived unknown ID";
+
+    public string RangeNote => Mode == BuiltInScannerMode.StaticImage
+        ? "Android image catalog exposes 70 IMAG IDs: 0-69. ImageData previews cover 0-10; the rest use generated previews until Android resources are recovered."
+        : "Android animation catalog exposes 45 ANIM IDs: 0, 1, 2, 3, and 5-45. ID 4 is skipped by the original app.";
+
+    public string ValidationLabel => "Android catalog";
 
     public string SuggestedSequence => "Send an ID, inspect the physical mask, then tap Favorite, Works, Bad, or Weird. Common status changes autosave.";
 
@@ -306,13 +339,13 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
 
     private Task PreviousAsync(CancellationToken cancellationToken)
     {
-        CurrentId--;
+        CurrentId = BuiltInAssetCatalog.GetPreviousKnownId(CurrentAssetType, CurrentId);
         return SendAsync(cancellationToken);
     }
 
     private Task NextAsync(CancellationToken cancellationToken)
     {
-        CurrentId++;
+        CurrentId = BuiltInAssetCatalog.GetNextKnownId(CurrentAssetType, CurrentId);
         return SendAsync(cancellationToken);
     }
 
@@ -458,6 +491,7 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
 
     private BuiltInAssetListItem CreateSavedItem(BuiltInAssetRecord record)
     {
+        var preview = BuiltInAssetCatalog.GetDefinitionOrFallback(record.Type, record.Id).Preview;
         BuiltInAssetListItem? item = null;
         item = new BuiltInAssetListItem(
             record,
@@ -468,6 +502,9 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
             record.Tags.Length == 0 ? "No tags" : string.Join(", ", record.Tags),
             record.Status.ToString(),
             record.IsFavorite || record.Status == BuiltInAssetStatus.Favorite ? "Star" : string.Empty,
+            preview.PreviewText,
+            $"{preview.BadgeText} / {preview.FrameCountText}",
+            preview.SourceLabel,
             new AsyncRelayCommand(cancellationToken => SendSavedRecordAsync(record, cancellationToken), CanSend),
             new AsyncRelayCommand(_ =>
             {
@@ -518,9 +555,25 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
         Mode = record.Type == BuiltInAssetType.StaticImage
             ? BuiltInScannerMode.StaticImage
             : BuiltInScannerMode.Animation;
-        CurrentId = record.Id;
+        LoadArchivedId(record.Id);
         LoadMetadataForCurrent();
         StatusText = "Ready";
+    }
+
+    private void LoadArchivedId(int id)
+    {
+        if (SetField(ref currentId, id, nameof(CurrentId)))
+        {
+            OnPropertyChanged(nameof(CurrentIdValue));
+            OnPropertyChanged(nameof(CurrentHexId));
+            OnPropertyChanged(nameof(CatalogPositionText));
+            OnPropertyChanged(nameof(CurrentDefinition));
+            OnPropertyChanged(nameof(CurrentPreviewText));
+            OnPropertyChanged(nameof(CurrentPreviewBadgeText));
+            OnPropertyChanged(nameof(CurrentPreviewSourceText));
+            OnPropertyChanged(nameof(SendButtonText));
+            RaiseCommandStates();
+        }
     }
 
     private static string GetTypeLabel(BuiltInAssetRecord record) =>
@@ -552,9 +605,11 @@ public sealed class BuiltInsViewModel : INotifyPropertyChanged
 
     private bool CanSend() => !IsSending && transport.TransportState == MaskCommandTransportState.Ready;
 
-    private bool CanStepPrevious() => CanSend() && CurrentId > 0;
+    private bool CanStepPrevious() =>
+        CanSend() && BuiltInAssetCatalog.GetPreviousKnownId(CurrentAssetType, CurrentId) != CurrentId;
 
-    private bool CanStepNext() => CanSend() && CurrentId < MaxId;
+    private bool CanStepNext() =>
+        CanSend() && BuiltInAssetCatalog.GetNextKnownId(CurrentAssetType, CurrentId) != CurrentId;
 
     private void OnTransportStateChanged(object? sender, MaskCommandTransportStateChangedEventArgs e)
     {

@@ -41,7 +41,7 @@
                 <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
                     <Label Text="Gallery Item" Style="{StaticResource SectionTitleLabelStyle}" />
                     <SearchBar Grid.Row="1" Placeholder="Search Library items" Text="{Binding SearchText, Mode=TwoWay}" />
-                    <CollectionView Grid.Row="2" HeightRequest="230" ItemsSource="{Binding AvailableItems}" SelectionMode="None">
+                    <CollectionView Grid.Row="2" HeightRequest="280" ItemsSource="{Binding AvailableItems}" SelectionMode="None">
                         <CollectionView.ItemsLayout>
                             <GridItemsLayout Orientation="Vertical" Span="2" />
                         </CollectionView.ItemsLayout>
@@ -51,7 +51,7 @@
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="gallery:PageAddItemCandidateCard">
                                 <Border Margin="0,0,8,8" Style="{StaticResource ActionCardBorderStyle}" Stroke="{Binding ColorHex}">
-                                    <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+                                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
                                         <Grid ColumnDefinitions="42,*" ColumnSpacing="8">
                                             <Border BackgroundColor="{Binding ColorHex}" HeightRequest="38" WidthRequest="42">
                                                 <Border.StrokeShape>
@@ -64,7 +64,16 @@
                                                 <Label Text="{Binding Subtitle}" Style="{StaticResource TinyLabelStyle}" LineBreakMode="TailTruncation" />
                                             </VerticalStackLayout>
                                         </Grid>
-                                        <Button Grid.Row="1" Text="{Binding SelectionText}" Command="{Binding SelectCommand}" />
+                                        <Border Grid.Row="1" BackgroundColor="#03050A" Padding="6" Stroke="{Binding ColorHex}" StrokeThickness="1" IsVisible="{Binding HasPreview}">
+                                            <Label
+                                                Text="{Binding PreviewText}"
+                                                FontFamily="monospace"
+                                                FontSize="5"
+                                                HorizontalTextAlignment="Center"
+                                                LineBreakMode="NoWrap"
+                                                TextColor="{Binding ColorHex}" />
+                                        </Border>
+                                        <Button Grid.Row="2" Text="{Binding SelectionText}" Command="{Binding SelectCommand}" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>

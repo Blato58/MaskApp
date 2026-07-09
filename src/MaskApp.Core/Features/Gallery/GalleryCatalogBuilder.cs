@@ -27,7 +27,7 @@ public sealed class GalleryCatalogBuilder
             .Where(preset => preset.Category != TextPresetCategory.Legacy || preset.IsFavorite)
             .Select(preset => CreateTextPresetItem(preset, sortIndex++)));
 
-        items.AddRange(builtInArchive.FavoriteOrTestedRecords()
+        items.AddRange(GetBuiltInCatalogRecords(builtInArchive)
             .Select(record => CreateBuiltInItem(record, sortIndex++)));
 
         items.AddRange(faceState.Normalize().Patterns
@@ -66,13 +66,19 @@ public sealed class GalleryCatalogBuilder
 
     private static GalleryItem CreateBuiltInItem(BuiltInAssetRecord record, int sortIndex)
     {
+        record = record.Normalize();
+        var definition = BuiltInAssetCatalog.GetDefinitionOrFallback(record.Type, record.Id);
+        var preview = definition.Preview;
         var isAnimation = record.Type == BuiltInAssetType.Animation;
+        var isKnownCatalogItem = BuiltInAssetCatalog.IsKnown(record.Type, record.Id);
         return new GalleryItem
         {
             Id = $"built-in:{record.Type}:{record.Id}",
             Type = isAnimation ? GalleryItemType.BuiltInAnimation : GalleryItemType.BuiltInStaticImage,
             Title = record.DisplayName,
-            Subtitle = $"{record.Status} / {record.HexId}",
+            Subtitle = isKnownCatalogItem
+                ? $"{record.Status} / {record.HexId}"
+                : $"{record.Status} / Archived unknown / {record.HexId}",
             GroupName = isAnimation ? "Built-in animations" : "Built-in faces",
             IsFavorite = record.IsFavorite || record.Status == BuiltInAssetStatus.Favorite,
             ColorHex = isAnimation ? "#FF3D8B" : "#52E3FF",
@@ -80,9 +86,26 @@ public sealed class GalleryCatalogBuilder
             SortIndex = sortIndex,
             LastSentAt = record.LastTestedAt,
             LastSendStatus = record.LastSendStatus,
+            PreviewText = preview.PreviewText,
+            PreviewBadgeText = $"{preview.BadgeText} / {preview.FrameCountText}",
+            PreviewSourceText = preview.SourceLabel,
             ManageTarget = "builtins",
             BuiltInAssetRecord = record
         };
+    }
+
+    private static IEnumerable<BuiltInAssetRecord> GetBuiltInCatalogRecords(BuiltInAssetArchive archive)
+    {
+        foreach (var definition in BuiltInAssetCatalog.Definitions)
+        {
+            yield return archive.TryGetRecord(definition.Type, definition.Id)
+                ?? new BuiltInAssetRecord(definition.Type, definition.Id);
+        }
+
+        foreach (var record in archive.Records.Where(record => !BuiltInAssetCatalog.IsKnown(record.Type, record.Id)))
+        {
+            yield return record;
+        }
     }
 
     private static GalleryItem CreateFaceItem(FacePattern pattern, int sortIndex)

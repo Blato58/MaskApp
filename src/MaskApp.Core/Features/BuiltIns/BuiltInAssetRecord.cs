@@ -9,8 +9,8 @@ public sealed record BuiltInAssetRecord
     public BuiltInAssetRecord(BuiltInAssetType type, int id)
     {
         Type = type;
-        Id = BuiltInAssetRange.Clamp(type, id);
-        DisplayName = $"{GetDefaultName(type)} {Id}";
+        Id = id;
+        DisplayName = BuiltInAssetCatalog.GetDefaultName(type, id);
     }
 
     public BuiltInAssetType Type { get; init; }
@@ -37,14 +37,12 @@ public sealed record BuiltInAssetRecord
 
     public BuiltInAssetRecord Normalize()
     {
-        var clampedId = BuiltInAssetRange.Clamp(Type, Id);
-        var displayName = string.IsNullOrWhiteSpace(DisplayName)
-            ? $"{GetDefaultName(Type)} {clampedId}"
+        var displayName = BuiltInAssetCatalog.IsGeneratedDefaultName(Type, Id, DisplayName)
+            ? BuiltInAssetCatalog.GetDefaultName(Type, Id)
             : DisplayName.Trim();
 
         return this with
         {
-            Id = clampedId,
             DisplayName = displayName,
             Tags = Tags
                 .Where(tag => !string.IsNullOrWhiteSpace(tag))
@@ -56,7 +54,4 @@ public sealed record BuiltInAssetRecord
             LastSendStatus = string.IsNullOrWhiteSpace(LastSendStatus) ? "Never sent" : LastSendStatus.Trim()
         };
     }
-
-    private static string GetDefaultName(BuiltInAssetType type) =>
-        type == BuiltInAssetType.StaticImage ? "Image" : "Animation";
 }

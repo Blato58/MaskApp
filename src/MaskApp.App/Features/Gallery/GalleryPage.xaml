@@ -68,14 +68,14 @@
                         <Grid IsVisible="{Binding IsItemRow}" ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,0,0,12">
                             <Grid>
                                 <Border
-                                    HeightRequest="184"
+                                    HeightRequest="230"
                                     IsVisible="{Binding Left.IsNormalMode}"
                                     Style="{StaticResource ActionCardBorderStyle}"
                                     Stroke="{Binding Left.ColorHex}">
                                     <Border.GestureRecognizers>
                                         <TapGestureRecognizer Tapped="OnBrowseCardTapped" CommandParameter="{Binding Left.Item}" />
                                     </Border.GestureRecognizers>
-                                    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
+                                    <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="8">
                                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                                             <Border BackgroundColor="{Binding Left.ColorHex}" HeightRequest="38" Stroke="{Binding Left.ColorHex}" WidthRequest="44">
                                                 <Border.StrokeShape>
@@ -86,11 +86,21 @@
                                             <Label Grid.Column="1" Text="{Binding Left.TypeLabel}" Style="{StaticResource TinyLabelStyle}" VerticalTextAlignment="Center" />
                                             <Label Grid.Column="2" Text="{Binding Left.FavoriteLabel}" TextColor="{StaticResource AccentYellowColor}" FontAttributes="Bold" />
                                         </Grid>
-                                        <VerticalStackLayout Grid.Row="1" Spacing="5" VerticalOptions="Center">
+                                        <Border Grid.Row="1" BackgroundColor="#03050A" Padding="6" Stroke="{Binding Left.ColorHex}" StrokeThickness="1" IsVisible="{Binding Left.HasPreview}">
+                                            <Label
+                                                Text="{Binding Left.PreviewText}"
+                                                FontFamily="monospace"
+                                                FontSize="5"
+                                                HorizontalTextAlignment="Center"
+                                                LineBreakMode="NoWrap"
+                                                TextColor="{Binding Left.ColorHex}" />
+                                        </Border>
+                                        <VerticalStackLayout Grid.Row="2" Spacing="5" VerticalOptions="Center">
                                             <Label Text="{Binding Left.Title}" FontSize="18" FontAttributes="Bold" MaxLines="2" />
                                             <Label Text="{Binding Left.Subtitle}" Style="{StaticResource MutedLabelStyle}" MaxLines="2" />
+                                            <Label Text="{Binding Left.PreviewBadgeText}" Style="{StaticResource TinyLabelStyle}" IsVisible="{Binding Left.HasPreview}" />
                                         </VerticalStackLayout>
-                                        <Label Grid.Row="2" Text="{Binding Left.LastSendStatus}" Style="{StaticResource TinyLabelStyle}" />
+                                        <Label Grid.Row="3" Text="{Binding Left.LastSendStatus}" Style="{StaticResource TinyLabelStyle}" />
                                     </Grid>
                                 </Border>
 
@@ -116,14 +126,14 @@
 
                             <Grid Grid.Column="1" IsVisible="{Binding HasRight}">
                                 <Border
-                                    HeightRequest="184"
+                                    HeightRequest="230"
                                     IsVisible="{Binding Right.IsNormalMode}"
                                     Style="{StaticResource ActionCardBorderStyle}"
                                     Stroke="{Binding Right.ColorHex}">
                                     <Border.GestureRecognizers>
                                         <TapGestureRecognizer Tapped="OnBrowseCardTapped" CommandParameter="{Binding Right.Item}" />
                                     </Border.GestureRecognizers>
-                                    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
+                                    <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="8">
                                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                                             <Border BackgroundColor="{Binding Right.ColorHex}" HeightRequest="38" Stroke="{Binding Right.ColorHex}" WidthRequest="44">
                                                 <Border.StrokeShape>
@@ -134,11 +144,21 @@
                                             <Label Grid.Column="1" Text="{Binding Right.TypeLabel}" Style="{StaticResource TinyLabelStyle}" VerticalTextAlignment="Center" />
                                             <Label Grid.Column="2" Text="{Binding Right.FavoriteLabel}" TextColor="{StaticResource AccentYellowColor}" FontAttributes="Bold" />
                                         </Grid>
-                                        <VerticalStackLayout Grid.Row="1" Spacing="5" VerticalOptions="Center">
+                                        <Border Grid.Row="1" BackgroundColor="#03050A" Padding="6" Stroke="{Binding Right.ColorHex}" StrokeThickness="1" IsVisible="{Binding Right.HasPreview}">
+                                            <Label
+                                                Text="{Binding Right.PreviewText}"
+                                                FontFamily="monospace"
+                                                FontSize="5"
+                                                HorizontalTextAlignment="Center"
+                                                LineBreakMode="NoWrap"
+                                                TextColor="{Binding Right.ColorHex}" />
+                                        </Border>
+                                        <VerticalStackLayout Grid.Row="2" Spacing="5" VerticalOptions="Center">
                                             <Label Text="{Binding Right.Title}" FontSize="18" FontAttributes="Bold" MaxLines="2" />
                                             <Label Text="{Binding Right.Subtitle}" Style="{StaticResource MutedLabelStyle}" MaxLines="2" />
+                                            <Label Text="{Binding Right.PreviewBadgeText}" Style="{StaticResource TinyLabelStyle}" IsVisible="{Binding Right.HasPreview}" />
                                         </VerticalStackLayout>
-                                        <Label Grid.Row="2" Text="{Binding Right.LastSendStatus}" Style="{StaticResource TinyLabelStyle}" />
+                                        <Label Grid.Row="3" Text="{Binding Right.LastSendStatus}" Style="{StaticResource TinyLabelStyle}" />
                                     </Grid>
                                 </Border>
 

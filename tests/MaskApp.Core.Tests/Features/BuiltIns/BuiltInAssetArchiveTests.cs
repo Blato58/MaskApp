@@ -5,11 +5,14 @@ namespace MaskApp.Core.Tests.Features.BuiltIns;
 public sealed class BuiltInAssetArchiveTests
 {
     [Theory]
-    [InlineData(BuiltInAssetType.StaticImage, 0x69, true)]
-    [InlineData(BuiltInAssetType.StaticImage, 0x6A, false)]
-    [InlineData(BuiltInAssetType.Animation, 0x45, true)]
-    [InlineData(BuiltInAssetType.Animation, 0x46, false)]
-    public void IsInSafeRange_UsesProtocolDocumentedSafeMaximums(
+    [InlineData(BuiltInAssetType.StaticImage, 69, true)]
+    [InlineData(BuiltInAssetType.StaticImage, 70, false)]
+    [InlineData(BuiltInAssetType.Animation, 3, true)]
+    [InlineData(BuiltInAssetType.Animation, 4, false)]
+    [InlineData(BuiltInAssetType.Animation, 5, true)]
+    [InlineData(BuiltInAssetType.Animation, 45, true)]
+    [InlineData(BuiltInAssetType.Animation, 46, false)]
+    public void IsInSafeRange_UsesAndroidCatalogIds(
         BuiltInAssetType type,
         int id,
         bool expected)
@@ -26,9 +29,40 @@ public sealed class BuiltInAssetArchiveTests
 
         Assert.Equal(3, record.Id);
         Assert.Equal("0x03", record.HexId);
-        Assert.Equal("Animation 3", record.DisplayName);
+        Assert.Equal("Android Animation 03", record.DisplayName);
         Assert.Equal(BuiltInAssetStatus.Untested, record.Status);
         Assert.Equal("Never sent", record.LastSendStatus);
+    }
+
+    [Fact]
+    public void Normalize_FillsBlankAndOldGeneratedNamesFromCatalog()
+    {
+        var archive = new BuiltInAssetArchive(
+        [
+            new BuiltInAssetRecord(BuiltInAssetType.StaticImage, 7) { DisplayName = " " },
+            new BuiltInAssetRecord(BuiltInAssetType.Animation, 5) { DisplayName = "Animation 5" }
+        ]);
+
+        Assert.Equal("Android Image 07", archive.GetOrCreate(BuiltInAssetType.StaticImage, 7).DisplayName);
+        Assert.Equal("Android Animation 05", archive.GetOrCreate(BuiltInAssetType.Animation, 5).DisplayName);
+    }
+
+    [Fact]
+    public void Normalize_PreservesCustomNamesAndUnknownIds()
+    {
+        var archive = new BuiltInAssetArchive(
+        [
+            new BuiltInAssetRecord(BuiltInAssetType.Animation, 4)
+            {
+                DisplayName = "My weird skipped slot",
+                IsFavorite = true
+            }
+        ]);
+
+        var record = Assert.Single(archive.Records);
+        Assert.Equal(4, record.Id);
+        Assert.Equal("My weird skipped slot", record.DisplayName);
+        Assert.False(BuiltInAssetCatalog.IsKnown(record.Type, record.Id));
     }
 
     [Fact]

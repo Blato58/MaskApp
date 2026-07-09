@@ -29,14 +29,49 @@ public sealed class BuiltInsViewModelTests
         var viewModel = new BuiltInsViewModel(transport);
 
         await viewModel.SelectAnimationCommand.ExecuteAsync();
-        viewModel.CurrentId = 3;
+        viewModel.CurrentId = 5;
         await viewModel.SendCommand.ExecuteAsync();
 
         var command = Assert.Single(transport.SentCommands);
         Assert.Equal(MaskCommandKind.Animation, command.Kind);
-        Assert.Equal(3, command.Plaintext.Span[5]);
-        Assert.Equal("0x03", viewModel.CurrentHexId);
+        Assert.Equal(5, command.Plaintext.Span[5]);
+        Assert.Equal("0x05", viewModel.CurrentHexId);
         Assert.Contains("ANIM", viewModel.RangeNote);
+    }
+
+    [Fact]
+    public async Task NextCommand_AnimationMode_SkipsAndroidExcludedIdFour()
+    {
+        var transport = new RecordingCommandTransport();
+        var viewModel = new BuiltInsViewModel(transport);
+
+        await viewModel.SelectAnimationCommand.ExecuteAsync();
+        viewModel.CurrentId = 3;
+        await viewModel.NextCommand.ExecuteAsync();
+
+        var command = Assert.Single(transport.SentCommands);
+        Assert.Equal(5, viewModel.CurrentId);
+        Assert.Equal(MaskCommandKind.Animation, command.Kind);
+        Assert.Equal(5, command.Plaintext.Span[5]);
+    }
+
+    [Fact]
+    public async Task ScannerMetadata_UsesCatalogCountsAndPreviews()
+    {
+        var viewModel = new BuiltInsViewModel(new RecordingCommandTransport());
+
+        await viewModel.InitializeAsync();
+
+        Assert.Equal(70, viewModel.AvailableIds.Count);
+        Assert.Equal("70 Android static images", viewModel.CatalogCountText);
+        Assert.Equal("Android data / 1 frame", viewModel.CurrentPreviewBadgeText);
+        Assert.False(string.IsNullOrWhiteSpace(viewModel.CurrentPreviewText));
+
+        await viewModel.SelectAnimationCommand.ExecuteAsync();
+
+        Assert.Equal(45, viewModel.AvailableIds.Count);
+        Assert.DoesNotContain(4, viewModel.AvailableIds);
+        Assert.Equal("45 Android animations", viewModel.CatalogCountText);
     }
 
     [Fact]

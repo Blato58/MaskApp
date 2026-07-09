@@ -52,6 +52,14 @@ public sealed class GalleryItemCard
 
     public string LastSendStatus => string.IsNullOrWhiteSpace(Item.LastSendStatus) ? "Not sent yet" : Item.LastSendStatus;
 
+    public string PreviewText => Item.PreviewText;
+
+    public string PreviewBadgeText => Item.PreviewBadgeText;
+
+    public string PreviewSourceText => Item.PreviewSourceText;
+
+    public bool HasPreview => Item.HasPreview;
+
     public bool CanSend => Item.CanSend;
 
     public bool CanManage => Item.CanManage;

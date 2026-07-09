@@ -23,6 +23,12 @@ public sealed class PageAddItemCandidateCard
 
     public string IconAsset => GalleryIconOption.Defaults.FirstOrDefault(icon => icon.IconKey == Item.IconKey)?.PreviewAsset ?? string.Empty;
 
+    public string PreviewText => Item.PreviewText;
+
+    public string PreviewBadgeText => Item.PreviewBadgeText;
+
+    public bool HasPreview => Item.HasPreview;
+
     public bool IsSelected { get; }
 
     public string SelectionText => IsSelected ? "Selected" : "Choose";

@@ -63,7 +63,7 @@
                                         <Border.GestureRecognizers>
                                             <TapGestureRecognizer Command="{Binding SendCommand}" />
                                         </Border.GestureRecognizers>
-                                        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="5">
+                                        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="5">
                                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                                 <Label Text="{Binding Title}" FontAttributes="Bold" />
                                                 <Label
@@ -74,8 +74,18 @@
                                             </Grid>
                                             <Label Grid.Row="1" Text="{Binding TypeLabel}" Style="{StaticResource TinyLabelStyle}" />
                                             <Label Grid.Row="2" Text="{Binding IdLabel}" TextColor="{StaticResource AccentYellowColor}" FontAttributes="Bold" />
-                                            <Label Grid.Row="3" Text="{Binding TagsLabel}" Style="{StaticResource TinyLabelStyle}" />
-                                            <Grid Grid.Row="4" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                            <Border Grid.Row="3" BackgroundColor="#03050A" Padding="6" Stroke="{StaticResource MutedTextColor}" StrokeThickness="1">
+                                                <Label
+                                                    Text="{Binding PreviewText}"
+                                                    FontFamily="monospace"
+                                                    FontSize="5"
+                                                    HorizontalTextAlignment="Center"
+                                                    LineBreakMode="NoWrap"
+                                                    TextColor="{StaticResource AccentBlueColor}" />
+                                            </Border>
+                                            <Label Grid.Row="4" Text="{Binding PreviewBadgeText}" Style="{StaticResource TinyLabelStyle}" />
+                                            <Label Grid.Row="5" Text="{Binding TagsLabel}" Style="{StaticResource TinyLabelStyle}" />
+                                            <Grid Grid.Row="6" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                                                 <Border Style="{StaticResource StatusPillBorderStyle}">
                                                     <Label Text="{Binding StatusLabel}" Style="{StaticResource ChipLabelStyle}" />
                                                 </Border>
@@ -122,14 +132,26 @@
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="8" />
                             </Border.StrokeShape>
-                            <Grid RowDefinitions="Auto,Auto" RowSpacing="10" HeightRequest="142">
-                                <Image
-                                    HeightRequest="86"
-                                    HorizontalOptions="Center"
-                                    Source="mask_neon.svg"
-                                    WidthRequest="86" />
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="7" HeightRequest="178">
+                                <Label
+                                    Text="{Binding CurrentPreviewText}"
+                                    FontFamily="monospace"
+                                    FontSize="8"
+                                    HorizontalTextAlignment="Center"
+                                    LineBreakMode="NoWrap"
+                                    TextColor="{StaticResource AccentBlueColor}" />
                                 <Label
                                     Grid.Row="1"
+                                    Text="{Binding CurrentPreviewBadgeText}"
+                                    HorizontalTextAlignment="Center"
+                                    Style="{StaticResource TinyLabelStyle}" />
+                                <Label
+                                    Grid.Row="2"
+                                    Text="{Binding CurrentPreviewSourceText}"
+                                    HorizontalTextAlignment="Center"
+                                    Style="{StaticResource TinyLabelStyle}" />
+                                <Label
+                                    Grid.Row="3"
                                     Text="{Binding CurrentId, StringFormat='ID {0}'}"
                                     HorizontalTextAlignment="Center"
                                     TextColor="{StaticResource AccentYellowColor}"
@@ -138,7 +160,7 @@
                             </Grid>
                         </Border>
 
-                        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+                        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,150" ColumnSpacing="12">
                             <Label
                                 Text="{Binding CurrentId, StringFormat='ID {0}'}"
                                 FontAttributes="Bold"
@@ -146,15 +168,14 @@
                                 VerticalTextAlignment="Center" />
                             <Label
                                 Grid.Column="1"
-                                Text="{Binding MaxId, StringFormat='max {0}'}"
+                                Text="{Binding CatalogPositionText}"
                                 Style="{StaticResource TinyLabelStyle}"
                                 VerticalTextAlignment="Center" />
-                            <Stepper
+                            <Picker
                                 Grid.Column="2"
-                                Minimum="0"
-                                Maximum="{Binding MaxId}"
-                                Increment="1"
-                                Value="{Binding CurrentIdValue, Mode=TwoWay}" />
+                                Title="ID"
+                                ItemsSource="{Binding AvailableIds}"
+                                SelectedItem="{Binding CurrentId, Mode=TwoWay}" />
                         </Grid>
                         <Grid Grid.Row="3" ColumnDefinitions="*,*,*" ColumnSpacing="8">
                             <Button Text="Previous" Command="{Binding PreviousCommand}" />
@@ -223,11 +244,21 @@
                                         MinimumWidthRequest="180"
                                         Style="{StaticResource ActionCardBorderStyle}"
                                         Stroke="{StaticResource AccentBlueColor}">
-                                        <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="5">
+                                        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="5">
                                             <Label Text="{Binding Title}" FontAttributes="Bold" />
                                             <Label Grid.Row="1" Text="{Binding Subtitle}" Style="{StaticResource TinyLabelStyle}" />
+                                            <Border Grid.Row="2" BackgroundColor="#03050A" Padding="6" Stroke="{StaticResource MutedTextColor}" StrokeThickness="1">
+                                                <Label
+                                                    Text="{Binding PreviewText}"
+                                                    FontFamily="monospace"
+                                                    FontSize="5"
+                                                    HorizontalTextAlignment="Center"
+                                                    LineBreakMode="NoWrap"
+                                                    TextColor="{StaticResource AccentBlueColor}" />
+                                            </Border>
+                                            <Label Grid.Row="3" Text="{Binding PreviewBadgeText}" Style="{StaticResource TinyLabelStyle}" />
                                             <Button
-                                                Grid.Row="2"
+                                                Grid.Row="4"
                                                 Text="Edit"
                                                 Command="{Binding EditCommand}"
                                                 Style="{StaticResource NeonBlueButtonStyle}" />

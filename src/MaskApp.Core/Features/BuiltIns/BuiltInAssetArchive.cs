@@ -26,10 +26,11 @@ public sealed class BuiltInAssetArchive
 
     public BuiltInAssetRecord GetOrCreate(BuiltInAssetType type, int id)
     {
-        var clampedId = BuiltInAssetRange.Clamp(type, id);
-        return records.FirstOrDefault(record => record.Type == type && record.Id == clampedId)
-            ?? new BuiltInAssetRecord(type, clampedId);
+        return TryGetRecord(type, id) ?? new BuiltInAssetRecord(type, id);
     }
+
+    public BuiltInAssetRecord? TryGetRecord(BuiltInAssetType type, int id) =>
+        records.FirstOrDefault(record => record.Type == type && record.Id == id);
 
     public BuiltInAssetArchive Upsert(BuiltInAssetRecord record)
     {

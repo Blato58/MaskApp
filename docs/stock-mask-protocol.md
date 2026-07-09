@@ -87,8 +87,8 @@ encrypted. Audio visualizer packets are 16-byte encrypted packets.
 | Command | Arguments | Expected behavior | Confidence |
 | --- | --- | --- | --- |
 | `LIGHT` | 1 byte brightness | Sets LED brightness. Prefer capping normal UI brightness at or below `100` until physical flicker behavior is verified. | Implemented, needs real-mask test |
-| `IMAG` | 1 byte built-in image id | Displays a stock static image. Evidence suggests useful IDs up to about `0x69`; higher values may show undefined stock data. | Implemented, needs real-mask test |
-| `ANIM` | 1 byte built-in animation id | Plays a stock animation. Evidence suggests useful IDs up to about `0x45`; higher values may show undefined pixels. | Implemented, needs real-mask test |
+| `IMAG` | 1 byte built-in image id | Displays a stock static image. The Android app's UI catalog lists 70 decimal IDs, `0..69`; older `0x69` notes were approximate protocol evidence, not a complete Android gallery count. | Implemented, needs real-mask test |
+| `ANIM` | 1 byte built-in animation id | Plays a stock animation. The Android app's UI catalog lists 45 decimal command IDs: `0`, `1`, `2`, `3`, and `5..45`. ID `4` is present in generated resource IDs but `AnimFragment` skips it before sending. Older `0x45` notes were approximate protocol evidence. | Implemented, needs real-mask test |
 | `CHEC` | none | Requests the number of DIY images stored on the mask; response is sent on the notification characteristic. | Protocol-documented |
 | `DELE` | 1 byte count, then up to 10 DIY ids | Deletes uploaded DIY image slots. Response behavior needs physical confirmation. | Protocol-documented |
 | `PLAY` | 1 byte count, then up to 10 DIY ids | Plays uploaded DIY image slots in order. Timing and repeat behavior need physical confirmation. | Protocol-documented |

@@ -29,6 +29,14 @@ public sealed record GalleryItem
 
     public string LastSendStatus { get; init; } = string.Empty;
 
+    public string PreviewText { get; init; } = string.Empty;
+
+    public string PreviewBadgeText { get; init; } = string.Empty;
+
+    public string PreviewSourceText { get; init; } = string.Empty;
+
+    public bool HasPreview => !string.IsNullOrWhiteSpace(PreviewText);
+
     public bool CanSend { get; init; } = true;
 
     public bool CanManage { get; init; } = true;
@@ -57,5 +65,5 @@ public sealed record GalleryItem
         _ => "Import"
     };
 
-    public string SearchText => $"{Title} {Subtitle} {GroupName} {TypeLabel}".ToUpperInvariant();
+    public string SearchText => $"{Title} {Subtitle} {GroupName} {TypeLabel} {PreviewBadgeText} {PreviewSourceText}".ToUpperInvariant();
 }

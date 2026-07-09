@@ -36,6 +36,12 @@ public sealed class GalleryPageShortcutCard
 
     public string ColorHex => Layout.ColorHex;
 
+    public string PreviewText => Item.PreviewText;
+
+    public string PreviewBadgeText => Item.PreviewBadgeText;
+
+    public bool HasPreview => Item.HasPreview;
+
     public bool CanSend => Item.CanSend;
 
     public AsyncRelayCommand SendCommand { get; }

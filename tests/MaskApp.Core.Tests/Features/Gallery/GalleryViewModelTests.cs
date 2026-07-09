@@ -35,6 +35,26 @@ public sealed class GalleryViewModelTests
     }
 
     [Fact]
+    public async Task InitializeAsync_ProjectsAndroidCatalogBuiltInsWithPreviews()
+    {
+        var viewModel = CreateViewModel();
+
+        await viewModel.InitializeAsync();
+
+        var items = Flatten(viewModel);
+        var image = Assert.Single(items, item => item.Item.Id == "built-in:StaticImage:0");
+        var animation = Assert.Single(items, item => item.Item.Id == "built-in:Animation:5");
+
+        Assert.Equal("Android Image 00", image.Title);
+        Assert.Equal("Android Animation 05", animation.Title);
+        Assert.True(image.HasPreview);
+        Assert.True(animation.HasPreview);
+        Assert.Contains("Android data", image.PreviewBadgeText);
+        Assert.Contains("Generated preview", animation.PreviewBadgeText);
+        Assert.DoesNotContain(items, item => item.Item.Id == "built-in:Animation:4");
+    }
+
+    [Fact]
     public async Task SearchFavoritesAndGrouping_FilterProjectedItems()
     {
         var favorite = CreatePreset("Gallery favorite only", "Favorite Pack", favorite: true);
