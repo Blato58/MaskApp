@@ -7,7 +7,6 @@ namespace MaskApp.Core.Features.Connect;
 public sealed class ConnectViewModel : INotifyPropertyChanged
 {
     private readonly IBleScanner scanner;
-    private readonly IBleDeviceConnection connection;
     private readonly BleAutoConnectCoordinator autoConnectCoordinator;
     private DiscoveredMaskDevice? selectedDevice;
     private BleConnectionState connectionState = BleConnectionState.Disconnected;
@@ -20,7 +19,6 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
         BleAutoConnectCoordinator? autoConnectCoordinator = null)
     {
         this.scanner = scanner;
-        this.connection = connection;
         this.autoConnectCoordinator = autoConnectCoordinator ?? new BleAutoConnectCoordinator(scanner, connection);
 
         scanner.DeviceDiscovered += OnDeviceDiscovered;
@@ -178,7 +176,8 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
         return autoConnectCoordinator.ConnectManuallyAsync(SelectedDevice, cancellationToken);
     }
 
-    private Task DisconnectAsync(CancellationToken cancellationToken) => connection.DisconnectAsync(cancellationToken);
+    private Task DisconnectAsync(CancellationToken cancellationToken) =>
+        autoConnectCoordinator.DisconnectManuallyAsync(cancellationToken);
 
     private void OnDeviceDiscovered(object? sender, DiscoveredMaskDevice device)
     {

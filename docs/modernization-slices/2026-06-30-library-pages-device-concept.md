@@ -64,6 +64,10 @@ headers and expose their dense controls behind a Tools toggle. Page shortcut
 tiles have explicit grid spacing, and shortcut/icon preview image sources use
 filename-based MAUI resource names so vendored SVGs can resolve at runtime.
 
+Icon visibility follow-up: vendored Lucide and Phosphor shortcut SVGs no longer
+depend on unresolved `currentColor`; they use explicit dark strokes/fills so
+MAUI can render them on the colored shortcut tiles.
+
 ## Current evidence
 
 - Repo files: `src/MaskApp.App`, `src/MaskApp.Core/Features/Gallery`,
@@ -144,9 +148,11 @@ Out of scope:
   added duplicate-safe draft state, custom shortcut label/icon/color save, and
   curated Mask/Lucide/Material/Phosphor icon catalog metadata. Compact-header
   follow-up collapsed the oversized first panels by default, added page shortcut
-  gaps, and switched icon preview paths to MAUI-resolvable filenames.
+  gaps, switched icon preview paths to MAUI-resolvable filenames, and normalized
+  vendored icon SVG colors away from `currentColor`.
 - Commands run:
   - `dotnet test tests\MaskApp.Core.Tests\MaskApp.Core.Tests.csproj --no-restore`
+  - `dotnet test tests\MaskApp.Core.Tests\MaskApp.Core.Tests.csproj --no-restore --filter FullyQualifiedName~Features.Gallery`
   - `dotnet build src\MaskApp.App\MaskApp.App.csproj -f net10.0-ios --no-restore`
   - `dotnet build src\MaskApp.App\MaskApp.App.csproj -f net10.0-android --no-restore`
   - `git diff --check`

@@ -116,6 +116,30 @@ public sealed class BleAutoConnectCoordinatorTests
     }
 
     [Fact]
+    public async Task StartForegroundAutoConnectAsync_KeepsScanningUntilRememberedMaskAppears()
+    {
+        var store = new InMemoryBleAutoConnectSettingsStore(new BleAutoConnectSettings
+        {
+            AutoConnectEnabled = true,
+            LastKnownDevice = new KnownMaskDevice("mask-1", "Stage Mask", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow)
+        });
+        var scanner = new FakeBleScanner();
+        var connection = new FakeBleConnection();
+        var coordinator = new BleAutoConnectCoordinator(scanner, connection, store);
+
+        await coordinator.StartForegroundAutoConnectAsync();
+
+        Assert.True(scanner.IsScanning);
+        Assert.True(coordinator.IsAutoConnectSearching);
+
+        scanner.Discover(new DiscoveredMaskDevice("mask-1", "Stage Mask", -42));
+
+        Assert.Equal("mask-1", connection.ConnectedDevice?.Id);
+        Assert.False(scanner.IsScanning);
+        Assert.Equal("Auto-connect: connected", coordinator.AutoConnectStatusText);
+    }
+
+    [Fact]
     public async Task DeviceDiscovered_SingleExactNameFallback_ConnectsOnlyAfterDelay()
     {
         var store = new InMemoryBleAutoConnectSettingsStore(new BleAutoConnectSettings
@@ -139,6 +163,38 @@ public sealed class BleAutoConnectCoordinatorTests
 
         Assert.Equal("new-ios-id", connection.ConnectedDevice?.Id);
         Assert.Equal("Stage Mask", coordinator.LastKnownMaskText);
+    }
+
+    [Fact]
+    public async Task DeviceDiscovered_NameFallbackAfterLongSearch_ConnectsOnlyAfterDelay()
+    {
+        var store = new InMemoryBleAutoConnectSettingsStore(new BleAutoConnectSettings
+        {
+            AutoConnectEnabled = true,
+            LastKnownDevice = new KnownMaskDevice("old-ios-id", "Stage Mask", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow)
+        });
+        var scanner = new FakeBleScanner();
+        var connection = new FakeBleConnection();
+        var fallbackGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var coordinator = new BleAutoConnectCoordinator(
+            scanner,
+            connection,
+            store,
+            delayAsync: (_, _) => fallbackGate.Task);
+
+        await coordinator.StartForegroundAutoConnectAsync();
+
+        Assert.True(scanner.IsScanning);
+        Assert.Null(connection.ConnectedDevice);
+
+        scanner.Discover(new DiscoveredMaskDevice("new-ios-id", "Stage Mask", -42));
+        Assert.Null(connection.ConnectedDevice);
+
+        fallbackGate.SetResult();
+        await WaitUntilAsync(() => connection.ConnectedDevice is not null);
+
+        Assert.Equal("new-ios-id", connection.ConnectedDevice?.Id);
+        Assert.Equal("Auto-connect: connected", coordinator.AutoConnectStatusText);
     }
 
     [Fact]
@@ -166,6 +222,50 @@ public sealed class BleAutoConnectCoordinatorTests
 
         Assert.Null(connection.ConnectedDevice);
         Assert.Equal("Auto-connect: name matched multiple masks. Manual connect available.", coordinator.AutoConnectStatusText);
+    }
+
+    [Fact]
+    public async Task ConnectionLost_RestartsForegroundAutoConnect()
+    {
+        var store = new InMemoryBleAutoConnectSettingsStore(new BleAutoConnectSettings
+        {
+            AutoConnectEnabled = true,
+            LastKnownDevice = new KnownMaskDevice("mask-1", "Stage Mask", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow)
+        });
+        var scanner = new FakeBleScanner();
+        var connection = new FakeBleConnection();
+        var coordinator = new BleAutoConnectCoordinator(scanner, connection, store);
+
+        await coordinator.StartForegroundAutoConnectAsync();
+        scanner.Discover(new DiscoveredMaskDevice("mask-1", "Stage Mask", -42));
+        await connection.DisconnectAsync();
+        await WaitUntilAsync(() => scanner.IsScanning);
+
+        Assert.Null(connection.ConnectedDevice);
+        Assert.True(coordinator.IsAutoConnectSearching);
+        Assert.Equal("Auto-connect: searching for Stage Mask", coordinator.AutoConnectStatusText);
+    }
+
+    [Fact]
+    public async Task DisconnectManuallyAsync_DoesNotRestartForegroundAutoConnect()
+    {
+        var store = new InMemoryBleAutoConnectSettingsStore(new BleAutoConnectSettings
+        {
+            AutoConnectEnabled = true,
+            LastKnownDevice = new KnownMaskDevice("mask-1", "Stage Mask", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow)
+        });
+        var scanner = new FakeBleScanner();
+        var connection = new FakeBleConnection();
+        var coordinator = new BleAutoConnectCoordinator(scanner, connection, store);
+
+        await coordinator.StartForegroundAutoConnectAsync();
+        scanner.Discover(new DiscoveredMaskDevice("mask-1", "Stage Mask", -42));
+        await coordinator.DisconnectManuallyAsync();
+
+        Assert.Null(connection.ConnectedDevice);
+        Assert.False(scanner.IsScanning);
+        Assert.False(coordinator.IsAutoConnectSearching);
+        Assert.Equal("Auto-connect: paused after manual disconnect", coordinator.AutoConnectStatusText);
     }
 
     [Fact]

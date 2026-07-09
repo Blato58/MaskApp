@@ -45,6 +45,9 @@ drops.
 - RAVE no longer hides useful controls behind Festival Lock.
 - Control and Connect show auto-connect status, remembered mask, toggles, and
   forget/connect-now actions.
+- App/window activation starts remembered-mask auto-connect even when the user
+  opens into Library or Pages, and foreground search keeps running until the
+  mask appears.
 - Quick captions from Control, React, and RAVE use one global foreground color.
 - Text Composer defaults to the global foreground color but keeps per-send manual
   color choices.
@@ -99,6 +102,8 @@ Out of scope:
 ## Deferred validation
 
 - Confirm auto-connect finds the remembered mask after app reopen.
+- Confirm auto-connect still finds the mask when the app opens before the mask is
+  powered on, and after the mask unexpectedly disconnects.
 - Confirm Cyan/Pink/global foreground colors show from React, RAVE, and Text
   Composer.
 - Confirm BLACKOUT still works from RAVE sticky footer and body controls.
@@ -123,6 +128,11 @@ Out of scope:
 - Result: Core tests passed with 152 tests; iOS and Android builds passed with
   0 warnings and 0 errors; `git diff --check` passed.
 - Remaining risk: physical mask behavior still needs validation.
+- 2026-07-09 follow-up: auto-connect now starts from app/window activation, keeps
+  foreground scanning alive instead of timing out before the mask appears,
+  evaluates name fallback when a matching name is discovered, restarts search
+  after unexpected disconnects, and keeps manual disconnect paused. Validated
+  with focused Connect tests, full core tests, and iOS/Android app builds.
 
 ## Next slice candidate
 
