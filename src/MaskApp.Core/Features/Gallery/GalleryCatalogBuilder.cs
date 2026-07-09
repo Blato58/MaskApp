@@ -113,7 +113,7 @@ public sealed class GalleryCatalogBuilder
             Type = GalleryItemType.CustomStaticFace,
             Title = normalized.DisplayName,
             Subtitle = $"{normalized.SourceLabel} / Slot {normalized.PreferredSlot}",
-            GroupName = normalized.IsBuiltIn ? "Built-in smileys" : "Custom faces",
+            GroupName = normalized.IsBuiltIn ? "Pixel face collection" : "Custom faces",
             IsFavorite = normalized.IsFavorite,
             ColorHex = normalized.AccentColorHex,
             IconKey = normalized.Emotion switch

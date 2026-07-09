@@ -400,7 +400,7 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
     {
         if (CurrentPattern.IsBuiltIn)
         {
-            StoreStatusText = "Built-in smileys stay in the library.";
+            StoreStatusText = "Built-in pixel faces stay in the library.";
             return;
         }
 

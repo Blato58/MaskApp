@@ -3,14 +3,14 @@ namespace MaskApp.Core.Features.Faces;
 public sealed record FacePatternStoreState
 {
     public const int CurrentSchemaVersion = 1;
-    public const int CurrentSeedVersion = 1;
+    public const int CurrentSeedVersion = 2;
 
     public static FacePatternStoreState Seeded => new()
     {
         SchemaVersion = CurrentSchemaVersion,
         SeedVersion = CurrentSeedVersion,
         Patterns = FacePatternFactory.CreateBuiltIns().ToArray(),
-        Status = "Seeded smiley faces ready."
+        Status = "Seeded pixel face collection ready."
     };
 
     public int SchemaVersion { get; init; } = CurrentSchemaVersion;

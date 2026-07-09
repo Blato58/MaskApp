@@ -34,7 +34,7 @@ public sealed record FacePattern
 
     public string SourceLabel => Source switch
     {
-        FacePatternSource.BuiltIn => "Built-in smiley",
+        FacePatternSource.BuiltIn => "Built-in pixel face",
         FacePatternSource.ImportedPhoto => "Imported photo",
         FacePatternSource.CapturedPhoto => "Camera photo",
         _ => "Custom drawing"
