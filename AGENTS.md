@@ -6,7 +6,9 @@
 - `src/MaskApp.App` contains the .NET MAUI app. iOS is the primary target; Android is secondary.
 - `src/MaskApp.Core` contains platform-neutral code ported from Java, especially protocol, BLE parsing, feature state, models, and data transformations.
 - `tests/MaskApp.Core.Tests` contains xUnit tests for migrated core behavior.
-- `docs/` contains migration notes, source maps, and setup documentation.
+- `docs/` contains durable development references only: mask protocol notes,
+  Java source mapping, setup/distribution runbooks, MaskPack format notes, and
+  icon attribution.
 - `.github/workflows/ios-ipa.yml` builds signed iOS IPA artifacts on GitHub-hosted macOS runners using GitHub Secrets.
 - `build/scripts/` contains CI helper scripts for Apple signing setup, AltStore-compatible source generation, and install-page generation.
 
@@ -47,11 +49,16 @@ Use `.github/workflows/ios-ipa.yml` for CI-based signed iOS IPA distribution. Se
 ## Architecture Rules
 
 - Do not directly translate every Java class one-to-one when a smaller C# domain model is clearer.
-- This migration is meant to improve UI/UX and functionality, not mechanically copy the old Java structure. Every slice should preserve required behavior while making the user flow clearer, more reliable, easier to validate, or better aligned with iOS/MAUI platform conventions.
-- A migration slice is not done just because code was moved. Record the migrated behavior and the UI/UX or functionality improvement in `docs/progress.md`.
+- Port/migration changes should preserve required behavior while making the
+  user flow clearer, more reliable, easier to validate, or better aligned with
+  iOS/MAUI platform conventions.
+- Update docs only when a durable fact changes. Do not add per-slice progress
+  logs, modernization records, or UI concept dumps unless the user explicitly
+  asks for them.
 - Keep BLE scanning, camera, audio, runtime permissions, storage, and platform lifecycle code out of `MaskApp.Core`.
 - Shared app services should represent real platform boundaries. Do not add broad shared abstractions just to mirror Java base classes.
-- Use the Java files as behavioral evidence. When source is decompiled or unclear, document the assumption in `docs/`.
+- Use the Java files as behavioral evidence. When source is decompiled or
+  unclear, document the assumption in the relevant durable doc or code comment.
 
 ## Generated Code and Migrations
 
@@ -68,11 +75,12 @@ Use `.github/workflows/ios-ipa.yml` for CI-based signed iOS IPA distribution. Se
 
 ## Agent Notes
 
-- Before selecting or implementing a slice, read `docs/product-vision.md`, `docs/modernization-execplan.md`, and `docs/progress.md`.
 - Before protocol, BLE, Text, Image, Rhythm, RAVE, or DIY-slot work, read `docs/stock-mask-protocol.md` and treat it as community reverse-engineered evidence, not manufacturer documentation.
-- Start from `docs/android-source-map.md` and the relevant Java files before porting a feature.
-- Check `docs/progress.md` before starting a slice and update it when the slice, platform adapter, or validation status changes.
-- Every slice should state how it moves MaskApp toward the wearable face controller vision, which product pillar it serves, and what physical validation status applies.
+- Start from `docs/android-source-map.md` and the relevant Java files before porting or correcting Java-derived behavior.
+- Before MaskPack manifest/import work, read `docs/maskpack-format.md`.
+- Before changing the Pages icon catalog or vendored icon assets, read `docs/icon-sources.md`.
+- Keep old progress trackers, modernization slice records, and UI concept mockups out of the repo unless the user explicitly asks to bring them back.
+- State user-visible behavior changes and physical validation status in the final response instead of maintaining a repo progress log.
 - Do not overclaim mask capability. Treat Drop Detector, Voice Mouth, Bass Face, GIF-ish playback, fast DIY sequencing, and real-time effects as Labs/Experimental until physically verified on a real mask.
 - Firmware and custom firmware work are out of scope unless the user explicitly requests it.
 - Prefer `.NET MAUI` over legacy Xamarin project formats because Xamarin support ended on May 1, 2024.

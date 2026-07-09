@@ -1,18 +1,21 @@
 # Docs
 
-This folder tracks the product vision, modernization plan, and Android-to-.NET
-migration.
+This folder intentionally keeps only durable references needed for development.
+Historical progress logs, modernization slice records, and UI concept mockups
+were removed to keep coding-agent context small.
 
-- `android-source-map.md` summarizes the current Java source snapshot.
+- `stock-mask-protocol.md` is the source of truth for BLE topology, encrypted
+  command shape, text/image upload behavior, ACK parsing, and unverified mask
+  capabilities.
+- `android-source-map.md` summarizes the Java source snapshot used as migration
+  evidence.
+- `setup.md` records local setup and build prerequisites.
 - `ios-ci-distribution.md` explains GitHub Actions IPA builds, signing secrets,
   Releases, Pages, and Feather/AltStore-style updates.
-- `migration-plan.md` defines the working migration order and validation gates.
-- `product-vision.md` is the product north star: wearable face controller,
-  product pillars, capability confidence, and RAVE MVP definition.
-- `modernization-execplan.md` defines the long-term product roadmap, readiness
-  checklist, continuation workflow, and feature sequencing.
-- `modernization-slice-template.md` is the template for bounded modernization
-  records.
-- `modernization-slices/` stores per-slice execution records.
-- `progress.md` tracks completed, in-progress, blocked, and pending migration work.
-- `setup.md` records local setup and build prerequisites.
+- `maskpack-format.md` describes the manifest format implemented by the
+  MaskPack parser/validator.
+- `icon-sources.md` records source and licensing notes for vendored shortcut
+  icons.
+
+Update these files only when their durable facts change. Do not add per-slice
+status records or broad planning docs unless the user explicitly asks for them.

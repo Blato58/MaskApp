@@ -10,7 +10,8 @@ for app implementation work; it is not manufacturer documentation.
 
 Use this document before changing protocol, BLE, Text, Image, Rhythm, DIY-slot,
 or RAVE code. Keep product claims aligned with the confidence labels below until
-a real mask test is recorded in `docs/progress.md`.
+a real mask test has been run and the result is captured in the task summary or
+a durable protocol note.
 
 ## Source Attribution
 
