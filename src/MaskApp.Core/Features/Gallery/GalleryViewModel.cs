@@ -81,7 +81,7 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
             new GalleryAddOption(GalleryAddOptionKind.EditTextPresets, "Manage text presets", "Open the saved text preset editor.", "txt", "#A78BFA", true),
             new GalleryAddOption(GalleryAddOptionKind.ScanBuiltInStaticFace, "Scan built-in face", "Send and mark IMAG IDs in the hidden scanner.", "face", "#52E3FF", true),
             new GalleryAddOption(GalleryAddOptionKind.ScanBuiltInAnimation, "Scan built-in animation", "Send and mark ANIM IDs in the hidden scanner.", "anim", "#FF3D8B", true),
-            new GalleryAddOption(GalleryAddOptionKind.ImportCustomImage, "Create custom face", "Draw, import, save, upload, and play a 36x12 DIY face.", "face", "#FACC15", true),
+            new GalleryAddOption(GalleryAddOptionKind.ImportCustomImage, "Create custom face", "Draw, import, save, upload, and play a native 46x58 DIY face.", "face", "#FACC15", true),
             new GalleryAddOption(GalleryAddOptionKind.ImportCustomAnimation, "Import animation", "Future/Labs until DIY playback is verified.", "anim", "#475569", false),
             new GalleryAddOption(GalleryAddOptionKind.ImportMaskPack, "Import MaskPack", "Manifest support exists; playback remains future work.", "pack", "#475569", false)
         ];

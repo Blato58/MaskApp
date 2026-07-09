@@ -4,10 +4,9 @@ namespace MaskApp.Core.Features.Faces;
 
 public static class FaceUploadProtocol
 {
-    public const int StaticImageWidth = 46;
-    public const int StaticImageHeight = 58;
+    public const int StaticImageWidth = FacePattern.Width;
+    public const int StaticImageHeight = FacePattern.Height;
     public const int StaticImagePixelCount = StaticImageWidth * StaticImageHeight;
-    public const int LedDataLength = FacePattern.Width * 2;
     public const int ColorDataLength = StaticImagePixelCount * 3;
     public const int PayloadLength = ColorDataLength;
     public const int DefaultFramePayloadLength = 98;
@@ -21,7 +20,6 @@ public static class FaceUploadProtocol
     {
         pattern = pattern.Normalize();
         slot = Math.Clamp(slot, FacePattern.MinSlot, FacePattern.MaxSlot);
-        var ledData = PackLedBits(pattern);
         var payload = BuildPayload(pattern);
         var framePayloadLength = useLargeMtu ? LargeMtuFramePayloadLength : DefaultFramePayloadLength;
         var frames = SplitFrames(payload, framePayloadLength);
@@ -30,46 +28,11 @@ public static class FaceUploadProtocol
         return new FaceUploadPackage(
             pattern,
             slot,
-            ledData,
             payload,
             frames,
             BuildStartCommand(payload.Length, slot),
             BuildFinishCommand(timestamp),
             BuildPlayCommand([slot]));
-    }
-
-    public static byte[] PackLedBits(FacePattern pattern)
-    {
-        pattern = pattern.Normalize();
-        var ledData = new byte[LedDataLength];
-        var offset = 0;
-
-        for (var column = 0; column < FacePattern.Width; column++)
-        {
-            byte top = 0;
-            byte bottom = 0;
-            for (var row = 0; row < FacePattern.Height; row++)
-            {
-                if (!pattern.GetPixel(column, row).IsLit)
-                {
-                    continue;
-                }
-
-                if (row < 8)
-                {
-                    top |= (byte)(0x80 >> row);
-                }
-                else
-                {
-                    bottom |= (byte)(0x80 >> (row - 8));
-                }
-            }
-
-            ledData[offset++] = top;
-            ledData[offset++] = bottom;
-        }
-
-        return ledData;
     }
 
     public static byte[] BuildPayload(FacePattern pattern)
@@ -80,11 +43,9 @@ public static class FaceUploadProtocol
 
         for (var imageColumn = 0; imageColumn < StaticImageWidth; imageColumn++)
         {
-            var column = ScaleCoordinate(imageColumn, StaticImageWidth, FacePattern.Width);
             for (var imageRow = 0; imageRow < StaticImageHeight; imageRow++)
             {
-                var row = ScaleCoordinate(imageRow, StaticImageHeight, FacePattern.Height);
-                var pixel = pattern.GetPixel(column, row);
+                var pixel = pattern.GetPixel(imageColumn, imageRow);
                 var color = pixel.IsLit ? pixel.Color : FaceColor.Black;
                 payload[offset++] = color.Red;
                 payload[offset++] = color.Green;
@@ -94,9 +55,6 @@ public static class FaceUploadProtocol
 
         return payload;
     }
-
-    private static int ScaleCoordinate(int coordinate, int sourceSize, int targetSize) =>
-        Math.Clamp((int)Math.Floor((coordinate + 0.5) * targetSize / sourceSize), 0, targetSize - 1);
 
     public static IReadOnlyList<FaceUploadFrame> SplitFrames(ReadOnlySpan<byte> payload, int framePayloadLength)
     {

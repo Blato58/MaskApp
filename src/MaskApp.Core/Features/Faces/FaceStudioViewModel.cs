@@ -325,13 +325,13 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
             : displayName.Trim();
         var pattern = FaceImageImport.CreatePattern(image, name, source, SelectedSlot);
         ApplyPattern(pattern);
-        StatusText = "Image converted to 36x12 face grid.";
+        StatusText = "Image converted to the native 46x58 mask canvas.";
     }
 
     private Task NewBlankAsync(CancellationToken cancellationToken)
     {
         ApplyPattern(FacePatternFactory.CreateBlank("Custom Face", GetNextCustomSlot()));
-        StatusText = "Blank 36x12 face ready.";
+        StatusText = "Blank 46x58 mask canvas ready.";
         return Task.CompletedTask;
     }
 

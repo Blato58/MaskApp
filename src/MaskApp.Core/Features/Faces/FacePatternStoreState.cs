@@ -2,8 +2,9 @@ namespace MaskApp.Core.Features.Faces;
 
 public sealed record FacePatternStoreState
 {
-    public const int CurrentSchemaVersion = 1;
-    public const int CurrentSeedVersion = 2;
+    public const int LegacySchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSeedVersion = 4;
 
     public static FacePatternStoreState Seeded => new()
     {

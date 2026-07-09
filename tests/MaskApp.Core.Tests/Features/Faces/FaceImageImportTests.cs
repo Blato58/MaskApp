@@ -5,7 +5,7 @@ namespace MaskApp.Core.Tests.Features.Faces;
 public sealed class FaceImageImportTests
 {
     [Fact]
-    public void TransformToFacePixels_ClampsToThirtySixByTwelveAndHandlesTransparencyAndDarkPixels()
+    public void TransformToFacePixels_ClampsToNativeCanvasAndHandlesTransparencyAndDarkPixels()
     {
         var pixels = Enumerable.Range(0, FacePattern.PixelCount)
             .Select(index => new FaceSamplePixel(255, 255, 255, 255))

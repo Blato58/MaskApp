@@ -5,7 +5,6 @@ namespace MaskApp.Core.Features.Faces;
 public sealed record FaceUploadPackage(
     FacePattern Pattern,
     int Slot,
-    byte[] LedData,
     byte[] Payload,
     IReadOnlyList<FaceUploadFrame> Frames,
     MaskCommand StartCommand,

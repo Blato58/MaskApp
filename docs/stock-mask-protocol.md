@@ -156,6 +156,13 @@ first unused `CropImage.imageIndex` rather than overwriting an existing slot, so
 MaskApp clears the selected slot with `DELE` before upload until overwrite
 behavior is physically proven.
 
+Face Studio stores and edits artwork directly on that native 46x58 portrait
+canvas. Stores written by the earlier 36x12 editor are migrated with uniform
+nearest-neighbor scaling and centered vertically so existing drawings retain
+their proportions instead of being stretched to fill the portrait canvas.
+Seeded faces use layered full-canvas artwork with silhouettes, shading, facial
+details, and props rather than enlarged low-resolution glyphs.
+
 The image upload frame shape is different from MaskApp's conservative text
 upload default: static DIY image data is split into 98 image bytes per packet.
 Each written packet is 100 bytes total: 1 length byte, 1 packet counter byte,

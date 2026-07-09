@@ -51,7 +51,7 @@
                 <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="36x12 editor" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Label Text="46x58 native mask canvas" Style="{StaticResource SectionTitleLabelStyle}" />
                             <Label Text="{Binding CurrentPatternSubtitle}" Style="{StaticResource TinyLabelStyle}" />
                         </VerticalStackLayout>
                         <ActivityIndicator
@@ -63,7 +63,7 @@
                     <GraphicsView
                         x:Name="FaceCanvas"
                         Grid.Row="1"
-                        HeightRequest="220"
+                        HeightRequest="420"
                         StartInteraction="OnCanvasInteraction"
                         DragInteraction="OnCanvasInteraction" />
 

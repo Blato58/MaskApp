@@ -6,39 +6,20 @@ namespace MaskApp.Core.Tests.Features.Faces;
 public sealed class FaceUploadProtocolTests
 {
     [Fact]
-    public void PackLedBits_UsesJavaColumnBitOrderForThirtySixByTwelveFaces()
-    {
-        var pattern = CreatePattern(
-            (0, 0),
-            (0, 7),
-            (0, 8),
-            (0, 11),
-            (1, 1));
-
-        var ledData = FaceUploadProtocol.PackLedBits(pattern);
-
-        Assert.Equal(FaceUploadProtocol.LedDataLength, ledData.Length);
-        Assert.Equal(0x81, ledData[0]);
-        Assert.Equal(0x90, ledData[1]);
-        Assert.Equal(0x40, ledData[2]);
-        Assert.Equal(0x00, ledData[3]);
-    }
-
-    [Fact]
-    public void BuildPayload_UsesJavaStaticImageCanvasWithoutLedPrefix()
+    public void BuildPayload_SerializesNativeCanvasColumnFirstWithoutLedPrefix()
     {
         var pattern = CreatePattern(
             (0, 0, new FaceColor(0x01, 0x02, 0x03)),
             (0, 1, new FaceColor(0x04, 0x05, 0x06)),
             (1, 0, new FaceColor(0x07, 0x08, 0x09)),
-            (35, 11, new FaceColor(0xFA, 0xCC, 0x15)));
+            (45, 57, new FaceColor(0xFA, 0xCC, 0x15)));
 
         var payload = FaceUploadProtocol.BuildPayload(pattern);
 
         Assert.Equal(FaceUploadProtocol.PayloadLength, payload.Length);
         Assert.Equal(FaceUploadProtocol.StaticImagePixelCount * 3, payload.Length);
         Assert.Equal([0x01, 0x02, 0x03], payload.Take(3).ToArray());
-        Assert.Equal([0x04, 0x05, 0x06], payload.Skip(5 * 3).Take(3).ToArray());
+        Assert.Equal([0x04, 0x05, 0x06], payload.Skip(3).Take(3).ToArray());
         Assert.Equal([0x07, 0x08, 0x09], payload.Skip(FaceUploadProtocol.StaticImageHeight * 3).Take(3).ToArray());
 
         var lastPixelOffset = ((FaceUploadProtocol.StaticImageWidth - 1) * FaceUploadProtocol.StaticImageHeight

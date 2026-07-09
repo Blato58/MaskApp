@@ -41,6 +41,29 @@ public sealed class FacePatternFactoryTests
     }
 
     [Fact]
+    public void CreateBuiltIns_UsesFullCanvasWithLayeredColorDetail()
+    {
+        var faces = FacePatternFactory.CreateBuiltIns();
+
+        Assert.All(faces, face =>
+        {
+            var litPixels = face.Pixels
+                .Select((pixel, index) => (pixel, index))
+                .Where(item => item.pixel.IsLit)
+                .ToArray();
+            var columns = litPixels.Select(item => item.index % FacePattern.Width).ToArray();
+            var rows = litPixels.Select(item => item.index / FacePattern.Width).ToArray();
+
+            Assert.True(litPixels.Length >= 600, $"{face.DisplayName} does not have enough drawn detail.");
+            Assert.True(columns.Max() - columns.Min() >= 36, $"{face.DisplayName} does not use enough canvas width.");
+            Assert.True(rows.Max() - rows.Min() >= 48, $"{face.DisplayName} does not use enough canvas height.");
+            Assert.True(
+                litPixels.Select(item => item.pixel.Color).Distinct().Count() >= 4,
+                $"{face.DisplayName} does not have enough color layers.");
+        });
+    }
+
+    [Fact]
     public void Normalize_AddsNewSeedFacesAndPreservesExistingFaceState()
     {
         var originalBuiltIns = FacePatternFactory.CreateBuiltIns().Take(6).ToArray();

@@ -32,7 +32,9 @@ public class JsonFacePatternStoreCore : IFacePatternStore
             await using var stream = File.OpenRead(filePath);
             var document = await JsonSerializer.DeserializeAsync<StoreDocument>(stream, SerializerOptions, cancellationToken)
                 .ConfigureAwait(false);
-            if (document?.SchemaVersion != FacePatternStoreState.CurrentSchemaVersion)
+            if (document is null ||
+                document.SchemaVersion is not FacePatternStoreState.LegacySchemaVersion and
+                    not FacePatternStoreState.CurrentSchemaVersion)
             {
                 return FacePatternStoreState.Seeded with
                 {
