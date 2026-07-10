@@ -124,6 +124,9 @@ public sealed class PageAddItemViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(SelectedPreviewResourceName));
                 OnPropertyChanged(nameof(SelectedPreviewIsAnimated));
                 OnPropertyChanged(nameof(SelectedItemHasPreview));
+                OnPropertyChanged(nameof(SelectedFacePattern));
+                OnPropertyChanged(nameof(SelectedItemHasFacePreview));
+                OnPropertyChanged(nameof(SelectedItemHasAnyPreview));
                 OnPropertyChanged(nameof(CanSave));
                 OnPropertyChanged(nameof(SaveSummaryText));
             }
@@ -143,6 +146,12 @@ public sealed class PageAddItemViewModel : INotifyPropertyChanged
     public bool SelectedPreviewIsAnimated => SelectedItem?.PreviewIsAnimated ?? false;
 
     public bool SelectedItemHasPreview => SelectedItem?.HasPreview ?? false;
+
+    public FacePattern? SelectedFacePattern => SelectedItem?.FacePattern;
+
+    public bool SelectedItemHasFacePreview => SelectedItem?.HasFacePreview ?? false;
+
+    public bool SelectedItemHasAnyPreview => SelectedItem?.HasAnyPreview ?? false;
 
     public string DraftLabel
     {

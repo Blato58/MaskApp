@@ -3,6 +3,7 @@
     x:Class="MaskApp.App.Features.Faces.FaceStudioPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:MaskApp.App.Controls"
     xmlns:faces="clr-namespace:MaskApp.Core.Features.Faces;assembly=MaskApp.Core"
     x:DataType="faces:FaceStudioViewModel"
     Title="Face Studio"
@@ -108,13 +109,12 @@
                             <DataTemplate x:DataType="faces:FacePatternCard">
                                 <Border Margin="0,0,0,10" Style="{StaticResource ActionCardBorderStyle}" Stroke="{Binding AccentColorHex}">
                                     <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
-                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                            <Border BackgroundColor="{Binding AccentColorHex}" HeightRequest="38" Stroke="{Binding AccentColorHex}" WidthRequest="44">
-                                                <Border.StrokeShape>
-                                                    <RoundRectangle CornerRadius="10" />
-                                                </Border.StrokeShape>
-                                                <Label Text="FACE" TextColor="#05070D" FontSize="9" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
-                                            </Border>
+                                        <Grid ColumnDefinitions="64,*" ColumnSpacing="10">
+                                            <controls:FacePatternPreviewView
+                                                HeightRequest="72"
+                                                WidthRequest="58"
+                                                Pattern="{Binding Pattern}"
+                                                SemanticDescription="{Binding DisplayName, StringFormat='{0} face preview'}" />
                                             <VerticalStackLayout Grid.Column="1" Spacing="2">
                                                 <Label Text="{Binding DisplayName}" FontSize="18" FontAttributes="Bold" />
                                                 <Label Text="{Binding Subtitle}" Style="{StaticResource MutedLabelStyle}" />

@@ -21,7 +21,7 @@
 
             <Border Style="{StaticResource PanelBorderStyle}" Stroke="{Binding SelectedColorHex}">
                 <Grid ColumnDefinitions="96,*" ColumnSpacing="14">
-                    <Border BackgroundColor="{Binding SelectedColorHex}" HeightRequest="96" WidthRequest="96" IsVisible="{Binding SelectedItemHasPreview, Converter={StaticResource InvertedBoolConverter}}">
+                    <Border BackgroundColor="{Binding SelectedColorHex}" HeightRequest="96" WidthRequest="96" IsVisible="{Binding SelectedItemHasAnyPreview, Converter={StaticResource InvertedBoolConverter}}">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="20" />
                         </Border.StrokeShape>
@@ -37,6 +37,12 @@
                         IsVisible="{Binding SelectedItemHasPreview}"
                         SemanticDescription="{Binding SelectedItemTitle, StringFormat='{0} preview'}"
                         Source="{Binding SelectedPreviewResourceName}" />
+                    <controls:FacePatternPreviewView
+                        HeightRequest="96"
+                        WidthRequest="96"
+                        IsVisible="{Binding SelectedItemHasFacePreview}"
+                        Pattern="{Binding SelectedFacePattern}"
+                        SemanticDescription="{Binding SelectedItemTitle, StringFormat='{0} face preview'}" />
                     <VerticalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
                         <Label Text="{Binding SelectedItemTitle}" FontSize="20" FontAttributes="Bold" />
                         <Label Text="{Binding SelectedItemSubtitle}" Style="{StaticResource MutedLabelStyle}" />
@@ -79,6 +85,12 @@
                                             IsVisible="{Binding HasPreview}"
                                             SemanticDescription="{Binding Title, StringFormat='{0} preview'}"
                                             Source="{Binding PreviewResourceName}" />
+                                        <controls:FacePatternPreviewView
+                                            Grid.Row="1"
+                                            HeightRequest="104"
+                                            IsVisible="{Binding HasFacePreview}"
+                                            Pattern="{Binding FacePattern}"
+                                            SemanticDescription="{Binding Title, StringFormat='{0} face preview'}" />
                                         <Button Grid.Row="2" Text="{Binding SelectionText}" Command="{Binding SelectCommand}" />
                                     </Grid>
                                 </Border>

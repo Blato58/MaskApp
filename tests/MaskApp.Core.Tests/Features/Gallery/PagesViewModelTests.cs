@@ -149,6 +149,24 @@ public sealed class PagesViewModelTests
     }
 
     [Fact]
+    public async Task AddItemDraft_SelectingFaceExposesPixelPreviewData()
+    {
+        var viewModel = CreateAddItemViewModel();
+
+        await viewModel.InitializeAsync(string.Empty);
+        var face = viewModel.AvailableItems.First(item => item.Item.Type == GalleryItemType.CustomStaticFace);
+        viewModel.SelectItem(face.Item.Id);
+
+        Assert.True(face.HasFacePreview);
+        Assert.True(face.HasAnyPreview);
+        Assert.False(face.HasPreview);
+        Assert.Same(face.FacePattern, viewModel.SelectedFacePattern);
+        Assert.True(viewModel.SelectedItemHasFacePreview);
+        Assert.True(viewModel.SelectedItemHasAnyPreview);
+        Assert.False(viewModel.SelectedItemHasPreview);
+    }
+
+    [Fact]
     public async Task AddItemDraft_SelectingItemDefaultsDraftAndCustomSavePersists()
     {
         var preset = CreatePreset("Draft custom");

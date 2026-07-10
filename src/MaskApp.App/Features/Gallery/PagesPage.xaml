@@ -95,12 +95,16 @@
                                         </Border.StrokeShape>
                                         <Grid RowDefinitions="*,Auto" Padding="6">
                                             <Grid>
-                                                <Image Source="{Binding IconAsset}" Aspect="AspectFit" HeightRequest="32" WidthRequest="32" HorizontalOptions="Center" VerticalOptions="Center" IsVisible="{Binding HasPreview, Converter={StaticResource InvertedBoolConverter}}" />
+                                                <Image Source="{Binding IconAsset}" Aspect="AspectFit" HeightRequest="32" WidthRequest="32" HorizontalOptions="Center" VerticalOptions="Center" IsVisible="{Binding HasAnyPreview, Converter={StaticResource InvertedBoolConverter}}" />
                                                 <controls:BuiltInPreviewView
                                                     IsAnimationPlaying="{Binding IsAnimationPlaying}"
                                                     IsVisible="{Binding HasPreview}"
                                                     SemanticDescription="{Binding Label, StringFormat='{0} preview'}"
                                                     Source="{Binding PreviewResourceName}" />
+                                                <controls:FacePatternPreviewView
+                                                    IsVisible="{Binding HasFacePreview}"
+                                                    Pattern="{Binding FacePattern}"
+                                                    SemanticDescription="{Binding Label, StringFormat='{0} face preview'}" />
                                             </Grid>
                                             <Label Grid.Row="1" Text="{Binding Label}" TextColor="#05070D" FontSize="12" FontAttributes="Bold" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation" />
                                         </Grid>

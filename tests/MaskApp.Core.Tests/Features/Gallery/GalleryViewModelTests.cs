@@ -48,6 +48,23 @@ public sealed class GalleryViewModelTests
     }
 
     [Fact]
+    public async Task InitializeAsync_ProjectsFacesWithPixelPreviewData()
+    {
+        var viewModel = CreateViewModel();
+
+        await viewModel.InitializeAsync();
+
+        var face = Assert.Single(
+            Flatten(viewModel),
+            card => card.Item.Type == GalleryItemType.CustomStaticFace && card.Item.FacePattern?.PreferredSlot == 1);
+        Assert.NotNull(face.FacePattern);
+        Assert.True(face.HasFacePreview);
+        Assert.True(face.HasAnyPreview);
+        Assert.False(face.HasPreview);
+        Assert.Equal(FacePattern.PixelCount, face.FacePattern.Pixels.Length);
+    }
+
+    [Fact]
     public async Task InitializeAsync_ProjectsSavedBuiltInsAndSkipsUnknownIds()
     {
         var archive = new BuiltInAssetArchive(

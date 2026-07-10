@@ -39,7 +39,13 @@ public sealed record GalleryItem
 
     public int PreviewFrameCount { get; init; }
 
-    public bool HasPreview => !string.IsNullOrWhiteSpace(PreviewResourceName);
+    public bool HasResourcePreview => !string.IsNullOrWhiteSpace(PreviewResourceName);
+
+    public bool HasFacePreview => FacePattern is not null;
+
+    public bool HasAnyPreview => HasResourcePreview || HasFacePreview;
+
+    public bool HasPreview => HasResourcePreview;
 
     public bool CanSend { get; init; } = true;
 

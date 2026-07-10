@@ -58,7 +58,13 @@
                                             IsVisible="{Binding Item.HasPreview}"
                                             SemanticDescription="{Binding Item.Title, StringFormat='{0} preview'}"
                                             Source="{Binding Item.PreviewResourceName}" />
-                                        <Border BackgroundColor="{Binding Item.ColorHex}" HeightRequest="52" WidthRequest="58" IsVisible="{Binding Item.HasPreview, Converter={StaticResource InvertedBoolConverter}}">
+                                        <controls:FacePatternPreviewView
+                                            HeightRequest="82"
+                                            WidthRequest="66"
+                                            IsVisible="{Binding Item.HasFacePreview}"
+                                            Pattern="{Binding Item.FacePattern}"
+                                            SemanticDescription="{Binding Item.Title, StringFormat='{0} face preview'}" />
+                                        <Border BackgroundColor="{Binding Item.ColorHex}" HeightRequest="52" WidthRequest="58" IsVisible="{Binding Item.HasAnyPreview, Converter={StaticResource InvertedBoolConverter}}">
                                             <Border.StrokeShape><RoundRectangle CornerRadius="12" /></Border.StrokeShape>
                                             <Label Text="{Binding Item.IconKey}" TextColor="#050505" FontSize="10" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
                                         </Border>

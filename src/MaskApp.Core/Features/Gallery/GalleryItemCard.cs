@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using MaskApp.Core.Features.Connect;
+using MaskApp.Core.Features.Faces;
 
 namespace MaskApp.Core.Features.Gallery;
 
@@ -81,6 +82,12 @@ public sealed class GalleryItemCard : INotifyPropertyChanged
     }
 
     public bool HasPreview => Item.HasPreview;
+
+    public FacePattern? FacePattern => Item.FacePattern;
+
+    public bool HasFacePreview => Item.HasFacePreview;
+
+    public bool HasAnyPreview => Item.HasAnyPreview;
 
     public bool CanSend => Item.CanSend;
 
