@@ -2,7 +2,7 @@ namespace MaskApp.Core.Features.Gallery;
 
 public sealed record GalleryLayoutState
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     public int SchemaVersion { get; init; } = CurrentSchemaVersion;
 

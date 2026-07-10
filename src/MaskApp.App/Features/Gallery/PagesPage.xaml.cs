@@ -19,6 +19,7 @@ public partial class PagesPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        viewModel.StartObservingTransportState();
         await viewModel.InitializeAsync();
         if (viewModel.Shortcuts.Count > 0)
         {
@@ -29,17 +30,12 @@ public partial class PagesPage : ContentPage
     protected override void OnDisappearing()
     {
         viewModel.StopPreviewAnimations();
+        viewModel.StopObservingTransportState();
         base.OnDisappearing();
     }
 
     private void OnShortcutsScrolled(object? sender, ItemsViewScrolledEventArgs e) =>
         viewModel.SetVisibleShortcutRange(e.FirstVisibleItemIndex, e.LastVisibleItemIndex, motionPreference.IsReducedMotionEnabled);
-
-    private void OnToggleHeaderClicked(object? sender, EventArgs e)
-    {
-        PagesHeaderDetails.IsVisible = !PagesHeaderDetails.IsVisible;
-        PagesHeaderToggleButton.Text = PagesHeaderDetails.IsVisible ? "Done" : "Edit";
-    }
 
     private async void OnAddItemsClicked(object? sender, EventArgs e)
     {

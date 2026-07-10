@@ -34,6 +34,7 @@ public class JsonFacePatternStoreCore : IFacePatternStore
                 .ConfigureAwait(false);
             if (document is null ||
                 document.SchemaVersion is not FacePatternStoreState.LegacySchemaVersion and
+                    not FacePatternStoreState.PreviousSchemaVersion and
                     not FacePatternStoreState.CurrentSchemaVersion)
             {
                 return FacePatternStoreState.Seeded with
@@ -48,6 +49,7 @@ public class JsonFacePatternStoreCore : IFacePatternStore
                 SchemaVersion = document.SchemaVersion,
                 SeedVersion = document.SeedVersion,
                 Patterns = document.Patterns,
+                SlotInstallations = document.SlotInstallations,
                 Status = "Ready."
             }.Normalize();
         }
@@ -74,7 +76,8 @@ public class JsonFacePatternStoreCore : IFacePatternStore
         {
             SchemaVersion = FacePatternStoreState.CurrentSchemaVersion,
             SeedVersion = FacePatternStoreState.CurrentSeedVersion,
-            Patterns = normalized.Patterns.ToArray()
+            Patterns = normalized.Patterns.ToArray(),
+            SlotInstallations = normalized.SlotInstallations.ToArray()
         };
         var tempFilePath = $"{filePath}.tmp";
 
@@ -94,5 +97,7 @@ public class JsonFacePatternStoreCore : IFacePatternStore
         public int SeedVersion { get; init; } = FacePatternStoreState.CurrentSeedVersion;
 
         public FacePattern[] Patterns { get; init; } = [];
+
+        public FaceSlotInstallation[] SlotInstallations { get; init; } = [];
     }
 }

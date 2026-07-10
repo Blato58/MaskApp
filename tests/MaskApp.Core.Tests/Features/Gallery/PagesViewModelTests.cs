@@ -69,6 +69,12 @@ public sealed class PagesViewModelTests
 
         await viewModel.TogglePageEditorSheetCommand.ExecuteAsync();
         Assert.True(viewModel.IsPageEditorSheetVisible);
+        Assert.Equal(viewModel.SelectedPageTitle, viewModel.PageTitleDraft);
+
+        viewModel.PageTitleDraft = "Main stage";
+        await viewModel.SavePageTitleCommand.ExecuteAsync();
+        Assert.Equal("Main stage", viewModel.SelectedPageTitle);
+        Assert.False(viewModel.IsPageEditorSheetVisible);
 
         await viewModel.SetUseModeCommand.ExecuteAsync();
         Assert.True(viewModel.IsUseMode);
@@ -120,17 +126,210 @@ public sealed class PagesViewModelTests
     }
 
     [Fact]
-    public async Task SendShortcut_RoutesToUnderlyingItem()
+    public async Task SendTextShortcut_FirstTapPreparesStaticSlot_ThenUsesPlayCommand()
     {
         var preset = CreatePreset("Shortcut send");
         var dispatcher = new RecordingTextPresetDispatcher();
-        var viewModel = CreateViewModel(textPresets: [preset], presetDispatcher: dispatcher);
+        var layoutStore = new RecordingGalleryLayoutStore();
+        var commandTransport = new RecordingCommandTransport();
+        var faceTransport = new RecordingFaceTransport();
+        var viewModel = CreateViewModel(
+            textPresets: [preset],
+            layoutStore: layoutStore,
+            presetDispatcher: dispatcher,
+            commandTransport: commandTransport,
+            faceTransport: faceTransport);
+
+        await viewModel.InitializeAsync();
+        await viewModel.AddItemAsync($"text:{preset.Id.Value}", preset.DisplayName, "txt", "#52E3FF");
+        await Assert.Single(viewModel.Shortcuts).SendCommand.ExecuteAsync();
+
+        Assert.Null(dispatcher.LastPresetId);
+        Assert.Equal(1, faceTransport.UploadCount);
+        var saved = layoutStore.State.Pages
+            .SelectMany(page => page.Items)
+            .Single(item => item.GalleryItemId == $"text:{preset.Id.Value}");
+        Assert.Equal(FacePattern.MaxSlot, saved.FastMaskSlot);
+        Assert.NotEmpty(saved.FastContentFingerprint);
+        Assert.True(Assert.Single(viewModel.Shortcuts).IsFastSlotPrepared);
+
+        await Assert.Single(viewModel.Shortcuts).SendCommand.ExecuteAsync();
+
+        Assert.Equal(1, faceTransport.UploadCount);
+        Assert.Equal(MaskCommandKind.FacePlay, Assert.Single(commandTransport.Commands).Kind);
+    }
+
+    [Fact]
+    public async Task SendTextShortcut_WhenFaceUploadIsUnavailable_UsesNativeText()
+    {
+        var preset = CreatePreset("Native fallback");
+        var dispatcher = new RecordingTextPresetDispatcher();
+        var viewModel = CreateViewModel(
+            textPresets: [preset],
+            presetDispatcher: dispatcher,
+            faceTransport: new RecordingFaceTransport(isReady: false));
 
         await viewModel.InitializeAsync();
         await viewModel.AddItemAsync($"text:{preset.Id.Value}", preset.DisplayName, "txt", "#52E3FF");
         await Assert.Single(viewModel.Shortcuts).SendCommand.ExecuteAsync();
 
         Assert.Equal(preset.Id, dispatcher.LastPresetId);
+    }
+
+    [Fact]
+    public async Task PreparePage_PreparesEveryPendingCustomShortcutInDistinctSlots()
+    {
+        var first = CreatePreset("First fast text");
+        var second = CreatePreset("Second fast text");
+        var layoutStore = new RecordingGalleryLayoutStore();
+        var faceTransport = new RecordingFaceTransport();
+        var viewModel = CreateViewModel(
+            textPresets: [first, second],
+            layoutStore: layoutStore,
+            faceTransport: faceTransport);
+
+        await viewModel.InitializeAsync();
+        await viewModel.AddItemAsync($"text:{first.Id.Value}", first.DisplayName, "txt", "#52E3FF");
+        await viewModel.AddItemAsync($"text:{second.Id.Value}", second.DisplayName, "txt", "#A78BFA");
+
+        await viewModel.PreparePageCommand.ExecuteAsync();
+
+        Assert.Equal(2, faceTransport.UploadCount);
+        Assert.All(viewModel.Shortcuts, shortcut => Assert.True(shortcut.IsFastSlotPrepared));
+        Assert.Equal(
+            2,
+            layoutStore.State.Pages
+                .SelectMany(page => page.Items)
+                .Select(item => item.FastMaskSlot)
+                .OfType<int>()
+                .Distinct()
+                .Count());
+        Assert.Equal("Prepared 2 fast slots", viewModel.StatusText);
+    }
+
+    [Fact]
+    public async Task SendFaceShortcut_UploadsPreferredSlotOnce_ThenUsesPlayCommand()
+    {
+        var face = FacePatternFactory.CreateBlank("Stage face", preferredSlot: 12)
+            .WithPixel(10, 10, new FacePixel(true, new FaceColor(0xFF, 0x00, 0x44)));
+        var faceStore = new InMemoryFacePatternStore(new FacePatternStoreState { Patterns = [face] });
+        var layoutStore = new RecordingGalleryLayoutStore();
+        var commandTransport = new RecordingCommandTransport();
+        var faceTransport = new RecordingFaceTransport();
+        var viewModel = CreateViewModel(
+            layoutStore: layoutStore,
+            commandTransport: commandTransport,
+            faceTransport: faceTransport,
+            facePatternStore: faceStore);
+
+        await viewModel.InitializeAsync();
+        await viewModel.AddItemAsync($"face:{face.Id}", face.DisplayName, "face", "#FF0044");
+
+        await Assert.Single(viewModel.Shortcuts).SendCommand.ExecuteAsync();
+        await Assert.Single(viewModel.Shortcuts).SendCommand.ExecuteAsync();
+
+        Assert.Equal(1, faceTransport.UploadCount);
+        Assert.Equal(12, faceTransport.LastPackage?.Slot);
+        Assert.Equal(MaskCommandKind.FacePlay, Assert.Single(commandTransport.Commands).Kind);
+    }
+
+    [Fact]
+    public async Task ConcurrentFirstUse_ReservesDifferentFastSlots()
+    {
+        var first = CreatePreset("Concurrent one");
+        var second = CreatePreset("Concurrent two");
+        var layoutStore = new RecordingGalleryLayoutStore();
+        var viewModel = CreateViewModel(
+            textPresets: [first, second],
+            layoutStore: layoutStore,
+            faceTransport: new RecordingFaceTransport(uploadDelay: TimeSpan.FromMilliseconds(30)));
+
+        await viewModel.InitializeAsync();
+        await viewModel.AddItemAsync($"text:{first.Id.Value}", first.DisplayName, "txt", "#52E3FF");
+        await viewModel.AddItemAsync($"text:{second.Id.Value}", second.DisplayName, "txt", "#A78BFA");
+        var shortcuts = viewModel.Shortcuts.ToArray();
+
+        await Task.WhenAll(shortcuts.Select(shortcut => shortcut.SendCommand.ExecuteAsync()));
+
+        Assert.Equal(
+            2,
+            layoutStore.State.Pages
+                .SelectMany(page => page.Items)
+                .Select(item => item.FastMaskSlot)
+                .OfType<int>()
+                .Distinct()
+                .Count());
+    }
+
+    [Fact]
+    public async Task LaterSlotWrite_InvalidatesPreparedTextShortcutIndependentlyOfFaceLibrary()
+    {
+        var preset = CreatePreset("Invalidate me");
+        var faceStore = new InMemoryFacePatternStore();
+        var layoutStore = new RecordingGalleryLayoutStore();
+        var viewModel = CreateViewModel(
+            textPresets: [preset],
+            layoutStore: layoutStore,
+            facePatternStore: faceStore);
+
+        await viewModel.InitializeAsync();
+        await viewModel.AddItemAsync($"text:{preset.Id.Value}", preset.DisplayName, "txt", "#52E3FF");
+        await Assert.Single(viewModel.Shortcuts).SendCommand.ExecuteAsync();
+        var prepared = Assert.Single(viewModel.Shortcuts);
+        Assert.True(prepared.IsFastSlotPrepared);
+
+        var overwrittenSlot = prepared.Layout.FastMaskSlot!.Value;
+        var overwrite = FacePatternFactory.CreateBlank("Overwrite", overwrittenSlot)
+            .WithPixel(1, 1, new FacePixel(true, new FaceColor(0xFF, 0x00, 0x00)));
+        var faceState = await faceStore.LoadAsync();
+        await faceStore.SaveAsync(faceState.MarkSlotInstalled(
+            overwrittenSlot,
+            FaceContentFingerprint.Compute(overwrite),
+            "deleted-face",
+            prepared.Layout.FastPreparedAt!.Value.AddSeconds(1)));
+
+        await viewModel.InitializeAsync();
+
+        Assert.False(Assert.Single(viewModel.Shortcuts).IsFastSlotPrepared);
+    }
+
+    [Fact]
+    public async Task FaceTransportChange_RaisesFastSlotCommandState()
+    {
+        var preset = CreatePreset("Connection state");
+        var faceTransport = new RecordingFaceTransport(isReady: false);
+        var viewModel = CreateViewModel(textPresets: [preset], faceTransport: faceTransport);
+
+        await viewModel.InitializeAsync();
+        await viewModel.AddItemAsync($"text:{preset.Id.Value}", preset.DisplayName, "txt", "#52E3FF");
+        viewModel.StartObservingTransportState();
+        var shortcut = Assert.Single(viewModel.Shortcuts);
+        var stateChanged = false;
+        shortcut.PrepareCommand.CanExecuteChanged += (_, _) => stateChanged = true;
+
+        faceTransport.SetReady(true);
+
+        Assert.True(stateChanged);
+        Assert.True(shortcut.PrepareCommand.CanExecute(null));
+        viewModel.StopObservingTransportState();
+    }
+
+    [Fact]
+    public async Task FailedSlotRefresh_ClearsPreparedState()
+    {
+        var preset = CreatePreset("Refresh failure");
+        var faceTransport = new RecordingFaceTransport();
+        var viewModel = CreateViewModel(textPresets: [preset], faceTransport: faceTransport);
+
+        await viewModel.InitializeAsync();
+        await viewModel.AddItemAsync($"text:{preset.Id.Value}", preset.DisplayName, "txt", "#52E3FF");
+        await Assert.Single(viewModel.Shortcuts).SendCommand.ExecuteAsync();
+        Assert.True(Assert.Single(viewModel.Shortcuts).IsFastSlotPrepared);
+
+        faceTransport.SetUploadSucceeded(false);
+        await Assert.Single(viewModel.Shortcuts).PrepareCommand.ExecuteAsync();
+
+        Assert.False(Assert.Single(viewModel.Shortcuts).IsFastSlotPrepared);
     }
 
     [Fact]
@@ -214,19 +413,22 @@ public sealed class PagesViewModelTests
     private static PagesViewModel CreateViewModel(
         IReadOnlyList<TextPreset>? textPresets = null,
         RecordingGalleryLayoutStore? layoutStore = null,
-        RecordingTextPresetDispatcher? presetDispatcher = null)
+        RecordingTextPresetDispatcher? presetDispatcher = null,
+        RecordingCommandTransport? commandTransport = null,
+        RecordingFaceTransport? faceTransport = null,
+        InMemoryFacePatternStore? facePatternStore = null)
     {
         return new PagesViewModel(
             new QuickActionCatalog(),
             new InMemoryTextPresetStore(new TextPresetStoreState { Presets = textPresets ?? [] }),
             new InMemoryBuiltInAssetArchiveStore(),
-            new InMemoryFacePatternStore(),
+            facePatternStore ?? new InMemoryFacePatternStore(),
             layoutStore ?? new RecordingGalleryLayoutStore(),
             new RecordingQuickActionDispatcher(),
             presetDispatcher ?? new RecordingTextPresetDispatcher(),
-            new RecordingCommandTransport(),
+            commandTransport ?? new RecordingCommandTransport(),
             new RecordingTextTransport(),
-            new RecordingFaceTransport());
+            faceTransport ?? new RecordingFaceTransport());
     }
 
     private static PageAddItemViewModel CreateAddItemViewModel(
@@ -287,6 +489,8 @@ public sealed class PagesViewModelTests
 
     private sealed class RecordingCommandTransport : IMaskCommandTransport
     {
+        public List<MaskCommand> Commands { get; } = [];
+
         public event EventHandler<MaskCommandTransportStateChangedEventArgs>? TransportStateChanged
         {
             add { }
@@ -301,8 +505,11 @@ public sealed class PagesViewModelTests
 
         public string TransportStatusText => "Ready.";
 
-        public Task<MaskCommandResult> SendAsync(MaskCommand command, CancellationToken cancellationToken = default) =>
-            Task.FromResult(MaskCommandResult.Success("Sent."));
+        public Task<MaskCommandResult> SendAsync(MaskCommand command, CancellationToken cancellationToken = default)
+        {
+            Commands.Add(command);
+            return Task.FromResult(MaskCommandResult.Success("Sent."));
+        }
     }
 
     private sealed class RecordingTextTransport : ITextUploadTransport
@@ -334,28 +541,66 @@ public sealed class PagesViewModelTests
 
     private sealed class RecordingFaceTransport : IFaceUploadTransport
     {
-        public event EventHandler<FaceUploadTransportStateChangedEventArgs>? StateChanged
+        private bool isReady;
+        private bool uploadSucceeds = true;
+        private readonly TimeSpan uploadDelay;
+
+        public RecordingFaceTransport(bool isReady = true, TimeSpan? uploadDelay = null)
         {
-            add { }
-            remove { }
+            this.isReady = isReady;
+            this.uploadDelay = uploadDelay ?? TimeSpan.Zero;
         }
+
+        public int UploadCount { get; private set; }
+
+        public FaceUploadPackage? LastPackage { get; private set; }
+
+        public event EventHandler<FaceUploadTransportStateChangedEventArgs>? StateChanged;
 
         public string TransportDisplayName => "Face";
 
         public bool IsSimulated => true;
 
-        public bool IsReady => true;
+        public bool IsReady => isReady;
 
         public bool SupportsAcknowledgements => true;
 
-        public FaceUploadTransportState State => FaceUploadTransportState.Ready;
+        public FaceUploadTransportState State => isReady
+            ? FaceUploadTransportState.Ready
+            : FaceUploadTransportState.Disconnected;
 
         public string StatusText => "Ready.";
 
-        public Task<FaceUploadResult> UploadAsync(
+        public async Task<FaceUploadResult> UploadAsync(
             FaceUploadPackage package,
             FaceUploadOptions options,
-            CancellationToken cancellationToken = default) =>
-            Task.FromResult(FaceUploadResult.Success("Sent.", package.Frames.Count));
+            CancellationToken cancellationToken = default)
+        {
+            if (uploadDelay > TimeSpan.Zero)
+            {
+                await Task.Delay(uploadDelay, cancellationToken);
+            }
+
+            UploadCount++;
+            LastPackage = package;
+            return uploadSucceeds
+                ? FaceUploadResult.Success("Sent.", package.Frames.Count)
+                : FaceUploadResult.Failure("Upload failed.", package.Frames.Count);
+        }
+
+        public void SetReady(bool ready)
+        {
+            isReady = ready;
+            StateChanged?.Invoke(
+                this,
+                new FaceUploadTransportStateChangedEventArgs(
+                    State,
+                    ready ? "Ready." : "Disconnected.",
+                    supportsAcknowledgements: true,
+                    isReady: ready));
+        }
+
+        public void SetUploadSucceeded(bool succeeds) =>
+            uploadSucceeds = succeeds;
     }
 }

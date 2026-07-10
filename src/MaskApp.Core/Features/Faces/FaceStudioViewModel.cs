@@ -429,25 +429,44 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
         try
         {
             IsSending = true;
-            StatusText = $"Uploading {pattern.DisplayName} to slot {SelectedSlot}...";
-            var options = UseCompatibilityWriteOnly || !SupportsAcknowledgements
-                ? FaceUploadOptions.WriteOnlyCompatibility
-                : FaceUploadOptions.RequireAcknowledgements;
-            var result = await transport.UploadAsync(package, options, cancellationToken).ConfigureAwait(false);
-            StatusText = result.Message;
-            FrameCount = result.FramesSent;
-
-            var timestamp = DateTimeOffset.UtcNow;
-            var status = result.Succeeded
-                ? $"Uploaded slot {SelectedSlot}; needs real-mask visual confirmation."
-                : result.Message;
-            var state = await store.UpsertAsync(pattern with
+            await FaceUploadOperationLock.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
             {
-                LastUploadedAt = timestamp,
-                LastUploadStatus = status
-            }, cancellationToken).ConfigureAwait(false);
-            ApplyState(state);
-            ApplyPattern(state.Normalize().Patterns.First(item => item.Id == pattern.Id));
+                StatusText = $"Uploading {pattern.DisplayName} to slot {SelectedSlot}...";
+                var options = UseCompatibilityWriteOnly || !SupportsAcknowledgements
+                    ? FaceUploadOptions.WriteOnlyCompatibility
+                    : FaceUploadOptions.RequireAcknowledgements;
+                var slotState = (await store.LoadAsync(cancellationToken).ConfigureAwait(false))
+                    .ClearSlotInstallation(SelectedSlot);
+                await store.SaveAsync(slotState, cancellationToken).ConfigureAwait(false);
+                var result = await transport.UploadAsync(package, options, cancellationToken).ConfigureAwait(false);
+                StatusText = result.Message;
+                FrameCount = result.FramesSent;
+
+                var timestamp = DateTimeOffset.UtcNow;
+                var status = result.Succeeded
+                    ? $"Uploaded slot {SelectedSlot}; needs real-mask visual confirmation."
+                    : result.Message;
+                var state = await store.UpsertAsync(pattern with
+                {
+                    LastUploadedAt = result.Succeeded ? timestamp : pattern.LastUploadedAt,
+                    LastUploadStatus = status
+                }, cancellationToken).ConfigureAwait(false);
+                state = result.Succeeded
+                    ? state.MarkSlotInstalled(
+                        SelectedSlot,
+                        FaceContentFingerprint.Compute(pattern),
+                        $"face:{pattern.Id}",
+                        timestamp)
+                    : state.ClearSlotInstallation(SelectedSlot);
+                await store.SaveAsync(state, cancellationToken).ConfigureAwait(false);
+                ApplyState(state);
+                ApplyPattern(state.Normalize().Patterns.First(item => item.Id == pattern.Id));
+            }
+            finally
+            {
+                FaceUploadOperationLock.Gate.Release();
+            }
         }
         catch (OperationCanceledException)
         {

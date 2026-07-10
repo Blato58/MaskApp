@@ -24,6 +24,8 @@ public sealed class GalleryPageTab
 
     public string Title => Page.Title;
 
+    public string TabLabel => IsSelected ? $"● {Title}" : Title;
+
     public string ColorHex => Page.ColorHex;
 
     public bool IsSelected { get; }

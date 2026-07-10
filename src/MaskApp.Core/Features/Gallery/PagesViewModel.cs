@@ -33,6 +33,7 @@ public sealed class PagesViewModel : INotifyPropertyChanged
     private readonly ITextUploadTransport textTransport;
     private readonly IFaceUploadTransport faceTransport;
     private GalleryLayoutState layoutState = new();
+    private FacePatternStoreState faceState = new();
     private IReadOnlyList<GalleryItem> allItems = [];
     private GalleryPageLayout selectedPage = new();
     private IReadOnlyList<GalleryPageTab> pages = [];
@@ -40,13 +41,16 @@ public sealed class PagesViewModel : INotifyPropertyChanged
     private IReadOnlyList<GalleryAvailableItemCard> availableItems = [];
     private string statusText = "Ready";
     private string newPageTitle = "New page";
+    private string pageTitleDraft = string.Empty;
     private bool isSending;
+    private int activeOperationCount;
     private bool isManageMode;
     private bool isPageEditorSheetVisible;
     private int firstVisibleShortcutIndex = -1;
     private int lastVisibleShortcutIndex = -1;
     private bool reducePreviewMotion = true;
     private bool isDeletePageConfirmationVisible;
+    private bool isObservingTransportState;
 
     public PagesViewModel(
         QuickActionCatalog quickActionCatalog,
@@ -75,6 +79,12 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         RemovePageCommand = new AsyncRelayCommand(OpenDeleteConfirmationAsync, () => Pages.Count > 1);
         ConfirmRemovePageCommand = new AsyncRelayCommand(RemoveSelectedPageAsync, () => Pages.Count > 1);
         CyclePageColorCommand = new AsyncRelayCommand(CyclePageColorAsync);
+        SavePageTitleCommand = new AsyncRelayCommand(SavePageTitleAsync);
+        MoveSelectedPageEarlierCommand = new AsyncRelayCommand(
+            cancellationToken => MovePageAsync(SelectedPage.PageId, -1, cancellationToken));
+        MoveSelectedPageLaterCommand = new AsyncRelayCommand(
+            cancellationToken => MovePageAsync(SelectedPage.PageId, 1, cancellationToken));
+        PreparePageCommand = new AsyncRelayCommand(PreparePageAsync, CanPreparePage);
         SetUseModeCommand = new AsyncRelayCommand(_ =>
         {
             IsManageMode = false;
@@ -92,6 +102,7 @@ public sealed class PagesViewModel : INotifyPropertyChanged
             if (IsPageEditorSheetVisible)
             {
                 IsDeletePageConfirmationVisible = false;
+                PageTitleDraft = SelectedPageTitle;
             }
 
             return Task.CompletedTask;
@@ -112,6 +123,14 @@ public sealed class PagesViewModel : INotifyPropertyChanged
     public AsyncRelayCommand ConfirmRemovePageCommand { get; }
 
     public AsyncRelayCommand CyclePageColorCommand { get; }
+
+    public AsyncRelayCommand SavePageTitleCommand { get; }
+
+    public AsyncRelayCommand MoveSelectedPageEarlierCommand { get; }
+
+    public AsyncRelayCommand MoveSelectedPageLaterCommand { get; }
+
+    public AsyncRelayCommand PreparePageCommand { get; }
 
     public AsyncRelayCommand SetUseModeCommand { get; }
 
@@ -154,6 +173,8 @@ public sealed class PagesViewModel : INotifyPropertyChanged
             if (SetField(ref shortcuts, value))
             {
                 OnPropertyChanged(nameof(ShortcutCountText));
+                OnPropertyChanged(nameof(PageReadinessText));
+                PreparePageCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -170,6 +191,12 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         set => SetField(ref newPageTitle, value ?? string.Empty);
     }
 
+    public string PageTitleDraft
+    {
+        get => pageTitleDraft;
+        set => SetField(ref pageTitleDraft, value ?? string.Empty);
+    }
+
     public string StatusText
     {
         get => statusText;
@@ -179,7 +206,13 @@ public sealed class PagesViewModel : INotifyPropertyChanged
     public bool IsSending
     {
         get => isSending;
-        private set => SetField(ref isSending, value);
+        private set
+        {
+            if (SetField(ref isSending, value))
+            {
+                RefreshTransportCommandState();
+            }
+        }
     }
 
     public bool IsManageMode
@@ -213,6 +246,23 @@ public sealed class PagesViewModel : INotifyPropertyChanged
 
     public string ShortcutCountText => $"{Shortcuts.Count} shortcuts";
 
+    public string PageReadinessText
+    {
+        get
+        {
+            var fastItems = Shortcuts.Where(shortcut => shortcut.IsFastSlotCapable).ToArray();
+            if (fastItems.Length == 0)
+            {
+                return "All actions are already instant";
+            }
+
+            var prepared = fastItems.Count(shortcut => shortcut.IsFastSlotPrepared);
+            return prepared == fastItems.Length
+                ? $"{prepared} fast slots ready"
+                : $"{prepared} of {fastItems.Length} fast slots ready";
+        }
+    }
+
     public string PagePositionText
     {
         get
@@ -230,8 +280,8 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         layoutState = (await layoutStore.LoadAsync(cancellationToken)).Normalize();
         var textState = await textPresetStore.LoadAsync(cancellationToken);
         var archive = await builtInArchiveStore.LoadAsync(cancellationToken);
-        var faces = await facePatternStore.LoadAsync(cancellationToken);
-        allItems = catalogBuilder.Build(textState, archive, faces, layoutState.Order);
+        faceState = (await facePatternStore.LoadAsync(cancellationToken)).Normalize();
+        allItems = catalogBuilder.Build(textState, archive, faceState, layoutState.Order);
         SelectedPage = layoutState.Pages.FirstOrDefault(page => page.PageId == SelectedPage.PageId)
             ?? layoutState.Pages.First();
         RebuildCards();
@@ -347,6 +397,22 @@ public sealed class PagesViewModel : INotifyPropertyChanged
 
     public async Task SendAsync(GalleryItem item, CancellationToken cancellationToken = default)
     {
+        await SendCoreAsync(null, item, cancellationToken);
+    }
+
+    private async Task SendShortcutAsync(
+        GalleryPageItemLayout layout,
+        GalleryItem item,
+        CancellationToken cancellationToken)
+    {
+        await SendCoreAsync(layout, item, cancellationToken);
+    }
+
+    private async Task SendCoreAsync(
+        GalleryPageItemLayout? layout,
+        GalleryItem item,
+        CancellationToken cancellationToken)
+    {
         if (!item.CanSend)
         {
             StatusText = "Not implemented yet";
@@ -355,14 +421,18 @@ public sealed class PagesViewModel : INotifyPropertyChanged
 
         try
         {
-            IsSending = true;
+            BeginOperation();
             StatusText = "Sending...";
             StatusText = item.Type switch
             {
+                GalleryItemType.TextPreset when layout is not null && item.TextPreset is not null =>
+                    await SendTextShortcutAsync(layout, item, cancellationToken),
                 GalleryItemType.TextPreset when item.TextPreset is not null =>
                     await SendTextPresetAsync(item.TextPreset, cancellationToken),
                 GalleryItemType.BuiltInStaticImage or GalleryItemType.BuiltInAnimation when item.BuiltInAssetRecord is not null =>
                     await SendBuiltInAsync(item.BuiltInAssetRecord, cancellationToken),
+                GalleryItemType.CustomStaticFace when layout is not null && item.FacePattern is not null =>
+                    await SendFaceShortcutAsync(layout, item, cancellationToken),
                 GalleryItemType.CustomStaticFace when item.FacePattern is not null =>
                     await SendFaceAsync(item.FacePattern, cancellationToken),
                 GalleryItemType.QuickAction when item.QuickActionId.HasValue =>
@@ -372,13 +442,15 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         }
         finally
         {
-            IsSending = false;
+            EndOperation();
         }
     }
 
     private async Task AddPageAsync(CancellationToken cancellationToken)
     {
-        var title = string.IsNullOrWhiteSpace(NewPageTitle) ? "New page" : NewPageTitle.Trim();
+        var title = string.IsNullOrWhiteSpace(NewPageTitle) || string.Equals(NewPageTitle.Trim(), "New page", StringComparison.OrdinalIgnoreCase)
+            ? $"Page {layoutState.Pages.Count + 1}"
+            : NewPageTitle.Trim();
         var page = new GalleryPageLayout
         {
             Title = title,
@@ -391,6 +463,324 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         RebuildCards();
         StatusText = "Page added";
     }
+
+    private async Task SavePageTitleAsync(CancellationToken cancellationToken)
+    {
+        var title = string.IsNullOrWhiteSpace(PageTitleDraft) ? SelectedPageTitle : PageTitleDraft.Trim();
+        await UpdateSelectedPageAsync(SelectedPage with { Title = title }, cancellationToken);
+        IsPageEditorSheetVisible = false;
+        StatusText = "Page name saved";
+    }
+
+    private async Task<string> SendTextShortcutAsync(
+        GalleryPageItemLayout layout,
+        GalleryItem item,
+        CancellationToken cancellationToken)
+    {
+        if (IsFastSlotPrepared(layout, item))
+        {
+            return await PlayFastSlotAsync(layout.FastMaskSlot!.Value, cancellationToken);
+        }
+
+        if (faceTransport.IsReady && ResolveFastSlot(layout, item) is not null)
+        {
+            return (await PrepareFastSlotCoreAsync(layout, item, cancellationToken)).Message;
+        }
+
+        return item.TextPreset is null
+            ? "Text not ready"
+            : await SendTextPresetAsync(item.TextPreset, cancellationToken);
+    }
+
+    private async Task<string> SendFaceShortcutAsync(
+        GalleryPageItemLayout layout,
+        GalleryItem item,
+        CancellationToken cancellationToken)
+    {
+        if (IsFastSlotPrepared(layout, item))
+        {
+            return await PlayFastSlotAsync(layout.FastMaskSlot!.Value, cancellationToken);
+        }
+
+        return (await PrepareFastSlotCoreAsync(layout, item, cancellationToken)).Message;
+    }
+
+    private async Task<string> PlayFastSlotAsync(int slot, CancellationToken cancellationToken)
+    {
+        if (commandTransport.TransportState != MaskCommandTransportState.Ready)
+        {
+            return "Connect to use the fast slot";
+        }
+
+        var result = await commandTransport.SendAsync(FaceUploadProtocol.BuildPlayCommand([slot]), cancellationToken);
+        return result.Succeeded ? $"Fast slot {slot} sent · confirm on mask" : result.Message;
+    }
+
+    private async Task PrepareShortcutAsync(
+        GalleryPageItemLayout layout,
+        GalleryItem item,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            BeginOperation();
+            StatusText = $"Preparing {item.Title}...";
+            StatusText = (await PrepareFastSlotCoreAsync(layout, item, cancellationToken)).Message;
+        }
+        finally
+        {
+            EndOperation();
+        }
+    }
+
+    private async Task PreparePageAsync(CancellationToken cancellationToken)
+    {
+        var pending = Shortcuts
+            .Where(shortcut => shortcut.IsFastSlotCapable && !shortcut.IsFastSlotPrepared)
+            .Select(shortcut => (shortcut.Layout, shortcut.Item))
+            .ToArray();
+        if (pending.Length == 0)
+        {
+            StatusText = "This page is ready";
+            return;
+        }
+
+        var prepared = 0;
+        try
+        {
+            BeginOperation();
+            foreach (var (layout, item) in pending)
+            {
+                StatusText = $"Preparing {prepared + 1} of {pending.Length}: {item.Title}";
+                var result = await PrepareFastSlotCoreAsync(layout, item, cancellationToken);
+                if (!result.Succeeded)
+                {
+                    StatusText = result.Message;
+                    return;
+                }
+
+                prepared++;
+            }
+
+            StatusText = $"Prepared {prepared} fast slots";
+        }
+        finally
+        {
+            EndOperation();
+        }
+    }
+
+    private async Task<(bool Succeeded, string Message)> PrepareFastSlotCoreAsync(
+        GalleryPageItemLayout layout,
+        GalleryItem item,
+        CancellationToken cancellationToken)
+    {
+        await FaceUploadOperationLock.Gate.WaitAsync(cancellationToken);
+        try
+        {
+            return await PrepareFastSlotLockedAsync(layout, item, cancellationToken);
+        }
+        finally
+        {
+            FaceUploadOperationLock.Gate.Release();
+        }
+    }
+
+    private async Task<(bool Succeeded, string Message)> PrepareFastSlotLockedAsync(
+        GalleryPageItemLayout layout,
+        GalleryItem item,
+        CancellationToken cancellationToken)
+    {
+        if (!PageFastSlotSnapshotFactory.Supports(item))
+        {
+            return (false, "This shortcut does not need a fast slot");
+        }
+
+        if (!faceTransport.IsReady)
+        {
+            return (false, "Connect to prepare a fast slot");
+        }
+
+        var slot = ResolveFastSlot(layout, item);
+        if (slot is null)
+        {
+            return (false, "All 20 DIY slots are reserved; remove or reassign a face first");
+        }
+
+        PageFastSlotSnapshot snapshot;
+        try
+        {
+            snapshot = PageFastSlotSnapshotFactory.Create(item, slot.Value);
+        }
+        catch (ArgumentException ex)
+        {
+            return (false, ex.Message);
+        }
+
+        var options = faceTransport.SupportsAcknowledgements
+            ? FaceUploadOptions.RequireAcknowledgements
+            : FaceUploadOptions.WriteOnlyCompatibility;
+        var package = FaceUploadProtocol.CreatePackage(snapshot.Pattern, slot.Value);
+        var state = (await facePatternStore.LoadAsync(cancellationToken))
+            .ClearSlotInstallation(slot.Value);
+        await facePatternStore.SaveAsync(state, cancellationToken);
+        var result = await faceTransport.UploadAsync(package, options, cancellationToken);
+        state = await facePatternStore.LoadAsync(cancellationToken);
+        if (!result.Succeeded)
+        {
+            state = state.ClearSlotInstallation(slot.Value);
+            if (item.FacePattern is not null)
+            {
+                state = state.MarkUploadFailed(item.FacePattern.Id, result.Message);
+            }
+
+            await facePatternStore.SaveAsync(state, cancellationToken);
+            await InitializeAsync(cancellationToken);
+            return (false, result.Message);
+        }
+
+        var timestamp = DateTimeOffset.UtcNow;
+        if (item.FacePattern is not null)
+        {
+            state = state.MarkUploaded(item.FacePattern.Id, $"Prepared fast slot {slot.Value}.", timestamp);
+        }
+
+        state = state.MarkSlotInstalled(slot.Value, snapshot.ContentFingerprint, item.Id, timestamp);
+        await facePatternStore.SaveAsync(state, cancellationToken);
+
+        await SavePreparedSlotAsync(
+            layout,
+            slot.Value,
+            snapshot.ContentFingerprint,
+            timestamp,
+            cancellationToken);
+        var qualifier = item.Type == GalleryItemType.TextPreset ? " · static text" : string.Empty;
+        return (true, $"Prepared fast slot {slot.Value}{qualifier} · sent to mask");
+    }
+
+    private async Task SavePreparedSlotAsync(
+        GalleryPageItemLayout sourceLayout,
+        int slot,
+        string fingerprint,
+        DateTimeOffset preparedAt,
+        CancellationToken cancellationToken)
+    {
+        var pages = layoutState.Pages
+            .Select(page => page with
+            {
+                Items = page.Items
+                    .Select(item =>
+                    {
+                        if (string.Equals(item.GalleryItemId, sourceLayout.GalleryItemId, StringComparison.Ordinal))
+                        {
+                            return item with
+                            {
+                                FastMaskSlot = slot,
+                                FastContentFingerprint = fingerprint,
+                                FastPreparedAt = preparedAt
+                            };
+                        }
+
+                        return item.FastMaskSlot == slot
+                            ? item with
+                            {
+                                FastMaskSlot = null,
+                                FastContentFingerprint = string.Empty,
+                                FastPreparedAt = null
+                            }
+                            : item;
+                    })
+                    .ToArray()
+            })
+            .ToArray();
+        layoutState = (layoutState with { Pages = pages }).Normalize();
+        await layoutStore.SaveAsync(layoutState, cancellationToken);
+        await InitializeAsync(cancellationToken);
+    }
+
+    private int? ResolveFastSlot(GalleryPageItemLayout layout, GalleryItem item)
+    {
+        if (item.FacePattern is not null)
+        {
+            return item.FacePattern.Normalize().PreferredSlot;
+        }
+
+        var sharedSlot = layoutState.Pages
+            .SelectMany(page => page.Items)
+            .FirstOrDefault(candidate =>
+                candidate.FastMaskSlot is not null &&
+                string.Equals(candidate.GalleryItemId, layout.GalleryItemId, StringComparison.Ordinal))
+            ?.FastMaskSlot;
+        if (sharedSlot is not null && !IsReservedFaceSlot(sharedSlot.Value))
+        {
+            return sharedSlot;
+        }
+
+        if (layout.FastMaskSlot is int existingSlot && !IsReservedFaceSlot(existingSlot))
+        {
+            return existingSlot;
+        }
+
+        var usedSlots = layoutState.Pages
+            .SelectMany(page => page.Items)
+            .Where(candidate => !string.Equals(candidate.GalleryItemId, layout.GalleryItemId, StringComparison.Ordinal))
+            .Select(candidate => candidate.FastMaskSlot)
+            .OfType<int>()
+            .ToHashSet();
+        var faceSlots = allItems
+            .Select(candidate => candidate.FacePattern?.Normalize().PreferredSlot)
+            .OfType<int>()
+            .ToHashSet();
+
+        for (var slot = FacePattern.MaxSlot; slot >= FacePattern.MinSlot; slot--)
+        {
+            if (!usedSlots.Contains(slot) && !faceSlots.Contains(slot))
+            {
+                return slot;
+            }
+        }
+
+        return null;
+    }
+
+    private bool IsReservedFaceSlot(int slot) =>
+        allItems.Any(candidate => candidate.FacePattern?.Normalize().PreferredSlot == slot);
+
+    private bool IsFastSlotPrepared(GalleryPageItemLayout layout, GalleryItem item)
+    {
+        if (layout.FastMaskSlot is not int slot ||
+            layout.FastPreparedAt is null ||
+            string.IsNullOrWhiteSpace(layout.FastContentFingerprint))
+        {
+            return false;
+        }
+
+        try
+        {
+            var snapshot = PageFastSlotSnapshotFactory.Create(item, slot);
+            if (!string.Equals(
+                layout.FastContentFingerprint,
+                snapshot.ContentFingerprint,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            var installation = faceState.GetSlotInstallation(slot);
+            return installation is not null &&
+                string.Equals(
+                    installation.ContentFingerprint,
+                    snapshot.ContentFingerprint,
+                    StringComparison.OrdinalIgnoreCase);
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+    }
+
+    private bool CanPreparePage() =>
+        !IsSending && faceTransport.IsReady && Shortcuts.Any(shortcut => shortcut.IsFastSlotCapable && !shortcut.IsFastSlotPrepared);
 
     private Task OpenDeleteConfirmationAsync(CancellationToken cancellationToken)
     {
@@ -514,26 +904,74 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         }
     }
 
+    public void StartObservingTransportState()
+    {
+        if (isObservingTransportState)
+        {
+            return;
+        }
+
+        commandTransport.TransportStateChanged += OnCommandTransportStateChanged;
+        textTransport.StateChanged += OnTextTransportStateChanged;
+        faceTransport.StateChanged += OnFaceTransportStateChanged;
+        isObservingTransportState = true;
+        RefreshTransportCommandState();
+    }
+
+    public void StopObservingTransportState()
+    {
+        if (!isObservingTransportState)
+        {
+            return;
+        }
+
+        commandTransport.TransportStateChanged -= OnCommandTransportStateChanged;
+        textTransport.StateChanged -= OnTextTransportStateChanged;
+        faceTransport.StateChanged -= OnFaceTransportStateChanged;
+        isObservingTransportState = false;
+    }
+
     private void CloseSheets()
     {
         IsPageEditorSheetVisible = false;
         IsDeletePageConfirmationVisible = false;
     }
 
-    private GalleryPageShortcutCard CreateShortcutCard(GalleryPageItemLayout layout, GalleryItem item) =>
-        new(
+    private GalleryPageShortcutCard CreateShortcutCard(GalleryPageItemLayout layout, GalleryItem item)
+    {
+        var isFastSlotCapable = PageFastSlotSnapshotFactory.Supports(item);
+        var isFastSlotPrepared = isFastSlotCapable && IsFastSlotPrepared(layout, item);
+        return new GalleryPageShortcutCard(
             layout,
             item,
-            new AsyncRelayCommand(cancellationToken => SendAsync(item, cancellationToken), () => item.CanSend && CanSend(item)),
+            new AsyncRelayCommand(
+                cancellationToken => SendShortcutAsync(layout, item, cancellationToken),
+                () => item.CanSend && CanSend(layout, item)),
+            new AsyncRelayCommand(
+                cancellationToken => PrepareShortcutAsync(layout, item, cancellationToken),
+                () => !IsSending && isFastSlotCapable && faceTransport.IsReady && ResolveFastSlot(layout, item) is not null),
             new AsyncRelayCommand(cancellationToken => RemoveItemAsync(layout.SlotId, cancellationToken)),
             new AsyncRelayCommand(cancellationToken => MoveItemAsync(layout.SlotId, -1, cancellationToken)),
-            new AsyncRelayCommand(cancellationToken => MoveItemAsync(layout.SlotId, 1, cancellationToken)));
+            new AsyncRelayCommand(cancellationToken => MoveItemAsync(layout.SlotId, 1, cancellationToken)),
+            isFastSlotCapable,
+            isFastSlotPrepared);
+    }
 
-    private bool CanSend(GalleryItem item) =>
-        item.Type switch
+    private bool CanSend(GalleryPageItemLayout layout, GalleryItem item)
+    {
+        if (IsSending)
         {
-            GalleryItemType.TextPreset => textTransport.IsReady,
+            return false;
+        }
+
+        return item.Type switch
+        {
+            GalleryItemType.TextPreset when IsFastSlotPrepared(layout, item) =>
+                commandTransport.TransportState == MaskCommandTransportState.Ready,
+            GalleryItemType.TextPreset => textTransport.IsReady || faceTransport.IsReady,
             GalleryItemType.BuiltInStaticImage or GalleryItemType.BuiltInAnimation => commandTransport.TransportState == MaskCommandTransportState.Ready,
+            GalleryItemType.CustomStaticFace when IsFastSlotPrepared(layout, item) =>
+                commandTransport.TransportState == MaskCommandTransportState.Ready,
             GalleryItemType.CustomStaticFace => faceTransport.IsReady,
             GalleryItemType.QuickAction => item.QuickActionKind switch
             {
@@ -544,6 +982,7 @@ public sealed class PagesViewModel : INotifyPropertyChanged
             },
             _ => false
         };
+    }
 
     private async Task<string> SendTextPresetAsync(TextPreset preset, CancellationToken cancellationToken)
     {
@@ -573,19 +1012,77 @@ public sealed class PagesViewModel : INotifyPropertyChanged
             return "Face upload not ready";
         }
 
-        var normalized = pattern.Normalize();
-        var options = faceTransport.SupportsAcknowledgements
-            ? FaceUploadOptions.RequireAcknowledgements
-            : FaceUploadOptions.WriteOnlyCompatibility;
-        var package = FaceUploadProtocol.CreatePackage(normalized, normalized.PreferredSlot);
-        var result = await faceTransport.UploadAsync(package, options, cancellationToken);
-        var status = result.Succeeded
-            ? $"Uploaded slot {normalized.PreferredSlot}; needs real-mask visual confirmation."
-            : result.Message;
-        var state = await facePatternStore.LoadAsync(cancellationToken);
-        await facePatternStore.SaveAsync(state.MarkUploaded(normalized.Id, status, DateTimeOffset.UtcNow), cancellationToken);
-        await InitializeAsync(cancellationToken);
-        return status;
+        await FaceUploadOperationLock.Gate.WaitAsync(cancellationToken);
+        try
+        {
+            var normalized = pattern.Normalize();
+            var options = faceTransport.SupportsAcknowledgements
+                ? FaceUploadOptions.RequireAcknowledgements
+                : FaceUploadOptions.WriteOnlyCompatibility;
+            var package = FaceUploadProtocol.CreatePackage(normalized, normalized.PreferredSlot);
+            var state = (await facePatternStore.LoadAsync(cancellationToken))
+                .ClearSlotInstallation(normalized.PreferredSlot);
+            await facePatternStore.SaveAsync(state, cancellationToken);
+            var result = await faceTransport.UploadAsync(package, options, cancellationToken);
+            state = await facePatternStore.LoadAsync(cancellationToken);
+            var status = result.Succeeded
+                ? $"Uploaded slot {normalized.PreferredSlot}; needs real-mask visual confirmation."
+                : result.Message;
+            var timestamp = DateTimeOffset.UtcNow;
+            state = result.Succeeded
+                ? state
+                    .MarkUploaded(normalized.Id, status, timestamp)
+                    .MarkSlotInstalled(
+                        normalized.PreferredSlot,
+                        FaceContentFingerprint.Compute(normalized),
+                        $"face:{normalized.Id}",
+                        timestamp)
+                : state
+                    .MarkUploadFailed(normalized.Id, status)
+                    .ClearSlotInstallation(normalized.PreferredSlot);
+            await facePatternStore.SaveAsync(state, cancellationToken);
+            await InitializeAsync(cancellationToken);
+            return status;
+        }
+        finally
+        {
+            FaceUploadOperationLock.Gate.Release();
+        }
+    }
+
+    private void OnCommandTransportStateChanged(object? sender, MaskCommandTransportStateChangedEventArgs e) =>
+        RefreshTransportCommandState();
+
+    private void OnTextTransportStateChanged(object? sender, TextUploadTransportStateChangedEventArgs e) =>
+        RefreshTransportCommandState();
+
+    private void OnFaceTransportStateChanged(object? sender, FaceUploadTransportStateChangedEventArgs e) =>
+        RefreshTransportCommandState();
+
+    private void RefreshTransportCommandState()
+    {
+        foreach (var shortcut in Shortcuts)
+        {
+            shortcut.RefreshCommandState();
+        }
+
+        PreparePageCommand.RaiseCanExecuteChanged();
+    }
+
+    private void BeginOperation()
+    {
+        if (Interlocked.Increment(ref activeOperationCount) == 1)
+        {
+            IsSending = true;
+        }
+    }
+
+    private void EndOperation()
+    {
+        if (Interlocked.Decrement(ref activeOperationCount) == 0)
+        {
+            IsSending = false;
+        }
     }
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)

@@ -1,3 +1,5 @@
+using MaskApp.Core.Features.Faces;
+
 namespace MaskApp.Core.Features.Gallery;
 
 public sealed record GalleryPageItemLayout
@@ -14,6 +16,12 @@ public sealed record GalleryPageItemLayout
 
     public int SortIndex { get; init; }
 
+    public int? FastMaskSlot { get; init; }
+
+    public string FastContentFingerprint { get; init; } = string.Empty;
+
+    public DateTimeOffset? FastPreparedAt { get; init; }
+
     public GalleryPageItemLayout Normalize(int fallbackSortIndex) =>
         this with
         {
@@ -21,6 +29,10 @@ public sealed record GalleryPageItemLayout
             Label = Label.Trim(),
             IconKey = string.IsNullOrWhiteSpace(IconKey) ? "face" : IconKey.Trim(),
             ColorHex = string.IsNullOrWhiteSpace(ColorHex) ? "#A78BFA" : ColorHex.Trim(),
-            SortIndex = SortIndex < 0 ? fallbackSortIndex : SortIndex
+            SortIndex = SortIndex < 0 ? fallbackSortIndex : SortIndex,
+            FastMaskSlot = FastMaskSlot is >= FacePattern.MinSlot and <= FacePattern.MaxSlot
+                ? FastMaskSlot
+                : null,
+            FastContentFingerprint = FastContentFingerprint?.Trim() ?? string.Empty
         };
 }

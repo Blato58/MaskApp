@@ -90,13 +90,17 @@ encrypted. Audio visualizer packets are 16-byte encrypted packets.
 | `LIGHT` | 1 byte brightness | Sets LED brightness. Prefer capping normal UI brightness at or below `100` until physical flicker behavior is verified. | Implemented, needs real-mask test |
 | `IMAG` | 1 byte built-in image id | Displays a stock static image. The Android app's UI catalog lists 70 decimal IDs, `0..69`; MaskApp ships the corresponding original-app UI previews. Older `0x69` notes were approximate protocol evidence, not a complete Android gallery count. | Implemented, needs real-mask test |
 | `ANIM` | 1 byte built-in animation id | Plays a stock animation. The Android app's UI catalog lists 45 decimal command IDs: `0`, `1`, `2`, `3`, and `5..45`. ID `4` is present in generated resource IDs but `AnimFragment` skips it before sending. MaskApp previews the referenced frames at the original 100 ms cadence. | Implemented, needs real-mask test |
-| `CHEC` | none | Requests the number of DIY images stored on the mask; response is sent on the notification characteristic. | Protocol-documented |
+| `CHEC` | none | Requests the number of DIY images stored on the mask; response is sent on the notification characteristic. Available evidence exposes a count, not a complete slot inventory. | Protocol-documented |
 | `DELE` | 1 byte count, then up to 10 DIY ids | Deletes uploaded DIY image slots. Response behavior needs physical confirmation. | Protocol-documented |
-| `PLAY` | 1 byte count, then up to 10 DIY ids | Plays uploaded DIY image slots in order. Timing and repeat behavior need physical confirmation. | Protocol-documented |
+| `PLAY` | 1 byte count, then up to 10 DIY ids | Plays uploaded DIY image slots in order. Pages uses the single-slot form for prepared shortcuts; timing and persistence still need physical confirmation. | Implemented, needs real-mask test |
 
-For MaskApp UX, keep built-in gallery scanning and DIY management behind
-diagnostics or clearly labeled flows until the ID ranges and response behavior
-are physically validated.
+The original Android DIY flow caps storage at 20 numbered slots (`1..20`). Pages
+exposes preparation and refresh as explicit actions rather than implying that
+app-local state is a verified device inventory. Switching masks, clearing DIY
+storage, or editing content can require a refresh. MaskApp keeps a durable
+per-slot content fingerprint for its own DIY writes, so an in-app overwrite or
+failed refresh invalidates older Pages shortcuts even if the source face is
+later renamed, moved to another preferred slot, or deleted from the Library.
 
 ## Text Commands
 
@@ -138,6 +142,14 @@ bitmap upload with optional per-column or per-stripe color data.
 MaskApp supports ACK-required mode and write-only compatibility mode. Physical
 testing must record whether the user's mask exposes notifications and whether
 write-only mode reliably displays short text.
+
+Native text upload has no slot id in `DATS`, no slot/timestamp in `DATCP`, and
+no later text-specific `PLAY` command. Pages can instead render a short preset
+as a static 46x58 DIY image and prepare that bitmap in a numbered DIY slot. This
+is deliberately labeled as a static fast slot: it preserves the text pixels and
+foreground color, but not scrolling, blink timing, native text modes, or text
+effects. Text Composer and ordinary Library sends continue to use native text
+upload when those behaviors are needed.
 
 ## Image Upload Procedure
 
@@ -187,8 +199,10 @@ Expected procedure:
 6. Track `DELEOK`, `DATOK`/`DATSOK`, `REOK`/`REOKOK`, and `DATCPOK` when notifications are
    available.
 7. Use `CHEC` to inspect DIY slot count where supported.
-8. Use `PLAY` to display uploaded DIY slots only after slot IDs and timing are
-   physically verified.
+8. Use `PLAY` to display uploaded DIY slots. Pages implements this as an
+   optimistic fast path after a successful app-side preparation; the user can
+   explicitly refresh a slot because `CHEC` does not prove which content is in
+   each slot or which physical mask was prepared.
 9. Use standalone `DELE` only after delete response behavior is understood; avoid making
    destructive UI easy to trigger.
 
@@ -221,7 +235,7 @@ explicit stop/recovery path before adding microphone input.
 | `REOK` | Upload frame accepted | Parsed as `FrameAccepted`. |
 | `REOKOK` | Upload frame accepted | Alternate frame ACK seen in protocol evidence. |
 | `DATCPOK` | Upload complete | Parsed as `Complete`. |
-| `PLAYOK` | DIY playback accepted | Protocol-documented; not implemented in product UI. |
+| `PLAYOK` | DIY playback accepted | Parsed by the face protocol; Pages sends single-slot `PLAY` and asks for visual confirmation on the mask. |
 | `DELEOK` | Delete accepted | Protocol-documented; avoid destructive UI until physically verified. |
 | `CHEC` | DIY slot/check response | Response payload format needs local physical validation. |
 | `ERROR` | Command/upload failed | Parsed as `Error` for text upload. |
@@ -240,7 +254,8 @@ blocks and plaintext fallback.
 | Built-in animation | `ANIM` | Implemented command builder and scanner/fallback UI | Needs real-mask test |
 | Text upload | `DATS`, upload frames, `DATCP`, `MODE`, `SPEED` | Implemented MVP | Needs real-mask test |
 | Text colors/effects | `M`, `FC`, `BC` | Protocol-documented | Needs real-mask test |
-| DIY/custom image upload | `DATS`/payload/`DATCP`, `CHEC`, `PLAY`, `DELE` | Implemented Face Studio MVP | Needs real-mask test |
+| DIY/custom image upload | `DATS`/payload/`DATCP`, `CHEC`, `PLAY`, `DELE` | Implemented Face Studio upload plus Pages prepare/refresh/fast-play flow | Needs real-mask test |
+| Static text fast slot | Text rasterized into a 46x58 DIY image, then `PLAY` | Implemented in Pages; native text modes intentionally not preserved | Needs real-mask test |
 | Audio visualizer | audio characteristic encrypted packets | Documented only | Needs real-mask test |
 | RAVE command fallbacks | `LIGHT`, `IMAG`, `ANIM` | Implemented as test/fallback controls | Needs real-mask test |
 | Drop Detector / Voice Mouth / Bass Face | App-layer composition over visualizer/text/DIY | Labs/Experimental | Needs real-mask test |
@@ -258,8 +273,10 @@ Use this order:
 4. Keep long uploads out of the event-time path.
 5. Treat built-in IDs as test/fallback content until useful IDs are written down
    from real-mask scanning.
-6. Do not rely on DIY slot `PLAY` until upload, slot IDs, and playback timing are
-   physically verified.
+6. Prepared Pages shortcuts may use DIY slot `PLAY` for the fast path, but keep
+   refresh visible and do not treat app-local preparation metadata as a device
+   inventory until slot IDs, persistence, and playback timing are physically
+   verified.
 7. Keep audio visualizer, Drop Detector, Voice Mouth, Bass Face, GIF-ish
    playback, and real-time effects in Labs until deterministic real-mask tests
    pass.

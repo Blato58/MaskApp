@@ -677,19 +677,42 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
             return "Face upload not ready";
         }
 
-        var normalized = pattern.Normalize();
-        var options = faceTransport.SupportsAcknowledgements
-            ? FaceUploadOptions.RequireAcknowledgements
-            : FaceUploadOptions.WriteOnlyCompatibility;
-        var package = FaceUploadProtocol.CreatePackage(normalized, normalized.PreferredSlot);
-        var result = await faceTransport.UploadAsync(package, options, cancellationToken);
-        var status = result.Succeeded
-            ? $"Uploaded slot {normalized.PreferredSlot}; needs real-mask visual confirmation."
-            : result.Message;
-        var state = await facePatternStore.LoadAsync(cancellationToken);
-        await facePatternStore.SaveAsync(state.MarkUploaded(normalized.Id, status, DateTimeOffset.UtcNow), cancellationToken);
-        await InitializeAsync(cancellationToken);
-        return status;
+        await FaceUploadOperationLock.Gate.WaitAsync(cancellationToken);
+        try
+        {
+            var normalized = pattern.Normalize();
+            var options = faceTransport.SupportsAcknowledgements
+                ? FaceUploadOptions.RequireAcknowledgements
+                : FaceUploadOptions.WriteOnlyCompatibility;
+            var package = FaceUploadProtocol.CreatePackage(normalized, normalized.PreferredSlot);
+            var state = (await facePatternStore.LoadAsync(cancellationToken))
+                .ClearSlotInstallation(normalized.PreferredSlot);
+            await facePatternStore.SaveAsync(state, cancellationToken);
+            var result = await faceTransport.UploadAsync(package, options, cancellationToken);
+            state = await facePatternStore.LoadAsync(cancellationToken);
+            var status = result.Succeeded
+                ? $"Uploaded slot {normalized.PreferredSlot}; needs real-mask visual confirmation."
+                : result.Message;
+            var timestamp = DateTimeOffset.UtcNow;
+            state = result.Succeeded
+                ? state
+                    .MarkUploaded(normalized.Id, status, timestamp)
+                    .MarkSlotInstalled(
+                        normalized.PreferredSlot,
+                        FaceContentFingerprint.Compute(normalized),
+                        $"face:{normalized.Id}",
+                        timestamp)
+                : state
+                    .MarkUploadFailed(normalized.Id, status)
+                    .ClearSlotInstallation(normalized.PreferredSlot);
+            await facePatternStore.SaveAsync(state, cancellationToken);
+            await InitializeAsync(cancellationToken);
+            return status;
+        }
+        finally
+        {
+            FaceUploadOperationLock.Gate.Release();
+        }
     }
 
     private async Task<string> SendQuickActionAsync(QuickActionId actionId, CancellationToken cancellationToken)

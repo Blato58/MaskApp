@@ -3,7 +3,8 @@ namespace MaskApp.Core.Features.Faces;
 public sealed record FacePatternStoreState
 {
     public const int LegacySchemaVersion = 1;
-    public const int CurrentSchemaVersion = 2;
+    public const int PreviousSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
     public const int CurrentSeedVersion = 4;
 
     public static FacePatternStoreState Seeded => new()
@@ -19,6 +20,8 @@ public sealed record FacePatternStoreState
     public int SeedVersion { get; init; } = CurrentSeedVersion;
 
     public IReadOnlyList<FacePattern> Patterns { get; init; } = [];
+
+    public IReadOnlyList<FaceSlotInstallation> SlotInstallations { get; init; } = [];
 
     public string Status { get; init; } = "Ready.";
 
@@ -55,6 +58,14 @@ public sealed record FacePatternStoreState
                 .OrderBy(pattern => pattern.Source == FacePatternSource.BuiltIn ? 0 : 1)
                 .ThenBy(pattern => pattern.PreferredSlot)
                 .ThenBy(pattern => pattern.DisplayName, StringComparer.OrdinalIgnoreCase)
+                .ToArray(),
+            SlotInstallations = (SlotInstallations ?? [])
+                .Where(installation => installation.Slot is >= FacePattern.MinSlot and <= FacePattern.MaxSlot)
+                .Select(installation => installation.Normalize())
+                .Where(installation => !string.IsNullOrWhiteSpace(installation.ContentFingerprint))
+                .GroupBy(installation => installation.Slot)
+                .Select(group => group.OrderByDescending(installation => installation.InstalledAt).First())
+                .OrderBy(installation => installation.Slot)
                 .ToArray()
         };
     }
@@ -73,6 +84,53 @@ public sealed record FacePatternStoreState
             .ToArray();
         return this with { Patterns = patterns };
     }
+
+    public FacePatternStoreState MarkUploadFailed(string patternId, string status)
+    {
+        var normalized = Normalize();
+        var patterns = normalized.Patterns
+            .Select(pattern => string.Equals(pattern.Id, patternId, StringComparison.Ordinal)
+                ? pattern with { LastUploadStatus = status }
+                : pattern)
+            .ToArray();
+        return normalized with { Patterns = patterns };
+    }
+
+    public FacePatternStoreState MarkSlotInstalled(
+        int slot,
+        string contentFingerprint,
+        string sourceId,
+        DateTimeOffset timestamp)
+    {
+        var normalized = Normalize();
+        var clampedSlot = Math.Clamp(slot, FacePattern.MinSlot, FacePattern.MaxSlot);
+        var installations = normalized.SlotInstallations
+            .Where(installation => installation.Slot != clampedSlot)
+            .Append(new FaceSlotInstallation
+            {
+                Slot = clampedSlot,
+                ContentFingerprint = contentFingerprint,
+                SourceId = sourceId,
+                InstalledAt = timestamp
+            })
+            .ToArray();
+        return normalized with { SlotInstallations = installations };
+    }
+
+    public FacePatternStoreState ClearSlotInstallation(int slot)
+    {
+        var normalized = Normalize();
+        var clampedSlot = Math.Clamp(slot, FacePattern.MinSlot, FacePattern.MaxSlot);
+        return normalized with
+        {
+            SlotInstallations = normalized.SlotInstallations
+                .Where(installation => installation.Slot != clampedSlot)
+                .ToArray()
+        };
+    }
+
+    public FaceSlotInstallation? GetSlotInstallation(int slot) =>
+        Normalize().SlotInstallations.FirstOrDefault(installation => installation.Slot == slot);
 
     public int NextCustomSlot()
     {
