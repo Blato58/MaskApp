@@ -37,7 +37,8 @@ public static class FacePatternFactory
             CreateCharacter("three-eyed-monster", "Three-Eyed Monster", now),
             CreateCharacter("cyclops", "Happy Cyclops", now),
             CreateCharacter("sleepy", "Sleepy Face", now),
-            CreateCharacter("holy-priest-cross", "Holy Priest · Cross", now)
+            CreateCharacter("holy-priest-cross", "Holy Priest · Cross", now),
+            CreateCharacter("mask-calibration", "Mask Calibration · Color Anchors", now)
         ];
     }
 

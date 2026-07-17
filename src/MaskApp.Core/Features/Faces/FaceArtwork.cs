@@ -27,6 +27,13 @@ internal static class FaceArtwork
     private static readonly FaceColor PureWhite = new(0xFF, 0xFF, 0xFF);
     private static readonly FaceColor PureRed = new(0xFF, 0x00, 0x00);
     private static readonly FaceColor PureBlue = new(0x00, 0x00, 0xFF);
+    private static readonly FaceColor PureGreen = new(0x00, 0xFF, 0x00);
+    private static readonly FaceColor PureCyan = new(0x00, 0xFF, 0xFF);
+    private static readonly FaceColor PureYellow = new(0xFF, 0xFF, 0x00);
+    private static readonly FaceColor PureMagenta = new(0xFF, 0x00, 0xFF);
+    private static readonly FaceColor PureOrange = new(0xFF, 0x80, 0x00);
+    private static readonly FaceColor PureLime = new(0x80, 0xFF, 0x00);
+    private static readonly FaceColor CalibrationGray = new(0x40, 0x40, 0x40);
 
     public static void Draw(string artworkId, FaceArtCanvas canvas)
     {
@@ -62,6 +69,7 @@ internal static class FaceArtwork
             case "three-eyed-monster": DrawThreeEyedMonster(canvas); break;
             case "cyclops": DrawCyclops(canvas); break;
             case "sleepy": DrawSleepy(canvas); break;
+            case "mask-calibration": DrawMaskCalibration(canvas); break;
             case "holy-priest-cross": DrawHolyPriestMask(canvas, PureWhite, FaceColor.Black); break;
             case "holy-priest-inverted": DrawHolyPriestMask(canvas, FaceColor.Black, PureWhite); break;
             case "holy-priest-red": DrawHolyPriestMask(canvas, PureWhite, PureRed); break;
@@ -524,6 +532,57 @@ internal static class FaceArtwork
         canvas.FillRect(30, 16, 7, 1, FaceColor.Black);
         canvas.FillRect(28, 17, 10, 1, FaceColor.Black);
         canvas.FillRect(30, 18, 7, 1, FaceColor.Black);
+    }
+
+    private static void DrawMaskCalibration(FaceArtCanvas canvas)
+    {
+        canvas.FillRect(0, 0, FacePattern.Width, FacePattern.Height, CalibrationGray);
+
+        canvas.FillRect(0, 0, FacePattern.Width, 1, PureRed);
+        canvas.FillRect(0, FacePattern.Height - 1, FacePattern.Width, 1, PureBlue);
+        canvas.FillRect(0, 1, 1, FacePattern.Height - 2, PureYellow);
+        canvas.FillRect(FacePattern.Width - 1, 1, 1, FacePattern.Height - 2, PureGreen);
+
+        (int Row, FaceColor Color)[] eyeGuideRows =
+        [
+            (12, PureRed),
+            (14, PureOrange),
+            (16, PureYellow),
+            (18, PureGreen),
+            (20, PureCyan),
+            (22, PureBlue)
+        ];
+        foreach (var (row, color) in eyeGuideRows)
+        {
+            canvas.FillRect(1, row, FacePattern.Width - 2, 1, color);
+        }
+
+        for (var column = 5; column < FacePattern.Width - 1; column += 5)
+        {
+            canvas.FillRect(column, 11, 1, 13, PureWhite);
+        }
+
+        canvas.FillRect(23, 11, 1, 13, PureMagenta);
+
+        DrawCalibrationAnchor(canvas, 5, 5, PureRed);
+        DrawCalibrationAnchor(canvas, 23, 5, PureGreen);
+        DrawCalibrationAnchor(canvas, 40, 5, PureBlue);
+        DrawCalibrationAnchor(canvas, 5, 29, PureYellow);
+        DrawCalibrationAnchor(canvas, 23, 29, PureWhite);
+        DrawCalibrationAnchor(canvas, 40, 29, PureCyan);
+        DrawCalibrationAnchor(canvas, 5, 52, PureOrange);
+        DrawCalibrationAnchor(canvas, 23, 52, PureMagenta);
+        DrawCalibrationAnchor(canvas, 40, 52, PureLime);
+    }
+
+    private static void DrawCalibrationAnchor(
+        FaceArtCanvas canvas,
+        int centerX,
+        int centerY,
+        FaceColor color)
+    {
+        canvas.FillRect(centerX - 1, centerY - 1, 3, 3, color);
+        canvas.FillRect(centerX, centerY, 1, 1, FaceColor.Black);
     }
 
     private static void DrawHead(

@@ -183,6 +183,13 @@ their proportions instead of being stretched to fill the portrait canvas.
 Seeded faces use layered full-canvas artwork with silhouettes, shading, facial
 details, and props rather than enlarged low-resolution glyphs.
 
+The built-in `Mask Calibration · Color Anchors` face exercises every logical
+pixel and adds orientation rails, registered color anchors, and an eye-region
+ruler. Its exact logical coordinates and the pending physical visibility map
+live in [Mask display calibration](mask-display-calibration.md). Use the
+photo-derived map from that document for eye placement and usable bounds once
+the physical capture has been analyzed.
+
 The image upload frame shape is different from MaskApp's conservative text
 upload default: static DIY image data is split into 98 image bytes per packet.
 Each written packet is 100 bytes total: 1 length byte, 1 packet counter byte,
