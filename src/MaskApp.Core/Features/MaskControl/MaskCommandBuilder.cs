@@ -16,6 +16,12 @@ public static class MaskCommandBuilder
         return Build(MaskCommandKind.Animation, displayName ?? $"Animation {preset}", "ANIM", preset);
     }
 
+    public static MaskCommand AnimationSpeed(int speed)
+    {
+        var clampedSpeed = Math.Clamp(speed, 1, 100);
+        return Build(MaskCommandKind.AnimationSpeed, $"Animation speed {clampedSpeed}", "SPEED", (byte)clampedSpeed);
+    }
+
     public static MaskCommand Image(int presetId, string? displayName = null)
     {
         var preset = checked((byte)presetId);

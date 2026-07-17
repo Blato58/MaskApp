@@ -36,11 +36,7 @@ public sealed class DiySlotPlaybackCoordinatorTests
         var store = new InMemoryFacePatternStore();
         var faceTransport = new RecordingFaceTransport();
         var commandTransport = new RecordingCommandTransport();
-        var coordinator = new DiySlotPlaybackCoordinator(
-            store,
-            faceTransport,
-            commandTransport,
-            fastAnimationFrameInterval: TimeSpan.Zero);
+        var coordinator = new DiySlotPlaybackCoordinator(store, faceTransport, commandTransport);
         var animation = AppBuiltInAnimationCatalog.CreateBuiltIns()[0];
 
         var first = await coordinator.PlayAnimationAsync(animation);
@@ -53,19 +49,20 @@ public sealed class DiySlotPlaybackCoordinatorTests
         Assert.Equal(animation.Frames.Count, second.ReusedSlotCount);
         Assert.Equal(animation.Frames.Count, faceTransport.Packages.Count);
         Assert.All(faceTransport.Options, options => Assert.False(options.PlayAfterUpload));
-        var expectedSlots = animation.PlaybackSlots
-            .Concat(animation.PlaybackSlots)
-            .Select(slot => (byte)slot)
-            .ToArray();
-        Assert.Equal(expectedSlots.Length, commandTransport.Commands.Count);
-        Assert.All(commandTransport.Commands, command =>
+        Assert.Equal(4, commandTransport.Commands.Count);
+        for (var playIndex = 0; playIndex < 2; playIndex++)
         {
-            Assert.Equal(MaskCommandKind.FacePlay, command.Kind);
-            Assert.Equal(1, command.Plaintext.Span[5]);
-        });
-        Assert.Equal(
-            expectedSlots,
-            commandTransport.Commands.Select(command => command.Plaintext.Span[6]).ToArray());
+            var speedCommand = commandTransport.Commands[playIndex * 2];
+            Assert.Equal(MaskCommandKind.AnimationSpeed, speedCommand.Kind);
+            Assert.Equal(Convert.FromHexString("0653504545444B000000000000000000"), speedCommand.Plaintext.ToArray());
+
+            var playCommand = commandTransport.Commands[(playIndex * 2) + 1];
+            Assert.Equal(MaskCommandKind.FacePlay, playCommand.Kind);
+            Assert.Equal(animation.PlaybackSlots.Count, playCommand.Plaintext.Span[5]);
+            Assert.Equal(
+                animation.PlaybackSlots.Select(slot => (byte)slot),
+                playCommand.Plaintext.Span.Slice(6, animation.PlaybackSlots.Count).ToArray());
+        }
         Assert.True(DiySlotPlaybackCoordinator.IsAnimationPrepared(animation, await store.LoadAsync()));
     }
 
@@ -120,11 +117,7 @@ public sealed class DiySlotPlaybackCoordinatorTests
         var store = new InMemoryFacePatternStore();
         var faceTransport = new RecordingFaceTransport { FailOnUploadNumber = 2 };
         var commandTransport = new RecordingCommandTransport();
-        var coordinator = new DiySlotPlaybackCoordinator(
-            store,
-            faceTransport,
-            commandTransport,
-            fastAnimationFrameInterval: TimeSpan.Zero);
+        var coordinator = new DiySlotPlaybackCoordinator(store, faceTransport, commandTransport);
         var animation = AppBuiltInAnimationCatalog.CreateBuiltIns()[0];
 
         var failed = await coordinator.PlayAnimationAsync(animation);
@@ -143,20 +136,19 @@ public sealed class DiySlotPlaybackCoordinatorTests
         Assert.Equal(1, retried.UploadedSlotCount);
         Assert.Equal(1, retried.ReusedSlotCount);
         Assert.Equal(3, faceTransport.Packages.Count);
-        Assert.Equal(animation.PlaybackSlots.Count, commandTransport.Commands.Count);
+        Assert.Collection(
+            commandTransport.Commands,
+            command => Assert.Equal(MaskCommandKind.AnimationSpeed, command.Kind),
+            command => Assert.Equal(MaskCommandKind.FacePlay, command.Kind));
     }
 
     [Fact]
-    public async Task PlayAnimationAsync_StopsRapidPlaybackWhenACommandFails()
+    public async Task PlayAnimationAsync_StopsBeforePlayWhenSpeedCommandFails()
     {
         var store = new InMemoryFacePatternStore();
         var faceTransport = new RecordingFaceTransport();
-        var commandTransport = new RecordingCommandTransport { FailOnCommandNumber = 3 };
-        var coordinator = new DiySlotPlaybackCoordinator(
-            store,
-            faceTransport,
-            commandTransport,
-            fastAnimationFrameInterval: TimeSpan.Zero);
+        var commandTransport = new RecordingCommandTransport { FailOnCommandNumber = 1 };
+        var coordinator = new DiySlotPlaybackCoordinator(store, faceTransport, commandTransport);
         var animation = AppBuiltInAnimationCatalog.CreateBuiltIns()[1];
 
         var result = await coordinator.PlayAnimationAsync(animation);
@@ -164,7 +156,7 @@ public sealed class DiySlotPlaybackCoordinatorTests
         Assert.False(result.Succeeded);
         Assert.False(result.PlayCommandSent);
         Assert.Equal(animation.Frames.Count, result.UploadedSlotCount);
-        Assert.Equal(3, commandTransport.Commands.Count);
+        Assert.Equal(MaskCommandKind.AnimationSpeed, Assert.Single(commandTransport.Commands).Kind);
         Assert.Contains("failed", result.Message, StringComparison.OrdinalIgnoreCase);
     }
 

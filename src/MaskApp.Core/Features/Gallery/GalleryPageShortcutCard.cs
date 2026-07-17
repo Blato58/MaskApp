@@ -84,7 +84,7 @@ public sealed class GalleryPageShortcutCard : INotifyPropertyChanged
 
     public string FastSlotStatusText => Item.AppAnimation is not null
         ? IsFastSlotPrepared
-            ? $"{Item.AppAnimation.Frames.Count} DIY slots · PLAY only"
+            ? $"{Item.AppAnimation.Frames.Count} DIY slots · SPEED + PLAY"
             : $"{Item.AppAnimation.Frames.Count} DIY slots · prepare once"
         : (IsFastSlotCapable, IsFastSlotPrepared, Layout.FastMaskSlot) switch
         {

@@ -36,6 +36,19 @@ public sealed class MaskCommandBuilderTests
         Assert.Equal(Convert.FromHexString("7413B642E985EBE42C45597D00631389"), command.EncryptedPayload.ToArray());
     }
 
+    [Theory]
+    [InlineData(75, 75)]
+    [InlineData(-1, 1)]
+    [InlineData(101, 100)]
+    public void AnimationSpeed_BuildsClampedSpeedCommand(int speed, byte expectedSpeed)
+    {
+        var command = MaskCommandBuilder.AnimationSpeed(speed);
+
+        Assert.Equal(MaskCommandKind.AnimationSpeed, command.Kind);
+        Assert.Equal("SPEED", System.Text.Encoding.ASCII.GetString(command.Plaintext.Span.Slice(1, 5)));
+        Assert.Equal(expectedSpeed, command.Plaintext.Span[6]);
+    }
+
     [Fact]
     public void Image_BuildsEncryptedImageCommand()
     {
