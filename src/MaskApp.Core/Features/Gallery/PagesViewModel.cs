@@ -64,7 +64,8 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         ITextPresetDispatcher textPresetDispatcher,
         IMaskCommandTransport commandTransport,
         ITextUploadTransport textTransport,
-        IFaceUploadTransport faceTransport)
+        IFaceUploadTransport faceTransport,
+        DiySlotPlaybackCoordinator diySlotPlayback)
     {
         catalogBuilder = new GalleryCatalogBuilder(quickActionCatalog);
         this.textPresetStore = textPresetStore;
@@ -76,7 +77,7 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         this.commandTransport = commandTransport;
         this.textTransport = textTransport;
         this.faceTransport = faceTransport;
-        diySlotPlayback = new DiySlotPlaybackCoordinator(facePatternStore, faceTransport, commandTransport);
+        this.diySlotPlayback = diySlotPlayback;
 
         AddPageCommand = new AsyncRelayCommand(AddPageAsync);
         RemovePageCommand = new AsyncRelayCommand(OpenDeleteConfirmationAsync, () => Pages.Count > 1);
@@ -426,6 +427,7 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         {
             BeginOperation();
             StatusText = "Sending...";
+            await diySlotPlayback.StopAnimationAsync(cancellationToken);
             StatusText = item.Type switch
             {
                 GalleryItemType.TextPreset when layout is not null && item.TextPreset is not null =>
@@ -945,6 +947,8 @@ public sealed class PagesViewModel : INotifyPropertyChanged
             shortcut.SetAnimationPlaying(false);
         }
     }
+
+    public void StopMaskAnimation() => diySlotPlayback.RequestStopAnimation();
 
     public void StartObservingTransportState()
     {

@@ -253,20 +253,15 @@ public sealed class PagesViewModelTests
 
         var playbackSlots = AppBuiltInAnimationCatalog.CreateBuiltIns()[0].PlaybackSlots;
         Assert.Equal(2, faceTransport.UploadCount);
-        var expectedSlots = playbackSlots
-            .Concat(playbackSlots)
-            .Select(slot => (byte)slot)
-            .ToArray();
-        Assert.Equal(expectedSlots.Length, commandTransport.Commands.Count);
+        Assert.Equal(2, commandTransport.Commands.Count);
         Assert.All(commandTransport.Commands, command =>
         {
             Assert.Equal(MaskCommandKind.FacePlay, command.Kind);
             Assert.Equal(1, command.Plaintext.Span[5]);
+            Assert.Equal((byte)playbackSlots[0], command.Plaintext.Span[6]);
         });
-        Assert.Equal(
-            expectedSlots,
-            commandTransport.Commands.Select(command => command.Plaintext.Span[6]).ToArray());
         Assert.True(viewModel.Shortcuts.Single(item => item.Item.Id == animation.Id).IsFastSlotPrepared);
+        viewModel.StopMaskAnimation();
     }
 
     [Fact]
@@ -287,8 +282,8 @@ public sealed class PagesViewModelTests
         await shortcut.PrepareCommand.ExecuteAsync();
 
         Assert.Equal(4, faceTransport.UploadCount);
-        Assert.Equal(AppBuiltInAnimationCatalog.CreateBuiltIns()[0].PlaybackSlots.Count, commandTransport.Commands.Count);
-        Assert.All(commandTransport.Commands, command => Assert.Equal(MaskCommandKind.FacePlay, command.Kind));
+        Assert.Single(commandTransport.Commands);
+        Assert.Equal(MaskCommandKind.FacePlay, commandTransport.Commands[0].Kind);
         Assert.Contains("Refreshed", viewModel.StatusText, StringComparison.OrdinalIgnoreCase);
         Assert.True(viewModel.Shortcuts.Single(item => item.Item.Id == animation.Id).IsFastSlotPrepared);
     }
@@ -478,17 +473,26 @@ public sealed class PagesViewModelTests
         RecordingFaceTransport? faceTransport = null,
         InMemoryFacePatternStore? facePatternStore = null)
     {
+        facePatternStore ??= new InMemoryFacePatternStore();
+        commandTransport ??= new RecordingCommandTransport();
+        faceTransport ??= new RecordingFaceTransport();
+        var diySlotPlayback = new DiySlotPlaybackCoordinator(
+            facePatternStore,
+            faceTransport,
+            commandTransport,
+            fastAnimationFrameInterval: TimeSpan.FromDays(1));
         return new PagesViewModel(
             new QuickActionCatalog(),
             new InMemoryTextPresetStore(new TextPresetStoreState { Presets = textPresets ?? [] }),
             new InMemoryBuiltInAssetArchiveStore(),
-            facePatternStore ?? new InMemoryFacePatternStore(),
+            facePatternStore,
             layoutStore ?? new RecordingGalleryLayoutStore(),
             new RecordingQuickActionDispatcher(),
             presetDispatcher ?? new RecordingTextPresetDispatcher(),
-            commandTransport ?? new RecordingCommandTransport(),
+            commandTransport,
             new RecordingTextTransport(),
-            faceTransport ?? new RecordingFaceTransport());
+            faceTransport,
+            diySlotPlayback);
     }
 
     private static PageAddItemViewModel CreateAddItemViewModel(

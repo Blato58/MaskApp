@@ -57,7 +57,8 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         ITextPresetDispatcher textPresetDispatcher,
         IMaskCommandTransport commandTransport,
         ITextUploadTransport textTransport,
-        IFaceUploadTransport faceTransport)
+        IFaceUploadTransport faceTransport,
+        DiySlotPlaybackCoordinator diySlotPlayback)
     {
         catalogBuilder = new GalleryCatalogBuilder(quickActionCatalog);
         this.textPresetStore = textPresetStore;
@@ -69,7 +70,7 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         this.commandTransport = commandTransport;
         this.textTransport = textTransport;
         this.faceTransport = faceTransport;
-        diySlotPlayback = new DiySlotPlaybackCoordinator(facePatternStore, faceTransport, commandTransport);
+        this.diySlotPlayback = diySlotPlayback;
         GroupingOptions =
         [
             new GalleryGroupingOption("Manual groups", GalleryGroupingMode.Manual),
@@ -412,6 +413,7 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
             IsSending = true;
             LastActionText = item.Title;
             StatusText = "Sending...";
+            await diySlotPlayback.StopAnimationAsync(cancellationToken);
 
             var result = item.Type switch
             {
@@ -617,6 +619,8 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
             row.Item?.SetAnimationPlaying(false);
         }
     }
+
+    public void StopMaskAnimation() => diySlotPlayback.RequestStopAnimation();
 
     private GalleryItemCard CreateCard(GalleryItem item) =>
         new(

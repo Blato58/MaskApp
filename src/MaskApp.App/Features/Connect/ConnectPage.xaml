@@ -140,7 +140,7 @@
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                             <VerticalStackLayout Spacing="2">
                                 <Label Text="Firmware mode speed" FontSize="20" FontAttributes="Bold" />
-                                <Label Text="Sets SPEED for text and stock animations. DIY animations use app-timed playback." Style="{StaticResource TinyLabelStyle}" />
+                                <Label Text="Sets SPEED for text and stock animations. DIY animations loop from Gallery or Pages while that screen stays open." Style="{StaticResource TinyLabelStyle}" />
                             </VerticalStackLayout>
                             <Label
                                 Grid.Column="1"

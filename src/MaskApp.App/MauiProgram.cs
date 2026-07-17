@@ -109,6 +109,7 @@ public static class MauiProgram
             new SerializedFaceUploadTransport(sp.GetRequiredService<SimulatedFaceUploadTransport>()));
         builder.Services.AddSingleton<IFaceImageDecoder, UnavailableFaceImageDecoder>();
 #endif
+        builder.Services.AddSingleton<DiySlotPlaybackCoordinator>();
         builder.Services.AddSingleton<BleAutoConnectCoordinator>();
 
 #if DEBUG

@@ -303,20 +303,15 @@ public sealed class GalleryViewModelTests
 
         var playbackSlots = AppBuiltInAnimationCatalog.CreateBuiltIns()[0].PlaybackSlots;
         Assert.Equal(2, faceTransport.Packages.Count);
-        var expectedSlots = playbackSlots
-            .Concat(playbackSlots)
-            .Select(slot => (byte)slot)
-            .ToArray();
-        Assert.Equal(expectedSlots.Length, commandTransport.SentCommands.Count);
+        Assert.Equal(2, commandTransport.SentCommands.Count);
         Assert.All(commandTransport.SentCommands, command =>
         {
             Assert.Equal(MaskCommandKind.FacePlay, command.Kind);
             Assert.Equal(1, command.Plaintext.Span[5]);
+            Assert.Equal((byte)playbackSlots[0], command.Plaintext.Span[6]);
         });
-        Assert.Equal(
-            expectedSlots,
-            commandTransport.SentCommands.Select(command => command.Plaintext.Span[6]).ToArray());
         Assert.Contains("no upload", viewModel.StatusText, StringComparison.OrdinalIgnoreCase);
+        viewModel.StopMaskAnimation();
     }
 
     private static GalleryViewModel CreateViewModel(
@@ -333,7 +328,14 @@ public sealed class GalleryViewModelTests
         textStore ??= new InMemoryTextPresetStore(new TextPresetStoreState { Presets = textPresets ?? [] });
         var builtInStore = new InMemoryBuiltInAssetArchiveStore(archive ?? BuiltInAssetArchive.Empty);
         faceStore ??= new InMemoryFacePatternStore();
+        commandTransport ??= new RecordingCommandTransport();
+        faceTransport ??= new RecordingFaceTransport();
         var textTransport = new RecordingTextTransport();
+        var diySlotPlayback = new DiySlotPlaybackCoordinator(
+            faceStore,
+            faceTransport,
+            commandTransport,
+            fastAnimationFrameInterval: TimeSpan.FromDays(1));
         return new GalleryViewModel(
             new QuickActionCatalog(),
             textStore,
@@ -342,9 +344,10 @@ public sealed class GalleryViewModelTests
             layoutStore ?? new RecordingGalleryLayoutStore(),
             quickDispatcher ?? new RecordingQuickActionDispatcher(),
             presetDispatcher ?? new RecordingTextPresetDispatcher(),
-            commandTransport ?? new RecordingCommandTransport(),
+            commandTransport,
             textTransport,
-            faceTransport ?? new RecordingFaceTransport());
+            faceTransport,
+            diySlotPlayback);
     }
 
     private static GalleryItemCard[] Flatten(GalleryViewModel viewModel) =>

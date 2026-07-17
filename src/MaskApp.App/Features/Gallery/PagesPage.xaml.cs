@@ -29,6 +29,7 @@ public partial class PagesPage : ContentPage
 
     protected override void OnDisappearing()
     {
+        viewModel.StopMaskAnimation();
         viewModel.StopPreviewAnimations();
         viewModel.StopObservingTransportState();
         base.OnDisappearing();
