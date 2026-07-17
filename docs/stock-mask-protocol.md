@@ -92,7 +92,7 @@ encrypted. Audio visualizer packets are 16-byte encrypted packets.
 | `ANIM` | 1 byte built-in animation id | Plays a stock animation. The Android app's UI catalog lists 45 decimal command IDs: `0`, `1`, `2`, `3`, and `5..45`. ID `4` is present in generated resource IDs but `AnimFragment` skips it before sending. MaskApp previews the referenced frames at the original 100 ms cadence. | Implemented, needs real-mask test |
 | `CHEC` | none | Requests the number of DIY images stored on the mask; response is sent on the notification characteristic. Available evidence exposes a count, not a complete slot inventory. | Protocol-documented |
 | `DELE` | 1 byte count, then up to 10 DIY ids | Deletes uploaded DIY image slots. Response behavior needs physical confirmation. | Protocol-documented |
-| `PLAY` | 1 byte count, then up to 10 DIY ids | Plays uploaded DIY image slots in order. Pages uses one slot for prepared faces/text; app-built animations use a short multi-slot sequence. Timing and persistence still need physical confirmation. | Implemented, needs real-mask test |
+| `PLAY` | 1 byte count, then up to 10 DIY ids | Plays uploaded DIY image slots in order. Pages uses one slot for prepared faces/text. Physical testing found the firmware-timed multi-slot cadence too slow for the Holy Priest animations, so MaskApp now sends their steps as individual one-slot commands at 75 ms intervals. | Implemented; rapid cadence needs follow-up real-mask test |
 
 The original Android DIY flow caps storage at 20 numbered slots (`1..20`). Pages
 exposes preparation and refresh as explicit actions rather than implying that
@@ -159,11 +159,14 @@ upload when those behaviors are needed.
 
 ## Image Upload Procedure
 
-Static DIY face upload is implemented in MaskApp but still needs corrected
-real-mask visual confirmation. App-built custom animations now reuse this same
-static-frame upload path across several numbered DIY slots, then send one
-multi-slot `PLAY` command. Playback timing and persistence remain unproven
-product behavior.
+Static DIY face upload is implemented in MaskApp. A full 46x58 calibration face
+was displayed on the user's physical mask on 2026-07-17, confirming canvas
+orientation and static visual output. App-built custom animations reuse this
+same static-frame upload path across several numbered DIY slots. Their rapid
+playback sends one-slot `PLAY` commands at 75 ms intervals because physical
+testing found the firmware-timed multi-slot sequence too slow. The revised
+cadence, persistence, overwrite behavior, and ACK behavior still need physical
+confirmation.
 
 Static DIY face upload has Java evidence from `UCropActivity` and
 `BitmapUtils.getBitmapData`: the original Android crop path uses a 46x58 crop
@@ -185,10 +188,9 @@ details, and props rather than enlarged low-resolution glyphs.
 
 The built-in `Mask Calibration · Color Anchors` face exercises every logical
 pixel and adds orientation rails, registered color anchors, and an eye-region
-ruler. Its exact logical coordinates and the pending physical visibility map
-live in [Mask display calibration](mask-display-calibration.md). Use the
-photo-derived map from that document for eye placement and usable bounds once
-the physical capture has been analyzed.
+ruler. Its exact logical coordinates and the physically registered visibility
+map live in [Mask display calibration](mask-display-calibration.md). Use that
+map for eye placement and usable bounds in new face artwork.
 
 The image upload frame shape is different from MaskApp's conservative text
 upload default: static DIY image data is split into 98 image bytes per packet.
@@ -219,17 +221,22 @@ Expected procedure:
    explicitly refresh a slot because `CHEC` does not prove which content is in
    each slot or which physical mask was prepared.
    App-built animations use the same rule per frame: each slot is uploaded only
-   when its stored content fingerprint is missing or changed, then the animation
-   sends a `PLAY` list containing two to ten slot steps. Repeated slot ids can
+   when its stored content fingerprint is missing or changed. Playback keeps a
+   list containing two to ten slot steps, but sends each entry as an individual
+   one-slot `PLAY` command at a 75 ms app-timed cadence. Repeated slot ids can
    create a short pulse or ping-pong sequence without storing duplicate frames.
+   The phone must remain connected for the sub-second sequence.
    The visible Refresh action deliberately re-uploads every animation frame so
    it can recover after switching masks, clearing mask storage, or an out-of-band
    slot overwrite that the app cannot detect.
 9. Use standalone `DELE` only after delete response behavior is understood; avoid making
    destructive UI easy to trigger.
 
-Until physical tests pass, custom image upload visual output, DIY sequencing,
-GIF-ish playback, and fast slot playback remain unproven product capability.
+Static custom-image visual output is physically confirmed for this mask. The
+firmware-timed multi-slot animation cadence was physically observed to be too
+slow; the replacement 75 ms app-timed cadence still needs confirmation. GIF-ish
+playback, persistence, overwrite behavior, and ACK behavior remain unproven
+product capability.
 
 ## Audio Visualization Protocol
 
@@ -276,8 +283,8 @@ blocks and plaintext fallback.
 | Built-in animation | `ANIM` | Implemented command builder and scanner/fallback UI | Needs real-mask test |
 | Text upload | `DATS`, upload frames, `DATCP`, `MODE`, `SPEED` | Implemented MVP | Needs real-mask test |
 | Text colors/effects | `M`, `FC`, `BC` | Protocol-documented | Needs real-mask test |
-| DIY/custom image upload | `DATS`/payload/`DATCP`, `CHEC`, `PLAY`, `DELE` | Implemented Face Studio upload plus Library/Pages prepare-once and PLAY-only replay | Needs real-mask test |
-| App-built custom animation | Static DIY frames plus multi-slot `PLAY` | Implemented Experimental catalog with per-frame fingerprints; unchanged frames are not re-uploaded | Needs real-mask timing, persistence, and visual test |
+| DIY/custom image upload | `DATS`/payload/`DATCP`, `CHEC`, `PLAY`, `DELE` | Implemented Face Studio upload plus Library/Pages prepare-once and PLAY-only replay | Static 46x58 orientation and visual output confirmed; slot lifecycle and ACK behavior need real-mask tests |
+| App-built custom animation | Static DIY frames plus rapid one-slot `PLAY` commands | Implemented Experimental catalog with per-frame fingerprints and 75 ms app-timed playback; unchanged frames are not re-uploaded | Firmware sequence was too slow; revised cadence, persistence, and visuals need real-mask tests |
 | Static text fast slot | Text rasterized into a 46x58 DIY image, then `PLAY` | Implemented in Pages; native text modes intentionally not preserved | Needs real-mask test |
 | Audio visualizer | audio characteristic encrypted packets | Documented only | Needs real-mask test |
 | RAVE command fallbacks | `LIGHT`, `IMAG`, `ANIM` | Implemented as test/fallback controls | Needs real-mask test |
@@ -296,10 +303,10 @@ Use this order:
 4. Keep long uploads out of the event-time path.
 5. Treat built-in IDs as test/fallback content until useful IDs are written down
    from real-mask scanning.
-6. Prepared Pages shortcuts and app-built animations may use DIY slot `PLAY` for
-   the fast path, but keep refresh visible and do not treat app-local preparation
-   metadata as a device inventory until slot IDs, persistence, and playback
-   timing are physically verified.
+6. Prepared Pages shortcuts use one DIY slot `PLAY`; app-built animations use a
+   rapid app-timed series of one-slot `PLAY` commands. Keep refresh visible and
+   do not treat app-local preparation metadata as a device inventory until slot
+   IDs, persistence, and revised playback timing are physically verified.
 7. Keep audio visualizer, Drop Detector, Voice Mouth, Bass Face, GIF-ish
    playback, and real-time effects in Labs until deterministic real-mask tests
    pass.

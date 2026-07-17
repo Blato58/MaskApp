@@ -251,9 +251,13 @@ public sealed class PagesViewModelTests
         shortcut = viewModel.Shortcuts.Single(item => item.Item.Id == animation.Id);
         await shortcut.SendCommand.ExecuteAsync();
 
+        var playbackSlots = AppBuiltInAnimationCatalog.CreateBuiltIns()[0].PlaybackSlots;
         Assert.Equal(2, faceTransport.UploadCount);
-        Assert.Equal(2, commandTransport.Commands.Count);
+        Assert.Equal(playbackSlots.Count * 2, commandTransport.Commands.Count);
         Assert.All(commandTransport.Commands, command => Assert.Equal(MaskCommandKind.FacePlay, command.Kind));
+        Assert.Equal(
+            playbackSlots.Concat(playbackSlots).Select(slot => (byte)slot),
+            commandTransport.Commands.Select(command => command.Plaintext.Span[6]));
         Assert.True(viewModel.Shortcuts.Single(item => item.Item.Id == animation.Id).IsFastSlotPrepared);
     }
 
@@ -275,7 +279,9 @@ public sealed class PagesViewModelTests
         await shortcut.PrepareCommand.ExecuteAsync();
 
         Assert.Equal(4, faceTransport.UploadCount);
-        Assert.Single(commandTransport.Commands);
+        Assert.Equal(
+            AppBuiltInAnimationCatalog.CreateBuiltIns()[0].PlaybackSlots.Count,
+            commandTransport.Commands.Count);
         Assert.Contains("Refreshed", viewModel.StatusText, StringComparison.OrdinalIgnoreCase);
         Assert.True(viewModel.Shortcuts.Single(item => item.Item.Id == animation.Id).IsFastSlotPrepared);
     }

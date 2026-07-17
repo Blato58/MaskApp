@@ -80,18 +80,21 @@ public sealed class AppBuiltInAnimationCatalogTests
         Assert.All(cross.Pixels, pixel => Assert.True(pixel.IsLit));
         Assert.Equal("#FFFFFF", cross.GetPixel(0, 0).Color.Hex);
         Assert.Equal("#FFFFFF", cross.GetPixel(45, 57).Color.Hex);
-        Assert.Equal("#000000", cross.GetPixel(23, 0).Color.Hex);
+        Assert.Equal("#FFFFFF", cross.GetPixel(23, 0).Color.Hex);
+        Assert.Equal("#FFFFFF", cross.GetPixel(23, 4).Color.Hex);
+        Assert.Equal("#000000", cross.GetPixel(23, 5).Color.Hex);
         Assert.Equal("#000000", cross.GetPixel(23, 10).Color.Hex);
-        Assert.Equal("#000000", cross.GetPixel(6, 17).Color.Hex);
-        Assert.Equal("#000000", cross.GetPixel(17, 17).Color.Hex);
-        Assert.Equal("#000000", cross.GetPixel(28, 17).Color.Hex);
-        Assert.Equal("#000000", cross.GetPixel(37, 17).Color.Hex);
+        Assert.Equal("#000000", cross.GetPixel(23, 57).Color.Hex);
+        Assert.Equal("#FFFFFF", cross.GetPixel(4, 15).Color.Hex);
+        Assert.Equal("#000000", cross.GetPixel(5, 15).Color.Hex);
+        Assert.Equal("#000000", cross.GetPixel(40, 15).Color.Hex);
+        Assert.Equal("#FFFFFF", cross.GetPixel(41, 15).Color.Hex);
         Assert.Equal("#FFFFFF", cross.GetPixel(10, 14).Color.Hex);
         Assert.Equal("#FFFFFF", cross.GetPixel(10, 20).Color.Hex);
     }
 
     [Fact]
-    public void HolyPriestAnimations_UseRequestedFramePalettesAndEyeCuts()
+    public void HolyPriestAnimations_UseRequestedFramePalettesAndCalibratedGeometry()
     {
         var animations = AppBuiltInAnimationCatalog.CreateBuiltIns();
         var monochrome = animations[0];
@@ -110,27 +113,56 @@ public sealed class AppBuiltInAnimationCatalogTests
         Assert.Equal(
             ["#000000", "#FF0000", "#0000FF"],
             colorCycle.Frames.Select(frame => frame.Pattern.GetPixel(23, 10).Color.Hex));
-        Assert.All(colorCycle.Frames, frame =>
-        {
-            var crossColor = frame.Pattern.GetPixel(23, 10).Color.Hex;
 
-            Assert.All(frame.Pattern.Pixels, pixel => Assert.True(pixel.IsLit));
-            Assert.Equal("#FFFFFF", frame.Pattern.GetPixel(0, 0).Color.Hex);
-            Assert.Equal("#FFFFFF", frame.Pattern.GetPixel(45, 57).Color.Hex);
-            Assert.Equal("#FFFFFF", frame.Pattern.GetPixel(10, 14).Color.Hex);
-            Assert.Equal("#FFFFFF", frame.Pattern.GetPixel(10, 20).Color.Hex);
-            Assert.Equal("#000000", frame.Pattern.GetPixel(9, 16).Color.Hex);
-            Assert.Equal("#000000", frame.Pattern.GetPixel(15, 16).Color.Hex);
-            Assert.Equal("#000000", frame.Pattern.GetPixel(6, 17).Color.Hex);
-            Assert.Equal("#000000", frame.Pattern.GetPixel(17, 17).Color.Hex);
-            Assert.Equal("#000000", frame.Pattern.GetPixel(30, 16).Color.Hex);
-            Assert.Equal("#000000", frame.Pattern.GetPixel(36, 16).Color.Hex);
-            Assert.Equal("#000000", frame.Pattern.GetPixel(28, 17).Color.Hex);
-            Assert.Equal("#000000", frame.Pattern.GetPixel(37, 17).Color.Hex);
-            Assert.Equal(crossColor, frame.Pattern.GetPixel(5, 17).Color.Hex);
-            Assert.Equal(crossColor, frame.Pattern.GetPixel(18, 17).Color.Hex);
-            Assert.Equal(crossColor, frame.Pattern.GetPixel(27, 17).Color.Hex);
-            Assert.Equal(crossColor, frame.Pattern.GetPixel(38, 17).Color.Hex);
-        });
+        (FacePattern Pattern, string Shell, string Cross)[] expectedFrames =
+        [
+            (monochrome.Frames[0].Pattern, "#FFFFFF", "#000000"),
+            (monochrome.Frames[1].Pattern, "#000000", "#FFFFFF"),
+            (colorCycle.Frames[0].Pattern, "#FFFFFF", "#000000"),
+            (colorCycle.Frames[1].Pattern, "#FFFFFF", "#FF0000"),
+            (colorCycle.Frames[2].Pattern, "#FFFFFF", "#0000FF")
+        ];
+        (int Row, int LeftStart, int LeftEnd, int RightStart, int RightEnd)[] eyeRows =
+        [
+            (16, 5, 15, 30, 40),
+            (17, 6, 17, 28, 38),
+            (18, 7, 17, 28, 38),
+            (19, 9, 14, 31, 36)
+        ];
+
+        foreach (var (pattern, shellColor, crossColor) in expectedFrames)
+        {
+            Assert.All(pattern.Pixels, pixel => Assert.True(pixel.IsLit));
+            Assert.Equal(shellColor, pattern.GetPixel(23, 4).Color.Hex);
+            Assert.Equal(crossColor, pattern.GetPixel(23, 5).Color.Hex);
+            Assert.Equal(crossColor, pattern.GetPixel(23, 57).Color.Hex);
+
+            Assert.Equal(shellColor, pattern.GetPixel(4, 15).Color.Hex);
+            Assert.Equal(crossColor, pattern.GetPixel(5, 15).Color.Hex);
+            Assert.Equal(crossColor, pattern.GetPixel(40, 15).Color.Hex);
+            Assert.Equal(shellColor, pattern.GetPixel(41, 15).Color.Hex);
+
+            foreach (var (row, leftStart, leftEnd, rightStart, rightEnd) in eyeRows)
+            {
+                for (var column = leftStart; column <= leftEnd; column++)
+                {
+                    Assert.Equal("#000000", pattern.GetPixel(column, row).Color.Hex);
+                }
+
+                for (var column = rightStart; column <= rightEnd; column++)
+                {
+                    Assert.Equal("#000000", pattern.GetPixel(column, row).Color.Hex);
+                }
+
+                Assert.Equal(crossColor, pattern.GetPixel(leftEnd + 1, row).Color.Hex);
+                Assert.Equal(crossColor, pattern.GetPixel(rightStart - 1, row).Color.Hex);
+                Assert.Equal(
+                    leftStart == 5 ? shellColor : crossColor,
+                    pattern.GetPixel(leftStart - 1, row).Color.Hex);
+                Assert.Equal(
+                    rightEnd == 40 ? shellColor : crossColor,
+                    pattern.GetPixel(rightEnd + 1, row).Color.Hex);
+            }
+        }
     }
 }

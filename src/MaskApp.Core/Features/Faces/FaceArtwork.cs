@@ -523,15 +523,27 @@ internal static class FaceArtwork
         FaceColor cross)
     {
         canvas.FillRect(0, 0, FacePattern.Width, FacePattern.Height, shell);
-        canvas.FillRect(20, 0, 7, FacePattern.Height, cross);
-        canvas.FillRect(0, 15, FacePattern.Width, 5, cross);
 
-        canvas.FillRect(9, 16, 7, 1, FaceColor.Black);
-        canvas.FillRect(6, 17, 12, 1, FaceColor.Black);
-        canvas.FillRect(9, 18, 7, 1, FaceColor.Black);
-        canvas.FillRect(30, 16, 7, 1, FaceColor.Black);
-        canvas.FillRect(28, 17, 10, 1, FaceColor.Black);
-        canvas.FillRect(30, 18, 7, 1, FaceColor.Black);
+        // Keep the top and side terminals inside the calibrated LED envelope;
+        // the lower stem deliberately continues through the final display row.
+        canvas.FillRect(20, 5, 7, FacePattern.Height - 5, cross);
+        canvas.FillRect(5, 15, 36, 5, cross);
+
+        (int Row, int Left, int Width)[] eyeApertures =
+        [
+            (16, 5, 11),
+            (16, 30, 11),
+            (17, 6, 12),
+            (17, 28, 11),
+            (18, 7, 11),
+            (18, 28, 11),
+            (19, 9, 6),
+            (19, 31, 6)
+        ];
+        foreach (var (row, left, width) in eyeApertures)
+        {
+            canvas.FillRect(left, row, width, 1, FaceColor.Black);
+        }
     }
 
     private static void DrawMaskCalibration(FaceArtCanvas canvas)

@@ -1,3 +1,4 @@
+using MaskApp.Core.Features.Animations;
 using MaskApp.Core.Features.BuiltIns;
 using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.Gallery;
@@ -300,9 +301,13 @@ public sealed class GalleryViewModelTests
         await viewModel.SendAsync(animation);
         await viewModel.SendAsync(animation);
 
+        var playbackSlots = AppBuiltInAnimationCatalog.CreateBuiltIns()[0].PlaybackSlots;
         Assert.Equal(2, faceTransport.Packages.Count);
-        Assert.Equal(2, commandTransport.SentCommands.Count);
+        Assert.Equal(playbackSlots.Count * 2, commandTransport.SentCommands.Count);
         Assert.All(commandTransport.SentCommands, command => Assert.Equal(MaskCommandKind.FacePlay, command.Kind));
+        Assert.Equal(
+            playbackSlots.Concat(playbackSlots).Select(slot => (byte)slot),
+            commandTransport.SentCommands.Select(command => command.Plaintext.Span[6]));
         Assert.Contains("no upload", viewModel.StatusText, StringComparison.OrdinalIgnoreCase);
     }
 
