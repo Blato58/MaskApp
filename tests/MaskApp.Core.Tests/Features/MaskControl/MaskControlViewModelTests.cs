@@ -82,6 +82,39 @@ public sealed class MaskControlViewModelTests
     }
 
     [Fact]
+    public async Task ApplyPlaybackSpeedCommand_SendsSelectedSpeed()
+    {
+        var transport = new SimulatedMaskCommandTransport();
+        var viewModel = new MaskControlViewModel(transport)
+        {
+            PlaybackSpeed = 40
+        };
+
+        await viewModel.ApplyPlaybackSpeedCommand.ExecuteAsync();
+
+        var command = Assert.Single(transport.SentCommands);
+        Assert.Equal(MaskCommandKind.AnimationSpeed, command.Kind);
+        Assert.Equal(40, command.Plaintext.Span[6]);
+        Assert.Equal(40, viewModel.PlaybackSpeed);
+        Assert.Equal("AnimationSpeed: Animation speed 40", viewModel.LastCommandText);
+    }
+
+    [Fact]
+    public async Task PlaybackSpeedPresetCommands_SendPresetLevels()
+    {
+        var transport = new SimulatedMaskCommandTransport();
+        var viewModel = new MaskControlViewModel(transport);
+
+        await viewModel.SetPlaybackSpeed25Command.ExecuteAsync();
+        await viewModel.SetPlaybackSpeed100Command.ExecuteAsync();
+
+        Assert.Equal(2, transport.SentCommands.Count);
+        Assert.Equal(25, transport.SentCommands[0].Plaintext.Span[6]);
+        Assert.Equal(100, transport.SentCommands[1].Plaintext.Span[6]);
+        Assert.Equal(100, viewModel.PlaybackSpeed);
+    }
+
+    [Fact]
     public async Task EffectPresetCommand_UpdatesCurrentEffectAfterSuccess()
     {
         var transport = new SimulatedMaskCommandTransport();

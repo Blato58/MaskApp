@@ -8,6 +8,7 @@ public sealed class MaskControlViewModel : INotifyPropertyChanged
 {
     private readonly IMaskCommandTransport transport;
     private int brightness = 60;
+    private int playbackSpeed = 75;
     private int previewBrightness = 60;
     private int restoreBrightness = 60;
     private bool isDimmed;
@@ -29,10 +30,15 @@ public sealed class MaskControlViewModel : INotifyPropertyChanged
         transport.TransportStateChanged += OnTransportStateChanged;
 
         ApplyBrightnessCommand = new AsyncRelayCommand(ApplyBrightnessAsync, CanSendCommand);
+        ApplyPlaybackSpeedCommand = new AsyncRelayCommand(ApplyPlaybackSpeedAsync, CanSendCommand);
         SetBrightness25Command = new AsyncRelayCommand(cancellationToken => SetBrightnessPresetAsync(25, cancellationToken), CanSendCommand);
         SetBrightness50Command = new AsyncRelayCommand(cancellationToken => SetBrightnessPresetAsync(50, cancellationToken), CanSendCommand);
         SetBrightness75Command = new AsyncRelayCommand(cancellationToken => SetBrightnessPresetAsync(75, cancellationToken), CanSendCommand);
         SetBrightness100Command = new AsyncRelayCommand(cancellationToken => SetBrightnessPresetAsync(100, cancellationToken), CanSendCommand);
+        SetPlaybackSpeed25Command = new AsyncRelayCommand(cancellationToken => SetPlaybackSpeedPresetAsync(25, cancellationToken), CanSendCommand);
+        SetPlaybackSpeed50Command = new AsyncRelayCommand(cancellationToken => SetPlaybackSpeedPresetAsync(50, cancellationToken), CanSendCommand);
+        SetPlaybackSpeed75Command = new AsyncRelayCommand(cancellationToken => SetPlaybackSpeedPresetAsync(75, cancellationToken), CanSendCommand);
+        SetPlaybackSpeed100Command = new AsyncRelayCommand(cancellationToken => SetPlaybackSpeedPresetAsync(100, cancellationToken), CanSendCommand);
         TogglePowerCommand = new AsyncRelayCommand(TogglePowerAsync, CanSendCommand);
         BlackoutCommand = new AsyncRelayCommand(BlackoutAsync, CanSendCommand);
         RestoreBrightnessCommand = new AsyncRelayCommand(RestoreBrightnessAsync, CanSendCommand);
@@ -50,6 +56,8 @@ public sealed class MaskControlViewModel : INotifyPropertyChanged
 
     public AsyncRelayCommand ApplyBrightnessCommand { get; }
 
+    public AsyncRelayCommand ApplyPlaybackSpeedCommand { get; }
+
     public AsyncRelayCommand SetBrightness25Command { get; }
 
     public AsyncRelayCommand SetBrightness50Command { get; }
@@ -57,6 +65,14 @@ public sealed class MaskControlViewModel : INotifyPropertyChanged
     public AsyncRelayCommand SetBrightness75Command { get; }
 
     public AsyncRelayCommand SetBrightness100Command { get; }
+
+    public AsyncRelayCommand SetPlaybackSpeed25Command { get; }
+
+    public AsyncRelayCommand SetPlaybackSpeed50Command { get; }
+
+    public AsyncRelayCommand SetPlaybackSpeed75Command { get; }
+
+    public AsyncRelayCommand SetPlaybackSpeed100Command { get; }
 
     public AsyncRelayCommand TogglePowerCommand { get; }
 
@@ -82,6 +98,12 @@ public sealed class MaskControlViewModel : INotifyPropertyChanged
                 restoreBrightness = clamped;
             }
         }
+    }
+
+    public int PlaybackSpeed
+    {
+        get => playbackSpeed;
+        set => SetField(ref playbackSpeed, Math.Clamp(value, 1, 100));
     }
 
     public int PreviewBrightness
@@ -188,10 +210,29 @@ public sealed class MaskControlViewModel : INotifyPropertyChanged
         await ApplyBrightnessLevelAsync(targetBrightness, cancellationToken);
     }
 
+    private Task ApplyPlaybackSpeedAsync(CancellationToken cancellationToken) =>
+        SendPlaybackSpeedAsync(PlaybackSpeed, cancellationToken);
+
     private Task SetBrightnessPresetAsync(int targetBrightness, CancellationToken cancellationToken)
     {
         Brightness = targetBrightness;
         return ApplyBrightnessLevelAsync(targetBrightness, cancellationToken);
+    }
+
+    private Task SetPlaybackSpeedPresetAsync(int targetSpeed, CancellationToken cancellationToken)
+    {
+        PlaybackSpeed = targetSpeed;
+        return SendPlaybackSpeedAsync(targetSpeed, cancellationToken);
+    }
+
+    private async Task SendPlaybackSpeedAsync(int targetSpeed, CancellationToken cancellationToken)
+    {
+        targetSpeed = Math.Clamp(targetSpeed, 1, 100);
+        var result = await SendCommandAsync(MaskCommandBuilder.AnimationSpeed(targetSpeed), cancellationToken);
+        if (result.Succeeded)
+        {
+            PlaybackSpeed = targetSpeed;
+        }
     }
 
     private async Task ApplyBrightnessLevelAsync(int targetBrightness, CancellationToken cancellationToken)
@@ -303,10 +344,15 @@ public sealed class MaskControlViewModel : INotifyPropertyChanged
     private void RaiseCommandStates()
     {
         ApplyBrightnessCommand.RaiseCanExecuteChanged();
+        ApplyPlaybackSpeedCommand.RaiseCanExecuteChanged();
         SetBrightness25Command.RaiseCanExecuteChanged();
         SetBrightness50Command.RaiseCanExecuteChanged();
         SetBrightness75Command.RaiseCanExecuteChanged();
         SetBrightness100Command.RaiseCanExecuteChanged();
+        SetPlaybackSpeed25Command.RaiseCanExecuteChanged();
+        SetPlaybackSpeed50Command.RaiseCanExecuteChanged();
+        SetPlaybackSpeed75Command.RaiseCanExecuteChanged();
+        SetPlaybackSpeed100Command.RaiseCanExecuteChanged();
         TogglePowerCommand.RaiseCanExecuteChanged();
         BlackoutCommand.RaiseCanExecuteChanged();
         RestoreBrightnessCommand.RaiseCanExecuteChanged();

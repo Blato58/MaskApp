@@ -13,7 +13,7 @@
         <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="18">
             <VerticalStackLayout Spacing="2">
                 <Label Text="Device" Style="{StaticResource PageTitleLabelStyle}" />
-                <Label Text="Connect your mask and set live brightness." Style="{StaticResource TinyLabelStyle}" />
+                <Label Text="Connect your mask and set live brightness and playback speed." Style="{StaticResource TinyLabelStyle}" />
             </VerticalStackLayout>
 
             <Border Style="{StaticResource PanelBorderStyle}">
@@ -130,6 +130,69 @@
                             <Button Grid.Column="1" Text="Blackout" Command="{Binding BlackoutCommand}" Style="{StaticResource DangerButtonStyle}" />
                             <Button Grid.Column="2" Text="Restore" Command="{Binding RestoreBrightnessCommand}" Style="{StaticResource BrightButtonStyle}" />
                         </Grid>
+
+                        <Label Grid.Row="4" Text="{Binding StatusText}" Style="{StaticResource TinyLabelStyle}" />
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource PanelBorderStyle}">
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="14">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Playback speed" FontSize="20" FontAttributes="Bold" />
+                                <Label Text="Sets firmware timing for text and prepared animations." Style="{StaticResource TinyLabelStyle}" />
+                            </VerticalStackLayout>
+                            <Label
+                                Grid.Column="1"
+                                Text="{Binding PlaybackSpeed}"
+                                Style="{StaticResource MetricLabelStyle}"
+                                VerticalOptions="Center" />
+                        </Grid>
+
+                        <Slider
+                            Grid.Row="1"
+                            Minimum="1"
+                            Maximum="100"
+                            Value="{Binding PlaybackSpeed, Mode=TwoWay}"
+                            SemanticProperties.Description="Mask playback speed from 1 to 100" />
+
+                        <Grid Grid.Row="2" ColumnDefinitions="*,*,*,*" ColumnSpacing="8">
+                            <Button Text="25" Command="{Binding SetPlaybackSpeed25Command}" Style="{StaticResource ModeButtonStyle}">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding PlaybackSpeed}" Value="25">
+                                        <Setter Property="BackgroundColor" Value="{StaticResource AccentBlueColor}" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                            <Button Grid.Column="1" Text="50" Command="{Binding SetPlaybackSpeed50Command}" Style="{StaticResource ModeButtonStyle}">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding PlaybackSpeed}" Value="50">
+                                        <Setter Property="BackgroundColor" Value="{StaticResource AccentBlueColor}" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                            <Button Grid.Column="2" Text="75" Command="{Binding SetPlaybackSpeed75Command}" Style="{StaticResource ModeButtonStyle}">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding PlaybackSpeed}" Value="75">
+                                        <Setter Property="BackgroundColor" Value="{StaticResource AccentBlueColor}" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                            <Button Grid.Column="3" Text="100" Command="{Binding SetPlaybackSpeed100Command}" Style="{StaticResource ModeButtonStyle}">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding PlaybackSpeed}" Value="100">
+                                        <Setter Property="BackgroundColor" Value="{StaticResource AccentBlueColor}" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                        </Grid>
+
+                        <Button
+                            Grid.Row="3"
+                            Text="Apply speed"
+                            Command="{Binding ApplyPlaybackSpeedCommand}"
+                            SemanticProperties.Hint="Sends the selected playback speed to the connected mask"
+                            Style="{StaticResource PrimaryButtonStyle}" />
 
                         <Label Grid.Row="4" Text="{Binding StatusText}" Style="{StaticResource TinyLabelStyle}" />
                     </Grid>
