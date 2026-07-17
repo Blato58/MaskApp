@@ -253,15 +253,19 @@ public sealed class PagesViewModelTests
 
         var playbackSlots = AppBuiltInAnimationCatalog.CreateBuiltIns()[0].PlaybackSlots;
         Assert.Equal(2, faceTransport.UploadCount);
-        Assert.Equal(4, commandTransport.Commands.Count);
+        var expectedSlots = playbackSlots
+            .Concat(playbackSlots)
+            .Select(slot => (byte)slot)
+            .ToArray();
+        Assert.Equal(expectedSlots.Length, commandTransport.Commands.Count);
+        Assert.All(commandTransport.Commands, command =>
+        {
+            Assert.Equal(MaskCommandKind.FacePlay, command.Kind);
+            Assert.Equal(1, command.Plaintext.Span[5]);
+        });
         Assert.Equal(
-            [MaskCommandKind.AnimationSpeed, MaskCommandKind.FacePlay, MaskCommandKind.AnimationSpeed, MaskCommandKind.FacePlay],
-            commandTransport.Commands.Select(command => command.Kind));
-        Assert.All(
-            commandTransport.Commands.Where(command => command.Kind == MaskCommandKind.FacePlay),
-            command => Assert.Equal(
-                playbackSlots.Select(slot => (byte)slot),
-                command.Plaintext.Span.Slice(6, playbackSlots.Count).ToArray()));
+            expectedSlots,
+            commandTransport.Commands.Select(command => command.Plaintext.Span[6]).ToArray());
         Assert.True(viewModel.Shortcuts.Single(item => item.Item.Id == animation.Id).IsFastSlotPrepared);
     }
 
@@ -283,10 +287,8 @@ public sealed class PagesViewModelTests
         await shortcut.PrepareCommand.ExecuteAsync();
 
         Assert.Equal(4, faceTransport.UploadCount);
-        Assert.Collection(
-            commandTransport.Commands,
-            command => Assert.Equal(MaskCommandKind.AnimationSpeed, command.Kind),
-            command => Assert.Equal(MaskCommandKind.FacePlay, command.Kind));
+        Assert.Equal(AppBuiltInAnimationCatalog.CreateBuiltIns()[0].PlaybackSlots.Count, commandTransport.Commands.Count);
+        Assert.All(commandTransport.Commands, command => Assert.Equal(MaskCommandKind.FacePlay, command.Kind));
         Assert.Contains("Refreshed", viewModel.StatusText, StringComparison.OrdinalIgnoreCase);
         Assert.True(viewModel.Shortcuts.Single(item => item.Item.Id == animation.Id).IsFastSlotPrepared);
     }

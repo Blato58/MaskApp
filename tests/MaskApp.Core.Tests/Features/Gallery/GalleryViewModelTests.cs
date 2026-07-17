@@ -303,15 +303,19 @@ public sealed class GalleryViewModelTests
 
         var playbackSlots = AppBuiltInAnimationCatalog.CreateBuiltIns()[0].PlaybackSlots;
         Assert.Equal(2, faceTransport.Packages.Count);
-        Assert.Equal(4, commandTransport.SentCommands.Count);
+        var expectedSlots = playbackSlots
+            .Concat(playbackSlots)
+            .Select(slot => (byte)slot)
+            .ToArray();
+        Assert.Equal(expectedSlots.Length, commandTransport.SentCommands.Count);
+        Assert.All(commandTransport.SentCommands, command =>
+        {
+            Assert.Equal(MaskCommandKind.FacePlay, command.Kind);
+            Assert.Equal(1, command.Plaintext.Span[5]);
+        });
         Assert.Equal(
-            [MaskCommandKind.AnimationSpeed, MaskCommandKind.FacePlay, MaskCommandKind.AnimationSpeed, MaskCommandKind.FacePlay],
-            commandTransport.SentCommands.Select(command => command.Kind));
-        Assert.All(
-            commandTransport.SentCommands.Where(command => command.Kind == MaskCommandKind.FacePlay),
-            command => Assert.Equal(
-                playbackSlots.Select(slot => (byte)slot),
-                command.Plaintext.Span.Slice(6, playbackSlots.Count).ToArray()));
+            expectedSlots,
+            commandTransport.SentCommands.Select(command => command.Plaintext.Span[6]).ToArray());
         Assert.Contains("no upload", viewModel.StatusText, StringComparison.OrdinalIgnoreCase);
     }
 

@@ -5,7 +5,7 @@ namespace MaskApp.Core.Features.Faces;
 
 public sealed class DiySlotPlaybackCoordinator
 {
-    private const int DefaultAnimationSpeed = 75;
+    private static readonly TimeSpan FastAnimationFrameInterval = TimeSpan.FromMilliseconds(75);
 
     private readonly IFacePatternStore facePatternStore;
     private readonly IFaceUploadTransport faceTransport;
@@ -31,7 +31,7 @@ public sealed class DiySlotPlaybackCoordinator
             [new SlotContent(normalized.PreferredSlot, normalized, $"face:{normalized.Id}", normalized.Id)],
             [normalized.PreferredSlot],
             playAfterPreparation: true,
-            useAnimationPlayback: false,
+            useRapidAnimationPlayback: false,
             forceUpload: false,
             cancellationToken);
     }
@@ -52,7 +52,7 @@ public sealed class DiySlotPlaybackCoordinator
                 .ToArray(),
             normalized.PlaybackSlots,
             playAfterPreparation: false,
-            useAnimationPlayback: true,
+            useRapidAnimationPlayback: true,
             forceUpload: false,
             cancellationToken);
     }
@@ -73,7 +73,7 @@ public sealed class DiySlotPlaybackCoordinator
                 .ToArray(),
             normalized.PlaybackSlots,
             playAfterPreparation: false,
-            useAnimationPlayback: true,
+            useRapidAnimationPlayback: true,
             forceUpload: true,
             cancellationToken);
     }
@@ -94,7 +94,7 @@ public sealed class DiySlotPlaybackCoordinator
                 .ToArray(),
             normalized.PlaybackSlots,
             playAfterPreparation: true,
-            useAnimationPlayback: true,
+            useRapidAnimationPlayback: true,
             forceUpload: false,
             cancellationToken);
     }
@@ -124,7 +124,7 @@ public sealed class DiySlotPlaybackCoordinator
         IReadOnlyList<SlotContent> content,
         IReadOnlyList<int> playbackSlots,
         bool playAfterPreparation,
-        bool useAnimationPlayback,
+        bool useRapidAnimationPlayback,
         bool forceUpload,
         CancellationToken cancellationToken)
     {
@@ -147,7 +147,7 @@ public sealed class DiySlotPlaybackCoordinator
 
             if (!playAfterPreparation)
             {
-                var preparedPlaybackLabel = useAnimationPlayback ? "SPEED + PLAY" : "PLAY";
+                var preparedPlaybackLabel = useRapidAnimationPlayback ? "rapid PLAY sequence" : "PLAY";
                 var message = preparation.UploadedSlotCount == 0
                     ? $"{displayName} is already prepared · {preparedPlaybackLabel} only"
                     : forceUpload
@@ -162,7 +162,7 @@ public sealed class DiySlotPlaybackCoordinator
 
             var playResult = await SendPlaybackAsync(
                 playbackSlots,
-                useAnimationPlayback,
+                useRapidAnimationPlayback,
                 cancellationToken).ConfigureAwait(false);
             if (!playResult.Succeeded)
             {
@@ -172,12 +172,12 @@ public sealed class DiySlotPlaybackCoordinator
                     preparation.ReusedSlotCount);
             }
 
-            var playbackDescription = useAnimationPlayback
-                ? $"{playbackSlots.Count}-step BLE-timed playback"
+            var playbackDescription = useRapidAnimationPlayback
+                ? $"{playbackSlots.Count}-step rapid playback"
                 : "PLAY";
             var playedMessage = preparation.UploadedSlotCount == 0
                 ? $"Sent {playbackDescription} for {displayName} from prepared DIY slots · no upload; confirm on mask"
-                : $"Uploaded {preparation.UploadedSlotCount} DIY slot(s) once and sent {playbackDescription} for {displayName} · confirm on mask; later plays use {(useAnimationPlayback ? "SPEED + PLAY" : "PLAY")} only";
+                : $"Uploaded {preparation.UploadedSlotCount} DIY slot(s) once and sent {playbackDescription} for {displayName} · confirm on mask; later plays use {(useRapidAnimationPlayback ? "rapid PLAY" : "PLAY")} only";
             return DiySlotPlaybackResult.Success(
                 playedMessage,
                 preparation.UploadedSlotCount,
@@ -192,27 +192,35 @@ public sealed class DiySlotPlaybackCoordinator
 
     private async Task<MaskCommandResult> SendPlaybackAsync(
         IReadOnlyList<int> playbackSlots,
-        bool useAnimationPlayback,
+        bool useRapidAnimationPlayback,
         CancellationToken cancellationToken)
     {
-        if (!useAnimationPlayback)
+        if (!useRapidAnimationPlayback)
         {
             return await commandTransport.SendAsync(
                 FaceUploadProtocol.BuildPlayCommand(playbackSlots),
                 cancellationToken).ConfigureAwait(false);
         }
 
-        var speedResult = await commandTransport.SendAsync(
-            MaskCommandBuilder.AnimationSpeed(DefaultAnimationSpeed),
-            cancellationToken).ConfigureAwait(false);
-        if (!speedResult.Succeeded)
+        MaskCommandResult? lastResult = null;
+        for (var index = 0; index < playbackSlots.Count; index++)
         {
-            return speedResult;
+            lastResult = await commandTransport.SendAsync(
+                FaceUploadProtocol.BuildPlayCommand([playbackSlots[index]]),
+                cancellationToken).ConfigureAwait(false);
+            if (!lastResult.Succeeded)
+            {
+                return lastResult;
+            }
+
+            if (index < playbackSlots.Count - 1 &&
+                !commandTransport.IsSimulated)
+            {
+                await Task.Delay(FastAnimationFrameInterval, cancellationToken).ConfigureAwait(false);
+            }
         }
 
-        return await commandTransport.SendAsync(
-            FaceUploadProtocol.BuildPlayCommand(playbackSlots),
-            cancellationToken).ConfigureAwait(false);
+        return lastResult ?? MaskCommandResult.Failure("Animation has no playback steps.");
     }
 
     private async Task<PreparationResult> PrepareLockedAsync(

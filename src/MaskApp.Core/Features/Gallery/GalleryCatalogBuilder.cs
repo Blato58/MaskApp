@@ -169,8 +169,8 @@ public sealed class GalleryCatalogBuilder
             IconKey = "anim",
             SortIndex = sortIndex,
             LastSendStatus = isPrepared
-                ? "Prepared on last mask · SPEED + PLAY"
-                : "Prepare once, then replay with SPEED + PLAY",
+                ? "Prepared on last mask · rapid PLAY"
+                : "Prepare once, then replay with rapid PLAY",
             PreviewBadgeText = $"DIY · {normalized.Frames.Count} frames",
             PreviewSourceText = normalized.Description,
             CanManage = false,

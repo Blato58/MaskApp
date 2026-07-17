@@ -121,7 +121,7 @@ and visualizer nibble packing.
 | `ANIM` | 1 byte built-in animation id | Plays a stock animation. The Android app's UI catalog lists 45 decimal command IDs: `0`, `1`, `2`, `3`, and `5..45`. ID `4` is present in generated resource IDs but `AnimFragment` skips it before sending. MaskApp previews the referenced frames at the original 100 ms cadence. | Implemented, firmware-static, needs real-mask test |
 | `CHEC` | none | Requests the number of DIY images stored on the mask; response is sent on the notification characteristic. Available evidence exposes a count, not a complete slot inventory. | Protocol-documented |
 | `DELE` | 1 byte count, then up to 10 DIY ids | Deletes uploaded DIY image slots. Response behavior needs physical confirmation. | Protocol-documented |
-| `PLAY` | 1 byte count, then up to 10 DIY ids | Plays uploaded DIY image slots in order. Pages uses one slot for prepared faces/text. App-built animations send the complete repeated slot sequence in one command so the mask owns continuous playback instead of the phone stopping after one app-timed pass. | Implemented; multi-slot looping needs follow-up real-mask test |
+| `PLAY` | 1 byte count, then up to 10 DIY ids | Plays uploaded DIY image slots in order. Pages uses one slot for prepared faces/text. Real-mask testing found the firmware-timed multi-slot cadence too slow and confirmed that `SPEED` does not change it, so app-built animations send individual one-slot commands at 75 ms intervals. | Implemented; rapid cadence needs follow-up real-mask test |
 
 The original Android DIY flow caps storage at 20 numbered slots (`1..20`). Pages
 exposes preparation and refresh as explicit actions rather than implying that
@@ -144,7 +144,7 @@ These commands are separate from the bitmap upload procedure.
 | Command | Arguments | Expected behavior | Confidence |
 | --- | --- | --- | --- |
 | `MODE` | 1 byte mode | Text display mode. Community mapping: `1` off, `2` blink, `3` scroll right-to-left, `4` scroll left-to-right; `0` and values above `4` are not useful. The analyzed TR1906 profile handles only `1..3`, with optional alternate-mode flags. | Implemented, firmware-static, needs real-mask test |
-| `SPEED` | 1 byte speed | Sets firmware display speed. Text modes use it, and app-built DIY animations now send `SPEED 75` before their complete multi-slot `PLAY` sequence instead of timing individual slot commands on the phone. The analyzed firmware quantizes `0..100` into ten internal timing levels; the DIY interaction still needs physical confirmation on this mask profile. | Implemented, firmware-static, needs real-mask test |
+| `SPEED` | 1 byte speed | Sets the timing level used by supported firmware display modes. The analyzed TR1906 profile quantizes `0..100` into ten internal levels, but that profile does not route `PLAY`, and real-mask testing confirmed that `SPEED` does not alter DIY-slot playback cadence. Holy Priest therefore does not send this command. | Implemented, firmware-static; not effective for DIY playback on the tested mask |
 | `M` | 1 byte enabled flag, 1 byte mode | Enables special text/background effects, including random dots, fades, and stock backgrounds. Not handled by the analyzed TR1906 command path. | Protocol-documented |
 | `FC` | 1 byte enabled flag, 3 bytes RGB | Sets foreground text color. Not handled by the analyzed TR1906 command path. | Protocol-documented |
 | `BC` | 1 byte enabled flag, 3 bytes RGB | Sets background color; black can clear background image effects. Not handled by the analyzed TR1906 command path. | Protocol-documented |
@@ -196,11 +196,10 @@ upload is implemented in MaskApp. A full 46x58 calibration face
 was displayed on the user's physical mask on 2026-07-17, confirming canvas
 orientation and static visual output. App-built custom animations reuse this
 same static-frame upload path across several numbered DIY slots. Playback sends
-`SPEED 75` followed by one `PLAY` command containing the complete repeated slot
-sequence. This lets the mask own timing and continuous sequence playback instead
-of ending after one phone-timed pass. The revised speed interaction, looping,
-persistence, overwrite behavior, and ACK behavior still need physical
-confirmation.
+each requested slot as an individual one-slot `PLAY` command at 75 ms intervals.
+The phone advances the frames because the firmware's `SPEED` command does not
+affect DIY playback on the tested mask. The rapid cadence, persistence, overwrite
+behavior, and ACK behavior still need physical confirmation.
 
 Static DIY face upload has Java evidence from `UCropActivity` and
 `BitmapUtils.getBitmapData`: the original Android crop path uses a 46x58 crop
@@ -256,10 +255,10 @@ Expected procedure:
    each slot or which physical mask was prepared.
    App-built animations use the same rule per frame: each slot is uploaded only
    when its stored content fingerprint is missing or changed. Playback keeps a
-   list containing two to ten slot steps, sends `SPEED 75`, and then sends the
-   whole list in one multi-slot `PLAY` command. Repeated slot ids create the
-   pulse or color cycle without storing duplicate frames, while firmware owns
-   the sequence timing and continuation.
+   list containing two to ten slot steps, but sends every entry as an individual
+   one-slot `PLAY` command at a 75 ms app-timed cadence. Repeated slot ids create
+   the pulse or color cycle without storing duplicate frames. The phone must
+   remain connected for the sub-second sequence.
    The visible Refresh action deliberately re-uploads every animation frame so
    it can recover after switching masks, clearing mask storage, or an out-of-band
    slot overwrite that the app cannot detect.
@@ -268,9 +267,9 @@ Expected procedure:
 
 Static custom-image visual output is physically confirmed for this mask. The
 default firmware-timed multi-slot cadence was physically observed to be too
-slow; the revised `SPEED 75` plus complete `PLAY` sequence still needs physical
-confirmation. GIF-ish playback, looping, persistence, overwrite behavior, and
-ACK behavior remain unproven product capability.
+slow, and `SPEED` did not change it. The replacement 75 ms app-timed cadence
+still needs physical confirmation. GIF-ish playback, persistence, overwrite
+behavior, and ACK behavior remain unproven product capability.
 
 ## Audio Visualization Protocol
 
@@ -328,7 +327,7 @@ encrypted 16-byte blocks and plaintext fallback.
 | Text upload | `DATS`, upload frames, `DATCP`, `MODE`, `SPEED` | Implemented MVP | Needs real-mask test |
 | Text colors/effects | `M`, `FC`, `BC` | Protocol-documented | Needs real-mask test |
 | DIY/custom image upload | `DATS`/payload/`DATCP`, `CHEC`, `PLAY`, `DELE` | Implemented Face Studio upload plus Library/Pages prepare-once and PLAY-only replay | Static 46x58 orientation and visual output confirmed; slot lifecycle and ACK behavior need real-mask tests |
-| App-built custom animation | Static DIY frames plus `SPEED` and complete multi-slot `PLAY` commands | Implemented Experimental catalog with per-frame fingerprints and firmware-timed sequence playback; unchanged frames are not re-uploaded | Speed, looping, persistence, and visuals need real-mask tests |
+| App-built custom animation | Static DIY frames plus rapid one-slot `PLAY` commands | Implemented Experimental catalog with per-frame fingerprints and 75 ms app-timed playback; unchanged frames are not re-uploaded | Firmware sequence and `SPEED` were ineffective for fast playback; revised cadence, persistence, and visuals need real-mask tests |
 | Static text fast slot | Text rasterized into a 46x58 DIY image, then `PLAY` | Implemented in Pages; native text modes intentionally not preserved | Needs real-mask test |
 | Audio visualizer | audio characteristic encrypted packets | Documented only | Needs real-mask test |
 | RAVE command fallbacks | `LIGHT`, `IMAG`, `ANIM` | Implemented as test/fallback controls | Needs real-mask test |
@@ -347,11 +346,11 @@ Use this order:
 4. Keep long uploads out of the event-time path.
 5. Treat built-in IDs as test/fallback content until useful IDs are written down
    from real-mask scanning.
-6. Prepared Pages shortcuts use one DIY slot `PLAY`; app-built animations send
-   `SPEED` and the complete sequence in one multi-slot `PLAY` command. Keep
-   refresh visible and do not treat app-local preparation metadata as a device
-   inventory until slot IDs, persistence, and revised playback timing are
-   physically verified.
+6. Prepared Pages shortcuts use one DIY slot `PLAY`; app-built animations use a
+   rapid app-timed series of one-slot `PLAY` commands because `SPEED` does not
+   affect DIY playback on the tested mask. Keep refresh visible and do not treat
+   app-local preparation metadata as a device inventory until slot IDs,
+   persistence, and revised playback timing are physically verified.
 7. Keep audio visualizer, Drop Detector, Voice Mouth, Bass Face, GIF-ish
    playback, and real-time effects in Labs until deterministic real-mask tests
    pass.

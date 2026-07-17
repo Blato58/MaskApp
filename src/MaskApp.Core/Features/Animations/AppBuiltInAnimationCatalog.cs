@@ -15,7 +15,7 @@ public static class AppBuiltInAnimationCatalog
             Create(
                 id: "holy-priest-cross-pulse",
                 displayName: "Holy Priest · Black / White Flash",
-                description: "Looping black-and-white inversion with BLE-controlled playback speed.",
+                description: "Rapid app-timed black-and-white inversion built for prepared DIY playback.",
                 colorHex: "#FFFFFF",
                 frames:
                 [
@@ -26,7 +26,7 @@ public static class AppBuiltInAnimationCatalog
             Create(
                 id: "holy-priest-red-mass",
                 displayName: "Holy Priest · Black → Red → Blue",
-                description: "Looping black-to-red-to-blue cross cycle with BLE-controlled playback speed.",
+                description: "Rapid app-timed black-to-red-to-blue cross cycle built for prepared DIY playback.",
                 colorHex: "#0000FF",
                 frames:
                 [
