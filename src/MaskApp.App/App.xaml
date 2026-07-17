@@ -17,6 +17,8 @@
             <Color x:Key="PanelRaisedColor">#2C2C2E</Color>
             <Color x:Key="PanelBorderColor">#38383A</Color>
             <Color x:Key="SeparatorColor">#38383A</Color>
+            <Color x:Key="SelectedSurfaceColor">#163A63</Color>
+            <Color x:Key="OverlayScrimColor">#B3000000</Color>
             <Color x:Key="PrimaryTextColor">#FFFFFF</Color>
             <Color x:Key="SecondaryTextColor">#D1D1D6</Color>
             <Color x:Key="MutedTextColor">#8E8E93</Color>
@@ -101,6 +103,21 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+            <Style x:Key="ListRowBorderStyle" TargetType="Border">
+                <Setter Property="BackgroundColor" Value="Transparent" />
+                <Setter Property="Padding" Value="4,14" />
+                <Setter Property="Stroke" Value="Transparent" />
+                <Setter Property="StrokeThickness" Value="0" />
+            </Style>
+            <Style x:Key="ListSeparatorStyle" TargetType="BoxView">
+                <Setter Property="BackgroundColor" Value="{StaticResource SeparatorColor}" />
+                <Setter Property="HeightRequest" Value="1" />
+                <Setter Property="HorizontalOptions" Value="Fill" />
+                <Setter Property="Margin" Value="76,0,0,0" />
+            </Style>
+            <Style x:Key="FullWidthListSeparatorStyle" TargetType="BoxView" BasedOn="{StaticResource ListSeparatorStyle}">
+                <Setter Property="Margin" Value="0" />
+            </Style>
             <Style x:Key="StatusPillBorderStyle" TargetType="Border">
                 <Setter Property="BackgroundColor" Value="{StaticResource ChipBackgroundColor}" />
                 <Setter Property="Padding" Value="9,4" />
@@ -126,12 +143,23 @@
             <Style x:Key="SecondaryButtonStyle" TargetType="Button">
                 <Setter Property="BackgroundColor" Value="{StaticResource PanelRaisedColor}" />
                 <Setter Property="BorderColor" Value="Transparent" />
+                <Setter Property="BorderWidth" Value="0" />
                 <Setter Property="TextColor" Value="{StaticResource PrimaryTextColor}" />
             </Style>
             <Style x:Key="CompactButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
                 <Setter Property="MinimumHeightRequest" Value="48" />
                 <Setter Property="Padding" Value="12,8" />
                 <Setter Property="FontSize" Value="14" />
+            </Style>
+            <Style x:Key="ModeButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                <Setter Property="MinimumHeightRequest" Value="44" />
+                <Setter Property="Padding" Value="12,8" />
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="FontSize" Value="14" />
+            </Style>
+            <Style x:Key="QuietButtonStyle" TargetType="Button" BasedOn="{StaticResource CompactButtonStyle}">
+                <Setter Property="BackgroundColor" Value="Transparent" />
+                <Setter Property="TextColor" Value="{StaticResource AccentBlueColor}" />
             </Style>
             <Style x:Key="PrimaryButtonStyle" TargetType="Button">
                 <Setter Property="BackgroundColor" Value="{StaticResource AccentBlueColor}" />
@@ -163,12 +191,14 @@
                 <Setter Property="TextColor" Value="{StaticResource PrimaryTextColor}" />
                 <Setter Property="PlaceholderColor" Value="{StaticResource MutedTextColor}" />
                 <Setter Property="ClearButtonVisibility" Value="WhileEditing" />
+                <Setter Property="MinimumHeightRequest" Value="48" />
             </Style>
             <Style TargetType="SearchBar">
                 <Setter Property="BackgroundColor" Value="{StaticResource InputBackgroundColor}" />
                 <Setter Property="TextColor" Value="{StaticResource PrimaryTextColor}" />
                 <Setter Property="PlaceholderColor" Value="{StaticResource MutedTextColor}" />
                 <Setter Property="CancelButtonColor" Value="{StaticResource AccentBlueColor}" />
+                <Setter Property="MinimumHeightRequest" Value="48" />
             </Style>
             <Style TargetType="Editor">
                 <Setter Property="BackgroundColor" Value="{StaticResource InputBackgroundColor}" />
@@ -179,6 +209,10 @@
                 <Setter Property="BackgroundColor" Value="{StaticResource InputBackgroundColor}" />
                 <Setter Property="TextColor" Value="{StaticResource PrimaryTextColor}" />
                 <Setter Property="TitleColor" Value="{StaticResource SecondaryTextColor}" />
+                <Setter Property="MinimumHeightRequest" Value="48" />
+            </Style>
+            <Style TargetType="ActivityIndicator">
+                <Setter Property="Color" Value="{StaticResource AccentBlueColor}" />
             </Style>
             <Style TargetType="Slider">
                 <Setter Property="ThumbColor" Value="{StaticResource AccentColor}" />

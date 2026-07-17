@@ -72,6 +72,7 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
             if (SetField(ref connectionState, value))
             {
                 OnPropertyChanged(nameof(IsConnected));
+                OnPropertyChanged(nameof(CanDisconnect));
                 OnPropertyChanged(nameof(ConnectionHeadline));
                 OnPropertyChanged(nameof(ConnectionDetailText));
                 OnPropertyChanged(nameof(DeviceNameText));
@@ -132,6 +133,9 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
     public bool CanStartAutoConnect => autoConnectCoordinator.CanAutoConnectNow;
 
     public bool IsConnected => ConnectionState == BleConnectionState.Connected;
+
+    public bool CanDisconnect =>
+        ConnectionState is BleConnectionState.Connected or BleConnectionState.Connecting;
 
     public string ConnectionHeadline => ConnectionState switch
     {

@@ -7,28 +7,86 @@
     xmlns:gallery="clr-namespace:MaskApp.Core.Features.Gallery;assembly=MaskApp.Core"
     x:DataType="gallery:GalleryViewModel"
     Title="Library"
+    Shell.NavBarIsVisible="False"
     BackgroundColor="{StaticResource PageBackgroundColor}">
     <Grid RowDefinitions="Auto,*,Auto">
-        <Grid Margin="18,14,18,10" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+        <Grid Margin="18,14,18,10" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                 <VerticalStackLayout Spacing="2">
                     <Label Text="Library" Style="{StaticResource PageTitleLabelStyle}" />
                     <Label Text="{Binding VisibleItemCountText}" Style="{StaticResource TinyLabelStyle}" />
                 </VerticalStackLayout>
-                <Button Grid.Column="1" Text="Add" Clicked="OnAddClicked" Style="{StaticResource PrimaryButtonStyle}" />
+                <Button
+                    Grid.Column="1"
+                    Text="Add item"
+                    Clicked="OnAddClicked"
+                    SemanticProperties.Description="Add an item to the Library"
+                    Style="{StaticResource PrimaryButtonStyle}" />
             </Grid>
             <SearchBar
                 x:Name="SearchBox"
                 Grid.Row="1"
-                Placeholder="Search Library"
+                Placeholder="Search items"
                 SearchButtonPressed="OnSearchDone"
                 SemanticProperties.Description="Search saved mask content"
                 Text="{Binding SearchText, Mode=TwoWay}" />
-            <Grid Grid.Row="2" ColumnDefinitions="*,*,Auto,Auto" ColumnSpacing="8">
-                <Button Text="Browse" Command="{Binding SetBrowseModeCommand}" Clicked="OnDismissSearchClicked" Style="{StaticResource PrimaryButtonStyle}" />
-                <Button Grid.Column="1" Text="Edit" Command="{Binding SetArrangeModeCommand}" Clicked="OnDismissSearchClicked" Style="{StaticResource SecondaryButtonStyle}" />
-                <Button Grid.Column="2" Text="Filter" Command="{Binding ToggleFilterSheetCommand}" Clicked="OnDismissSearchClicked" Style="{StaticResource CompactButtonStyle}" />
-                <Button Grid.Column="3" Text="Group" Command="{Binding ToggleGroupSheetCommand}" Clicked="OnDismissSearchClicked" Style="{StaticResource CompactButtonStyle}" />
+            <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="8">
+                <Button
+                    Text="Browse"
+                    Command="{Binding SetBrowseModeCommand}"
+                    Clicked="OnDismissSearchClicked"
+                    SemanticProperties.Hint="Send and open Library items"
+                    Style="{StaticResource ModeButtonStyle}">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsBrowseMode}" Value="True">
+                            <Setter Property="BackgroundColor" Value="{StaticResource AccentBlueColor}" />
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+                <Button
+                    Grid.Column="1"
+                    Text="Arrange"
+                    Command="{Binding SetArrangeModeCommand}"
+                    Clicked="OnDismissSearchClicked"
+                    SemanticProperties.Hint="Reorder, edit, and select Library items"
+                    Style="{StaticResource ModeButtonStyle}">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsArrangeMode}" Value="True">
+                            <Setter Property="BackgroundColor" Value="{StaticResource AccentBlueColor}" />
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+            </Grid>
+            <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="8">
+                <Button
+                    Text="Filter"
+                    Command="{Binding ToggleFilterSheetCommand}"
+                    Clicked="OnDismissSearchClicked"
+                    SemanticProperties.Hint="{Binding FilterSummaryText}"
+                    Style="{StaticResource ModeButtonStyle}">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button" Binding="{Binding ShowFavoritesOnly}" Value="True">
+                            <Setter Property="Text" Value="Favorites" />
+                            <Setter Property="BackgroundColor" Value="{StaticResource SelectedSurfaceColor}" />
+                        </DataTrigger>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsFilterSheetVisible}" Value="True">
+                            <Setter Property="BackgroundColor" Value="{StaticResource SelectedSurfaceColor}" />
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+                <Button
+                    Grid.Column="1"
+                    Text="{Binding GroupSummaryText, StringFormat='Group: {0}'}"
+                    Command="{Binding ToggleGroupSheetCommand}"
+                    Clicked="OnDismissSearchClicked"
+                    SemanticProperties.Description="Change Library grouping"
+                    Style="{StaticResource ModeButtonStyle}">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button" Binding="{Binding IsGroupSheetVisible}" Value="True">
+                            <Setter Property="BackgroundColor" Value="{StaticResource SelectedSurfaceColor}" />
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
             </Grid>
         </Grid>
 
@@ -47,8 +105,9 @@
                             <Label Text="{Binding Subtitle}" Style="{StaticResource TinyLabelStyle}" />
                         </VerticalStackLayout>
 
-                        <Border IsVisible="{Binding IsItemRow}" Style="{StaticResource ActionCardBorderStyle}">
-                            <Grid>
+                        <Border IsVisible="{Binding IsItemRow}" Style="{StaticResource ListRowBorderStyle}">
+                            <Grid RowDefinitions="Auto,1">
+                                <Grid>
                                 <Grid IsVisible="{Binding Item.IsNormalMode}" ColumnDefinitions="72,*,Auto" ColumnSpacing="12" MinimumHeightRequest="92">
                                     <Grid>
                                         <controls:BuiltInPreviewView
@@ -75,8 +134,19 @@
                                         <Label Text="{Binding Item.TypeLabel}" Style="{StaticResource TinyLabelStyle}" />
                                     </VerticalStackLayout>
                                     <VerticalStackLayout Grid.Column="2" Spacing="6" VerticalOptions="Center">
-                                        <Label Text="{Binding Item.FavoriteLabel}" TextColor="{StaticResource AccentYellowColor}" FontAttributes="Bold" HorizontalTextAlignment="Center" />
-                                        <Button Text="Send" Clicked="OnSendClicked" CommandParameter="{Binding Item.Item}" Style="{StaticResource PrimaryButtonStyle}" />
+                                        <Label
+                                            Text="★"
+                                            IsVisible="{Binding Item.IsFavorite}"
+                                            TextColor="{StaticResource AccentYellowColor}"
+                                            FontSize="18"
+                                            HorizontalTextAlignment="Center"
+                                            SemanticProperties.Description="Favorite item" />
+                                        <Button
+                                            Text="Send"
+                                            Clicked="OnSendClicked"
+                                            CommandParameter="{Binding Item.Item}"
+                                            SemanticProperties.Description="{Binding Item.Title, StringFormat='Send {0} to the mask'}"
+                                            Style="{StaticResource PrimaryButtonStyle}" />
                                     </VerticalStackLayout>
                                 </Grid>
 
@@ -92,6 +162,8 @@
                                         <Button Grid.Row="1" Grid.ColumnSpan="2" Text="Edit" Clicked="OnEditClicked" CommandParameter="{Binding Item.Item}" Style="{StaticResource SecondaryButtonStyle}" />
                                     </Grid>
                                 </Grid>
+                                </Grid>
+                                <BoxView Grid.Row="1" Style="{StaticResource ListSeparatorStyle}" />
                             </Grid>
                         </Border>
                     </Grid>
@@ -105,15 +177,28 @@
                     <Label Text="Filter Library" Style="{StaticResource SectionTitleLabelStyle}" />
                     <Label Grid.Row="1" Text="{Binding FilterSummaryText}" Style="{StaticResource MutedLabelStyle}" />
                     <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="10">
-                        <Button Text="All items" Command="{Binding ShowAllItemsCommand}" Style="{StaticResource SecondaryButtonStyle}" />
-                        <Button Grid.Column="1" Text="Favorites" Command="{Binding ShowFavoritesCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Text="All items" Command="{Binding ShowAllItemsCommand}" Style="{StaticResource ModeButtonStyle}">
+                            <Button.Triggers>
+                                <DataTrigger TargetType="Button" Binding="{Binding ShowFavoritesOnly}" Value="False">
+                                    <Setter Property="BackgroundColor" Value="{StaticResource AccentBlueColor}" />
+                                </DataTrigger>
+                            </Button.Triggers>
+                        </Button>
+                        <Button Grid.Column="1" Text="Favorites" Command="{Binding ShowFavoritesCommand}" Style="{StaticResource ModeButtonStyle}">
+                            <Button.Triggers>
+                                <DataTrigger TargetType="Button" Binding="{Binding ShowFavoritesOnly}" Value="True">
+                                    <Setter Property="BackgroundColor" Value="{StaticResource AccentBlueColor}" />
+                                </DataTrigger>
+                            </Button.Triggers>
+                        </Button>
                     </Grid>
                 </Grid>
             </Border>
             <Border Margin="18,8,18,18" IsVisible="{Binding IsGroupSheetVisible}" Style="{StaticResource PanelBorderStyle}">
-                <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
                     <Label Text="Group items" Style="{StaticResource SectionTitleLabelStyle}" />
                     <Picker Grid.Row="1" ItemsSource="{Binding GroupingOptions}" ItemDisplayBinding="{Binding Label}" SelectedItem="{Binding SelectedGroupingMode, Mode=TwoWay}" />
+                    <Button Grid.Row="2" Text="Done" Command="{Binding ToggleGroupSheetCommand}" Style="{StaticResource PrimaryButtonStyle}" />
                 </Grid>
             </Border>
             <Border Margin="18,8,18,18" IsVisible="{Binding HasSelection}" Style="{StaticResource PanelBorderStyle}">

@@ -54,6 +54,7 @@ public sealed class ConnectViewModelTests
         Assert.Equal(BleConnectionState.Connected, viewModel.ConnectionState);
         Assert.Equal("Connected to Mask One.", viewModel.StatusText);
         Assert.True(viewModel.IsConnected);
+        Assert.True(viewModel.CanDisconnect);
         Assert.Equal("Connected", viewModel.ConnectionHeadline);
         Assert.Equal("Mask One", viewModel.DeviceNameText);
         Assert.Equal("-51 dBm", viewModel.DeviceSignalText);
@@ -78,6 +79,7 @@ public sealed class ConnectViewModelTests
         await viewModel.InitializeAsync();
 
         Assert.False(viewModel.IsConnected);
+        Assert.False(viewModel.CanDisconnect);
         Assert.Equal("Not Connected", viewModel.ConnectionHeadline);
         Assert.Equal("Saved Mask", viewModel.DeviceNameText);
         Assert.Equal("Signal unavailable", viewModel.DeviceSignalText);
