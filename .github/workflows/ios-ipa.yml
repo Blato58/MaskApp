@@ -46,6 +46,9 @@ permissions:
   pages: write
   id-token: write
 
+env:
+  DOTNET_WORKLOAD_VERSION: "10.0.301.1"
+
 concurrency:
   group: ios-ipa-${{ github.ref }}
   cancel-in-progress: false
@@ -219,7 +222,11 @@ jobs:
 
       - name: Install MAUI workloads
         shell: bash
-        run: dotnet workload install maui-ios android
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          dotnet workload install maui-ios android --version "$DOTNET_WORKLOAD_VERSION"
+          dotnet workload --info
 
       - name: Restore iOS publish target
         shell: bash
