@@ -27,6 +27,8 @@ Secondary/context sources:
 - Reddit r/ReverseEngineering thread,
   [Help me figure out how to reverse engineer the Shining Mask app](https://www.reddit.com/r/ReverseEngineering/comments/lr9xxr/help_me_figure_out_how_to_reverse_engineer_the/)
 - Local Java snapshot under `android/`, especially `android/base/app`.
+- Static analysis of the two bundled TR1906 OTA images, recorded in
+  [TR1906 firmware and BLE protocol analysis](tr1906-firmware-analysis.md).
 
 The tables below are summarized and normalized for this repository. Do not copy
 external protocol notes verbatim into code comments or user-facing copy.
@@ -37,6 +39,7 @@ external protocol notes verbatim into code comments or user-facing copy.
 | --- | --- |
 | Protocol-documented | Present in reverse-engineered evidence, but not necessarily implemented in MaskApp. |
 | Java evidence | Also supported by the local Android source snapshot. |
+| Firmware-static | Present in the command or GATT path of both analyzed TR1906 OTA images, but not physically verified. |
 | Implemented | Implemented in this repo and covered by compile/unit validation where practical. |
 | Needs real-mask test | Not yet physically verified on the user's mask. |
 | Experimental | Plausible from protocol evidence, but timing, visual result, or reliability is unknown. |
@@ -47,15 +50,17 @@ MaskApp currently targets this stock mask service:
 
 | Role | UUID | Properties | Notes |
 | --- | --- | --- | --- |
-| Service | `0000fff0-0000-1000-8000-00805f9b34fb` | Service | Verify during real-mask discovery. |
-| Command | `d44bc439-abfd-45a2-b575-925416129600` | Write | Encrypted 16-byte commands: brightness, built-ins, text controls, upload start/finish, DIY management. |
-| Notification | `d44bc439-abfd-45a2-b575-925416129601` | Notify | ACK and response messages for uploads and utility commands. |
-| Image/Text upload | `d44bc439-abfd-45a2-b575-92541612960a` | Write | Unencrypted upload chunks for custom bitmap/text payloads. |
-| Audio visualization | `d44bc439-abfd-45a2-b575-92541612960b` | Write | Encrypted 16-byte live visualizer packets. |
+| Service | `0000fff0-0000-1000-8000-00805f9b34fb` | Service | Present in the Android client and both analyzed TR1906 firmware builds. Verify during real-mask discovery. |
+| Command | `d44bc439-abfd-45a2-b575-925416129600` | Write / Write Without Response | Encrypted 16-byte commands: brightness, built-ins, text controls, and upload start/finish. DIY management commands belong to a broader app/device profile. |
+| Notification | `d44bc439-abfd-45a2-b575-925416129601` | Notify | Encrypted 16-byte ACK and response messages in the analyzed firmware. |
+| Image/Text upload | `d44bc439-abfd-45a2-b575-92541612960a` | Write / Write Without Response | Raw 20/100-byte frames in the Java-derived, physically working MaskApp profile. The bundled TR1906 firmware instead AES-decrypts one 16-byte block here; see the profile mismatch below. |
+| Audio visualization | `d44bc439-abfd-45a2-b575-92541612960b` | Write / Write Without Response | Encrypted 16-byte live visualizer packets, confirmed by firmware-static analysis. |
 
 Do not assume every clone exposes every characteristic identically. Text and
 image upload paths should report which characteristics were found and whether
-ACK notifications are available.
+ACK notifications are available. In particular, do not combine the raw upload
+framing used by MaskApp with the encrypted upload framing found in the bundled
+TR1906 images.
 
 ## AES/Encryption
 
@@ -66,7 +71,10 @@ fixed key:
 32672f7974ad43451d9c6c894a0e8764
 ```
 
-MaskApp implements this in `MaskProtocolCrypto`.
+MaskApp implements this in `MaskProtocolCrypto`. The TR1906 images contain AES
+encrypt/decrypt routines and a RAM key schedule, but load their key from a flash
+address outside the OTA image. The fixed key above is therefore app evidence,
+not a value independently recovered from those two OTA files.
 
 ## Encrypted Command Block Format
 
@@ -80,16 +88,37 @@ Plaintext command blocks are exactly 16 bytes:
 | remaining bytes | variable | Zero padding to 16 bytes unless a command source proves otherwise. |
 
 The resulting 16-byte block is encrypted once and written as a single command
-payload. Image/text data chunks written to the upload characteristic are not
-encrypted. Audio visualizer packets are 16-byte encrypted packets.
+payload. In the Java-derived MaskApp upload profile, image/text chunks written
+to the upload characteristic are not encrypted. In the analyzed TR1906
+firmware profile, command, upload, and visualizer values are each passed through
+one AES block decrypt before dispatch. Audio visualizer packets are 16-byte
+encrypted packets in both sources.
+
+## Bundled TR1906 Firmware Profile
+
+The two decrypted OTA assets implement the same relocated command parser. It
+recognizes `DATS`, `DATCP`, `SPEED`, `SMVEW`, `SOUT`, `LIGHT`, `LOOP`, `ANIM`,
+`CLRL`, `IMAG`, and `MODE`. It does not route `M`, `FC`, `BC`, `CHEC`, `DELE`,
+`PLAY`, `TIME`, `FACE`, `MANY`, or `MANCP` from this GATT command path.
+
+Its upload characteristic accepts independently AES-wrapped 16-byte blocks
+with a length byte and streamed data, without the frame index used by the
+Android app's raw 20/100-byte upload path. It emits encrypted `DATSOK`,
+`DATCPOK`, and `ERROR00`, but no per-frame `REOK` from that handler.
+
+This is a separate protocol profile, not a correction to the physically used
+MaskApp DIY upload flow. The images also contain the identity string
+`GLASSES-`. See the [full firmware analysis](tr1906-firmware-analysis.md) for
+decryption hashes, function addresses, exact command mappings, upload types,
+and visualizer nibble packing.
 
 ## Utility/Control Commands
 
 | Command | Arguments | Expected behavior | Confidence |
 | --- | --- | --- | --- |
-| `LIGHT` | 1 byte brightness | Sets LED brightness. Prefer capping normal UI brightness at or below `100` until physical flicker behavior is verified. | Implemented, needs real-mask test |
-| `IMAG` | 1 byte built-in image id | Displays a stock static image. The Android app's UI catalog lists 70 decimal IDs, `0..69`; MaskApp ships the corresponding original-app UI previews. Older `0x69` notes were approximate protocol evidence, not a complete Android gallery count. | Implemented, needs real-mask test |
-| `ANIM` | 1 byte built-in animation id | Plays a stock animation. The Android app's UI catalog lists 45 decimal command IDs: `0`, `1`, `2`, `3`, and `5..45`. ID `4` is present in generated resource IDs but `AnimFragment` skips it before sending. MaskApp previews the referenced frames at the original 100 ms cadence. | Implemented, needs real-mask test |
+| `LIGHT` | 1 byte brightness | Sets LED brightness. The analyzed firmware quantizes `0..100` into five internal levels. Prefer capping normal UI brightness at or below `100` until physical flicker behavior is verified. | Implemented, firmware-static, needs real-mask test |
+| `IMAG` | 1 byte built-in image id | Displays a stock static image. The Android app's UI catalog lists 70 decimal IDs, `0..69`; MaskApp ships the corresponding original-app UI previews. Older `0x69` notes were approximate protocol evidence, not a complete Android gallery count. | Implemented, firmware-static, needs real-mask test |
+| `ANIM` | 1 byte built-in animation id | Plays a stock animation. The Android app's UI catalog lists 45 decimal command IDs: `0`, `1`, `2`, `3`, and `5..45`. ID `4` is present in generated resource IDs but `AnimFragment` skips it before sending. MaskApp previews the referenced frames at the original 100 ms cadence. | Implemented, firmware-static, needs real-mask test |
 | `CHEC` | none | Requests the number of DIY images stored on the mask; response is sent on the notification characteristic. Available evidence exposes a count, not a complete slot inventory. | Protocol-documented |
 | `DELE` | 1 byte count, then up to 10 DIY ids | Deletes uploaded DIY image slots. Response behavior needs physical confirmation. | Protocol-documented |
 | `PLAY` | 1 byte count, then up to 10 DIY ids | Plays uploaded DIY image slots in order. Pages uses one slot for prepared faces/text. Physical testing found the firmware-timed multi-slot cadence too slow for the Holy Priest animations, so MaskApp now sends their steps as individual one-slot commands at 75 ms intervals. | Implemented; rapid cadence needs follow-up real-mask test |
@@ -114,11 +143,11 @@ These commands are separate from the bitmap upload procedure.
 
 | Command | Arguments | Expected behavior | Confidence |
 | --- | --- | --- | --- |
-| `MODE` | 1 byte mode | Text display mode. Community mapping: `1` off, `2` blink, `3` scroll right-to-left, `4` scroll left-to-right; `0` and values above `4` are not useful. | Implemented, needs real-mask test |
-| `SPEED` | 1 byte speed | Sets the speed used by text display modes. | Implemented, needs real-mask test |
-| `M` | 1 byte enabled flag, 1 byte mode | Enables special text/background effects, including random dots, fades, and stock backgrounds. | Protocol-documented |
-| `FC` | 1 byte enabled flag, 3 bytes RGB | Sets foreground text color. | Protocol-documented |
-| `BC` | 1 byte enabled flag, 3 bytes RGB | Sets background color; black can clear background image effects. | Protocol-documented |
+| `MODE` | 1 byte mode | Text display mode. Community mapping: `1` off, `2` blink, `3` scroll right-to-left, `4` scroll left-to-right; `0` and values above `4` are not useful. The analyzed TR1906 profile handles only `1..3`, with optional alternate-mode flags. | Implemented, firmware-static, needs real-mask test |
+| `SPEED` | 1 byte speed | Sets the speed used by text display modes. The analyzed firmware quantizes `0..100` into ten internal timing levels. | Implemented, firmware-static, needs real-mask test |
+| `M` | 1 byte enabled flag, 1 byte mode | Enables special text/background effects, including random dots, fades, and stock backgrounds. Not handled by the analyzed TR1906 command path. | Protocol-documented |
+| `FC` | 1 byte enabled flag, 3 bytes RGB | Sets foreground text color. Not handled by the analyzed TR1906 command path. | Protocol-documented |
+| `BC` | 1 byte enabled flag, 3 bytes RGB | Sets background color; black can clear background image effects. Not handled by the analyzed TR1906 command path. | Protocol-documented |
 
 Implementation note: use the stock `MODE` command name for future text-mode work
 unless a real-mask test proves the local Java-derived behavior needs a
@@ -126,8 +155,10 @@ compatibility branch.
 
 ## Text Upload Procedure
 
-Text upload uses the same upload characteristic as image data. Treat it as a
-bitmap upload with optional per-column or per-stripe color data.
+This section describes the Java-derived MaskApp profile, not the alternate
+encrypted-block upload handler in the bundled TR1906 images. Text upload uses
+the same upload characteristic as image data. Treat it as a bitmap upload with
+optional per-column or per-stripe color data.
 
 1. Render text as a 16-pixel-high bitmap. Keep widths conservative; long
    bitmaps can make some masks unresponsive.
@@ -159,7 +190,9 @@ upload when those behaviors are needed.
 
 ## Image Upload Procedure
 
-Static DIY face upload is implemented in MaskApp. A full 46x58 calibration face
+This section describes the Java-derived MaskApp profile, not the alternate
+encrypted-block upload handler in the bundled TR1906 images. Static DIY face
+upload is implemented in MaskApp. A full 46x58 calibration face
 was displayed on the user's physical mask on 2026-07-17, confirming canvas
 orientation and static visual output. App-built custom animations reuse this
 same static-frame upload path across several numbered DIY slots. Their rapid
@@ -244,6 +277,14 @@ The audio visualization characteristic accepts encrypted 16-byte packets. It is
 intended for live visualizer/rhythm behavior rather than ordinary command or
 upload traffic.
 
+Firmware-static analysis shows a length-prefixed payload whose first byte after
+the length selects one of four packing modes. The handler expands packed
+4-bit levels `0..9` into a 24-element render buffer; values above `9` are
+clamped to zero. Modes `0`/`1` consume 12 packed bytes, mode `2` consumes six,
+and mode `3` consumes four. Palette, orientation, and visible behavior still
+need a real-mask test; see the detailed firmware analysis before implementing
+this alternate live-view path.
+
 MaskApp status:
 
 - The UUID is documented in `MaskBleProtocol`.
@@ -269,9 +310,11 @@ explicit stop/recovery path before adding microphone input.
 | `CHEC` | DIY slot/check response | Response payload format needs local physical validation. |
 | `ERROR` | Command/upload failed | Parsed as `Error` for text upload. |
 
-ACK values may arrive encrypted, plaintext, length-prefixed, or minimally padded
-depending on firmware/clone behavior. Current parsing accepts encrypted 16-byte
-blocks and plaintext fallback.
+The two analyzed TR1906 builds always encrypt a 16-byte notification block and
+only generate `DATSOK`, `DATCPOK`, and `ERROR00` in this parser path. Other
+firmware/clone profiles may return the broader response set as encrypted,
+plaintext, length-prefixed, or minimally padded values. Current parsing accepts
+encrypted 16-byte blocks and plaintext fallback.
 
 ## Feature Capability Table
 
