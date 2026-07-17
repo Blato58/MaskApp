@@ -177,7 +177,7 @@
                     <CollectionView.EmptyView>
                         <VerticalStackLayout Padding="28" Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
                             <Label Text="Build this page" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center" />
-                            <Label Text="Add Library items, then prepare text and DIY faces for instant playback." Style="{StaticResource MutedLabelStyle}" HorizontalTextAlignment="Center" />
+                            <Label Text="Add Library items, then prepare text, DIY faces, and app animations for instant playback." Style="{StaticResource MutedLabelStyle}" HorizontalTextAlignment="Center" />
                         </VerticalStackLayout>
                     </CollectionView.EmptyView>
                     <CollectionView.ItemTemplate>
@@ -260,7 +260,7 @@
                     <Label
                         Grid.Row="2"
                         IsVisible="{Binding IsManageMode}"
-                        Text="Fast slots are static snapshots remembered for the last prepared mask. Refresh them after switching masks."
+                        Text="Prepared DIY slots and app animations are remembered for the last mask. Refresh them after switching masks."
                         Style="{StaticResource TinyLabelStyle}" />
                 </Grid>
             </Border>

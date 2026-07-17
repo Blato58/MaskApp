@@ -36,7 +36,10 @@ public static class FacePatternFactory
             CreateCharacter("dj", "Rave DJ", now),
             CreateCharacter("three-eyed-monster", "Three-Eyed Monster", now),
             CreateCharacter("cyclops", "Happy Cyclops", now),
-            CreateCharacter("sleepy", "Sleepy Face", now)
+            CreateCharacter("sleepy", "Sleepy Face", now),
+            CreateCharacter("holy-priest-cross", "Holy Priest · Cross", now),
+            CreateCharacter("holy-priest-red", "Holy Priest · Blood Cross", now),
+            CreateCharacter("holy-priest-negative", "Holy Priest · Negative", now)
         ];
     }
 
@@ -73,6 +76,19 @@ public static class FacePatternFactory
             FaceEmotion.Custom,
             7,
             timestamp);
+
+    internal static FacePattern CreateBuiltInArtwork(
+        string id,
+        string name,
+        string artworkId,
+        int preferredSlot) =>
+        Create(
+            id,
+            name,
+            artworkId,
+            FaceEmotion.Custom,
+            preferredSlot,
+            DateTimeOffset.UnixEpoch);
 
     private static FacePattern Create(
         string id,

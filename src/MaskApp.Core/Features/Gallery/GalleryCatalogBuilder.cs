@@ -1,3 +1,4 @@
+using MaskApp.Core.Features.Animations;
 using MaskApp.Core.Features.BuiltIns;
 using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.QuickActions;
@@ -22,6 +23,7 @@ public sealed class GalleryCatalogBuilder
     {
         var items = new List<GalleryItem>();
         var sortIndex = 0;
+        var normalizedFaceState = faceState.Normalize();
 
         items.AddRange(textPresetState.Normalize().Presets
             .Where(preset => preset.Category != TextPresetCategory.Legacy || preset.IsFavorite)
@@ -30,8 +32,11 @@ public sealed class GalleryCatalogBuilder
         items.AddRange(GetBuiltInCatalogRecords(builtInArchive)
             .Select(record => CreateBuiltInItem(record, sortIndex++)));
 
-        items.AddRange(faceState.Normalize().Patterns
-            .Select(pattern => CreateFaceItem(pattern, sortIndex++)));
+        items.AddRange(normalizedFaceState.Patterns
+            .Select(pattern => CreateFaceItem(pattern, normalizedFaceState, sortIndex++)));
+
+        items.AddRange(AppBuiltInAnimationCatalog.CreateBuiltIns()
+            .Select(animation => CreateAppBuiltInAnimationItem(animation, normalizedFaceState, sortIndex++)));
 
         items.AddRange(quickActionCatalog.Actions
             .Where(action => action.Kind is QuickActionKind.Text or QuickActionKind.Command or QuickActionKind.BuiltInImage or QuickActionKind.BuiltInAnimation or QuickActionKind.Random)
@@ -104,16 +109,25 @@ public sealed class GalleryCatalogBuilder
         }
     }
 
-    private static GalleryItem CreateFaceItem(FacePattern pattern, int sortIndex)
+    private static GalleryItem CreateFaceItem(
+        FacePattern pattern,
+        FacePatternStoreState faceState,
+        int sortIndex)
     {
         var normalized = pattern.Normalize();
+        var isHolyPriest = normalized.Id.StartsWith("built-in-face-holy-priest-", StringComparison.Ordinal);
+        var isPrepared = DiySlotPlaybackCoordinator.IsFacePrepared(normalized, faceState);
         return new GalleryItem
         {
             Id = $"face:{normalized.Id}",
             Type = GalleryItemType.CustomStaticFace,
             Title = normalized.DisplayName,
-            Subtitle = $"{normalized.SourceLabel} / Slot {normalized.PreferredSlot}",
-            GroupName = normalized.IsBuiltIn ? "Pixel face collection" : "Custom faces",
+            Subtitle = isHolyPriest
+                ? $"App-built artist face / DIY slot {normalized.PreferredSlot}"
+                : $"{normalized.SourceLabel} / Slot {normalized.PreferredSlot}",
+            GroupName = isHolyPriest
+                ? "Holy Priest"
+                : normalized.IsBuiltIn ? "Pixel face collection" : "Custom faces",
             IsFavorite = normalized.IsFavorite,
             ColorHex = normalized.AccentColorHex,
             IconKey = normalized.Emotion switch
@@ -125,11 +139,43 @@ public sealed class GalleryCatalogBuilder
             },
             SortIndex = sortIndex,
             LastSentAt = normalized.LastUploadedAt,
-            LastSendStatus = string.IsNullOrWhiteSpace(normalized.LastUploadStatus)
-                ? "DIY upload needs real-mask test"
-                : normalized.LastUploadStatus,
+            LastSendStatus = isPrepared
+                ? $"Prepared DIY slot {normalized.PreferredSlot} · PLAY only"
+                : string.IsNullOrWhiteSpace(normalized.LastUploadStatus)
+                    ? "DIY upload needs real-mask test"
+                    : normalized.LastUploadStatus,
             ManageTarget = "faces",
             FacePattern = normalized
+        };
+    }
+
+    private static GalleryItem CreateAppBuiltInAnimationItem(
+        AppBuiltInAnimation animation,
+        FacePatternStoreState faceState,
+        int sortIndex)
+    {
+        var normalized = animation.Normalize();
+        var slotLabel = string.Join(", ", normalized.ReservedSlots);
+        var isPrepared = DiySlotPlaybackCoordinator.IsAnimationPrepared(normalized, faceState);
+        return new GalleryItem
+        {
+            Id = $"app-animation:{normalized.Id}",
+            Type = GalleryItemType.AppBuiltInAnimation,
+            Title = normalized.DisplayName,
+            Subtitle = $"{normalized.Frames.Count} app-built frames / DIY slots {slotLabel} / Experimental",
+            GroupName = normalized.ArtistName,
+            IsFavorite = normalized.IsFavorite,
+            ColorHex = normalized.ColorHex,
+            IconKey = "anim",
+            SortIndex = sortIndex,
+            LastSendStatus = isPrepared
+                ? "Prepared on last mask · PLAY only"
+                : "Prepare once, then replay with PLAY only",
+            PreviewBadgeText = $"DIY · {normalized.Frames.Count} frames",
+            PreviewSourceText = normalized.Description,
+            CanManage = false,
+            FacePattern = normalized.PreviewPattern,
+            AppAnimation = normalized
         };
     }
 
@@ -158,8 +204,8 @@ public sealed class GalleryCatalogBuilder
         {
             Id = "future:custom-animation",
             Type = GalleryItemType.FutureCustomAnimation,
-            Title = "Custom animation",
-            Subtitle = "DIY playback remains future/Labs until physical validation.",
+            Title = "Import animation",
+            Subtitle = "MaskPack and external animation import remain future/Labs.",
             GroupName = "Labs",
             ColorHex = "#475569",
             IconKey = "anim",

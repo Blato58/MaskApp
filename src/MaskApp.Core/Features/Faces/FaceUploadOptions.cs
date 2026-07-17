@@ -29,6 +29,8 @@ public sealed record FaceUploadOptions
 
     public bool DeleteSlotBeforeUpload { get; init; } = true;
 
+    public bool PlayAfterUpload { get; init; } = true;
+
     public TimeSpan PreUploadDeleteDelay { get; init; } = TimeSpan.FromMilliseconds(500);
 
     public TimeSpan DeleteAcknowledgementTimeout { get; init; } = TimeSpan.FromMilliseconds(1500);

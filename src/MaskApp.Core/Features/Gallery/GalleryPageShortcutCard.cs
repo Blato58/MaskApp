@@ -82,14 +82,18 @@ public sealed class GalleryPageShortcutCard : INotifyPropertyChanged
 
     public bool IsFastSlotPrepared { get; }
 
-    public string FastSlotStatusText => (IsFastSlotCapable, IsFastSlotPrepared, Layout.FastMaskSlot) switch
-    {
-        (true, true, int slot) => $"Fast slot {slot} · instant",
-        (true, false, _) when Item.Type == GalleryItemType.TextPreset => "Fast slot not prepared · static",
-        (true, false, _) => "Fast slot not prepared",
-        _ when Item.Type is GalleryItemType.BuiltInStaticImage or GalleryItemType.BuiltInAnimation => "Built in · instant",
-        _ => "Direct action"
-    };
+    public string FastSlotStatusText => Item.AppAnimation is not null
+        ? IsFastSlotPrepared
+            ? $"{Item.AppAnimation.Frames.Count} DIY slots · PLAY only"
+            : $"{Item.AppAnimation.Frames.Count} DIY slots · prepare once"
+        : (IsFastSlotCapable, IsFastSlotPrepared, Layout.FastMaskSlot) switch
+        {
+            (true, true, int slot) => $"Fast slot {slot} · instant",
+            (true, false, _) when Item.Type == GalleryItemType.TextPreset => "Fast slot not prepared · static",
+            (true, false, _) => "Fast slot not prepared",
+            _ when Item.Type is GalleryItemType.BuiltInStaticImage or GalleryItemType.BuiltInAnimation => "Built in · instant",
+            _ => "Direct action"
+        };
 
     public string FastSlotStatusColorHex => IsFastSlotPrepared
         ? "#22C55E"
@@ -99,7 +103,9 @@ public sealed class GalleryPageShortcutCard : INotifyPropertyChanged
 
     public string UseActionText => IsFastSlotCapable && !IsFastSlotPrepared ? "Prepare + show" : "Show";
 
-    public string PrepareActionText => IsFastSlotPrepared ? "Refresh slot" : "Prepare slot";
+    public string PrepareActionText => Item.AppAnimation is not null
+        ? IsFastSlotPrepared ? "Refresh animation" : "Prepare animation"
+        : IsFastSlotPrepared ? "Refresh slot" : "Prepare slot";
 
     public AsyncRelayCommand SendCommand { get; }
 

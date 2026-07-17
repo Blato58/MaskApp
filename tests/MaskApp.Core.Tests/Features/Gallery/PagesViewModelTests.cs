@@ -1,3 +1,4 @@
+using MaskApp.Core.Features.Animations;
 using MaskApp.Core.Features.BuiltIns;
 using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.Gallery;
@@ -149,7 +150,10 @@ public sealed class PagesViewModelTests
         var saved = layoutStore.State.Pages
             .SelectMany(page => page.Items)
             .Single(item => item.GalleryItemId == $"text:{preset.Id.Value}");
-        Assert.Equal(FacePattern.MaxSlot, saved.FastMaskSlot);
+        var firstAnimationSlot = AppBuiltInAnimationCatalog.CreateBuiltIns()
+            .SelectMany(animation => animation.ReservedSlots)
+            .Min();
+        Assert.Equal(firstAnimationSlot - 1, saved.FastMaskSlot);
         Assert.NotEmpty(saved.FastContentFingerprint);
         Assert.True(Assert.Single(viewModel.Shortcuts).IsFastSlotPrepared);
 
@@ -231,6 +235,52 @@ public sealed class PagesViewModelTests
         Assert.Equal(1, faceTransport.UploadCount);
         Assert.Equal(12, faceTransport.LastPackage?.Slot);
         Assert.Equal(MaskCommandKind.FacePlay, Assert.Single(commandTransport.Commands).Kind);
+    }
+
+    [Fact]
+    public async Task SendAppAnimationShortcut_UploadsFramesOnce_ThenUsesPlayOnly()
+    {
+        var commandTransport = new RecordingCommandTransport();
+        var faceTransport = new RecordingFaceTransport();
+        var viewModel = CreateViewModel(commandTransport: commandTransport, faceTransport: faceTransport);
+        await viewModel.InitializeAsync();
+        var animation = viewModel.AvailableItems
+            .Single(item => item.Item.Id == "app-animation:holy-priest-cross-pulse")
+            .Item;
+        await viewModel.AddItemAsync(animation);
+
+        var shortcut = viewModel.Shortcuts.Single(item => item.Item.Id == animation.Id);
+        await shortcut.SendCommand.ExecuteAsync();
+        shortcut = viewModel.Shortcuts.Single(item => item.Item.Id == animation.Id);
+        await shortcut.SendCommand.ExecuteAsync();
+
+        Assert.Equal(3, faceTransport.UploadCount);
+        Assert.Equal(2, commandTransport.Commands.Count);
+        Assert.All(commandTransport.Commands, command => Assert.Equal(MaskCommandKind.FacePlay, command.Kind));
+        Assert.True(viewModel.Shortcuts.Single(item => item.Item.Id == animation.Id).IsFastSlotPrepared);
+    }
+
+    [Fact]
+    public async Task PreparedAppAnimation_RefreshCommandForcesEveryFrameUpload()
+    {
+        var commandTransport = new RecordingCommandTransport();
+        var faceTransport = new RecordingFaceTransport();
+        var viewModel = CreateViewModel(commandTransport: commandTransport, faceTransport: faceTransport);
+        await viewModel.InitializeAsync();
+        var animation = viewModel.AvailableItems
+            .Single(item => item.Item.Id == "app-animation:holy-priest-cross-pulse")
+            .Item;
+        await viewModel.AddItemAsync(animation);
+
+        var shortcut = viewModel.Shortcuts.Single(item => item.Item.Id == animation.Id);
+        await shortcut.SendCommand.ExecuteAsync();
+        shortcut = viewModel.Shortcuts.Single(item => item.Item.Id == animation.Id);
+        await shortcut.PrepareCommand.ExecuteAsync();
+
+        Assert.Equal(6, faceTransport.UploadCount);
+        Assert.Single(commandTransport.Commands);
+        Assert.Contains("Refreshed", viewModel.StatusText, StringComparison.OrdinalIgnoreCase);
+        Assert.True(viewModel.Shortcuts.Single(item => item.Item.Id == animation.Id).IsFastSlotPrepared);
     }
 
     [Fact]

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using MaskApp.Core.Features.Animations;
 using MaskApp.Core.Features.Connect;
 
 namespace MaskApp.Core.Features.Faces;
@@ -572,7 +573,7 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
         }
 
         var state = new FacePatternStoreState { Patterns = Patterns };
-        return state.NextCustomSlot();
+        return state.NextCustomSlot(AppBuiltInAnimationCatalog.ReservedSlots);
     }
 
     private bool CanSave() => !string.IsNullOrWhiteSpace(FaceName);

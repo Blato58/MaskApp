@@ -29,6 +29,8 @@ public sealed class GalleryViewModelTests
         var items = Flatten(viewModel);
         Assert.Contains(items, item => item.Item.Id == $"text:{preset.Id.Value}" && item.IsFavorite);
         Assert.Contains(items, item => item.Item.Id == "built-in:StaticImage:7");
+        Assert.Contains(items, item => item.Item.Id == "app-animation:holy-priest-cross-pulse");
+        Assert.Contains(items, item => item.Item.Title == "Holy Priest · Cross");
         Assert.Contains(items, item => item.Item.Id == $"quick:{QuickActionId.Lol}");
         Assert.Contains(viewModel.Rows, row => row.IsGroupHeader);
         Assert.Contains(viewModel.Rows, row => row.IsItemRow);
@@ -279,6 +281,31 @@ public sealed class GalleryViewModelTests
         Assert.Equal(QuickActionId.Lol, quickDispatcher.LastActionId);
     }
 
+    [Fact]
+    public async Task SendAsync_AppAnimationUploadsOnceThenReplaysPreparedSlots()
+    {
+        var faceStore = new InMemoryFacePatternStore();
+        var faceTransport = new RecordingFaceTransport();
+        var commandTransport = new RecordingCommandTransport();
+        var viewModel = CreateViewModel(
+            commandTransport: commandTransport,
+            faceStore: faceStore,
+            faceTransport: faceTransport);
+
+        await viewModel.InitializeAsync();
+        var animation = Flatten(viewModel)
+            .Single(card => card.Item.Id == "app-animation:holy-priest-cross-pulse")
+            .Item;
+
+        await viewModel.SendAsync(animation);
+        await viewModel.SendAsync(animation);
+
+        Assert.Equal(3, faceTransport.Packages.Count);
+        Assert.Equal(2, commandTransport.SentCommands.Count);
+        Assert.All(commandTransport.SentCommands, command => Assert.Equal(MaskCommandKind.FacePlay, command.Kind));
+        Assert.Contains("no upload", viewModel.StatusText, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static GalleryViewModel CreateViewModel(
         IReadOnlyList<TextPreset>? textPresets = null,
         BuiltInAssetArchive? archive = null,
@@ -286,11 +313,13 @@ public sealed class GalleryViewModelTests
         RecordingGalleryLayoutStore? layoutStore = null,
         RecordingQuickActionDispatcher? quickDispatcher = null,
         RecordingTextPresetDispatcher? presetDispatcher = null,
-        RecordingCommandTransport? commandTransport = null)
+        RecordingCommandTransport? commandTransport = null,
+        InMemoryFacePatternStore? faceStore = null,
+        RecordingFaceTransport? faceTransport = null)
     {
         textStore ??= new InMemoryTextPresetStore(new TextPresetStoreState { Presets = textPresets ?? [] });
         var builtInStore = new InMemoryBuiltInAssetArchiveStore(archive ?? BuiltInAssetArchive.Empty);
-        var faceStore = new InMemoryFacePatternStore();
+        faceStore ??= new InMemoryFacePatternStore();
         var textTransport = new RecordingTextTransport();
         return new GalleryViewModel(
             new QuickActionCatalog(),
@@ -302,7 +331,7 @@ public sealed class GalleryViewModelTests
             presetDispatcher ?? new RecordingTextPresetDispatcher(),
             commandTransport ?? new RecordingCommandTransport(),
             textTransport,
-            new RecordingFaceTransport());
+            faceTransport ?? new RecordingFaceTransport());
     }
 
     private static GalleryItemCard[] Flatten(GalleryViewModel viewModel) =>
@@ -433,10 +462,18 @@ public sealed class GalleryViewModelTests
 
         public string StatusText => "Ready.";
 
+        public List<FaceUploadPackage> Packages { get; } = [];
+
+        public List<FaceUploadOptions> Options { get; } = [];
+
         public Task<FaceUploadResult> UploadAsync(
             FaceUploadPackage package,
             FaceUploadOptions options,
-            CancellationToken cancellationToken = default) =>
-            Task.FromResult(FaceUploadResult.Success("Sent.", package.Frames.Count));
+            CancellationToken cancellationToken = default)
+        {
+            Packages.Add(package);
+            Options.Add(options);
+            return Task.FromResult(FaceUploadResult.Success("Sent.", package.Frames.Count));
+        }
     }
 }

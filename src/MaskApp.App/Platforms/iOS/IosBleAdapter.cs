@@ -319,6 +319,11 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
             }
 
             await DelayFaceWriteAsync(options.PostUploadDelay, cancellationToken).ConfigureAwait(false);
+            if (!options.PlayAfterUpload)
+            {
+                return FaceUploadResult.Success($"Uploaded DIY face slot {package.Slot} ({framesSent} frame(s)).", framesSent);
+            }
+
             var playAck = await WriteFaceCommandAndWaitAsync(
                 package.PlayCommand,
                 FaceUploadAcknowledgement.PlayAccepted,
@@ -365,10 +370,15 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
 
             WriteEncryptedCommand(package.FinishCommand);
             await DelayFaceWriteAsync(options.PostUploadDelay, cancellationToken).ConfigureAwait(false);
-            WriteEncryptedCommand(package.PlayCommand);
+            if (options.PlayAfterUpload)
+            {
+                WriteEncryptedCommand(package.PlayCommand);
+            }
 
             return FaceUploadResult.Success(
-                $"Sent DIY face slot {package.Slot} without ACK confirmation ({framesSent} frame(s)).",
+                options.PlayAfterUpload
+                    ? $"Sent and played DIY face slot {package.Slot} without ACK confirmation ({framesSent} frame(s))."
+                    : $"Sent DIY face slot {package.Slot} without ACK confirmation ({framesSent} frame(s)).",
                 framesSent);
         }
         catch (OperationCanceledException)

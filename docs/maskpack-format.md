@@ -1,11 +1,16 @@
 # MaskPack Import Format
 
-Last updated: 2026-06-27
+Last updated: 2026-07-17
 
-MaskPack is the planned archive format for future app-owned or generated mask
-artwork. This slice defines metadata and validation only. It does not implement
-custom image upload, DIY slot playback, video playback, frame extraction from
-stock built-ins, AI generation, or festival-time animation playback.
+MaskPack is the planned archive format for imported or generated mask artwork.
+This slice defines metadata and validation only. It does not implement archive
+import, video playback, frame extraction from stock built-ins, or AI generation.
+
+MaskApp now also ships a small code-defined app animation catalog. Those
+app-built animations are not MaskPack imports: their native 46x58 frames are
+prepared in numbered DIY slots, remembered with per-frame fingerprints, and
+replayed with `PLAY` without uploading unchanged frames again. Multi-slot timing
+and persistence still need physical validation on a real mask.
 
 Built-in mask faces remain stock firmware content addressed by `IMAG` and
 `ANIM` command IDs. The app can save names, tags, notes, status, favorites, and
@@ -66,7 +71,7 @@ my-faces.maskpack.zip
 | `packName` | Human-readable pack name. |
 | `author` | Creator or source name. |
 | `source` | Manual, imported, generated, or other provenance. |
-| `targetDisplay.width` | Must be `44`. |
+| `targetDisplay.width` | Must be `44` for the existing schema-v1 metadata contract. |
 | `targetDisplay.height` | Must be `58`. |
 | `assets[].id` | Stable asset id inside the pack. |
 | `assets[].type` | `staticImage` or `animation`. |
@@ -82,7 +87,7 @@ my-faces.maskpack.zip
 
 ## Validation Rules
 
-- Width must be `44`.
+- Width must be `44` for schema version 1.
 - Height must be `58`.
 - Each asset must include an id, name, and at least one frame.
 - Frame duration must be positive.
@@ -94,7 +99,8 @@ my-faces.maskpack.zip
 
 ## Capability Status
 
-MaskPack is metadata/model support in this slice. Importing a package, previewing
-frames, uploading frames, assigning DIY slots, and playing animations are future
-work. The app must keep custom animation playback Experimental until validated
-on a real mask.
+MaskPack remains metadata/model support in this slice. Importing a package and
+mapping its frames to DIY slots are future work. Code-defined app animations can
+prepare and replay their own frames now, but custom animation playback remains
+Experimental until its timing, persistence, and visuals are validated on a real
+mask.

@@ -59,6 +59,13 @@ internal static class FaceArtwork
             case "three-eyed-monster": DrawThreeEyedMonster(canvas); break;
             case "cyclops": DrawCyclops(canvas); break;
             case "sleepy": DrawSleepy(canvas); break;
+            case "holy-priest-cross": DrawHolyPriestMask(canvas, White, Silver, White, Cyan, FaceColor.Black); break;
+            case "holy-priest-dim": DrawHolyPriestMask(canvas, Gray, Ink, Silver, DeepBlue, FaceColor.Black); break;
+            case "holy-priest-flash": DrawHolyPriestMask(canvas, White, Cyan, White, Blue, FaceColor.Black); break;
+            case "holy-priest-red": DrawHolyPriestMask(canvas, Bone, Gray, White, Red, FaceColor.Black); break;
+            case "holy-priest-red-dim": DrawHolyPriestMask(canvas, Gray, DeepRed, Silver, DeepRed, FaceColor.Black); break;
+            case "holy-priest-red-flash": DrawHolyPriestMask(canvas, White, Red, Bone, Orange, FaceColor.Black); break;
+            case "holy-priest-negative": DrawHolyPriestMask(canvas, Ink, DeepPurple, Gray, Purple, White); break;
             default: throw new ArgumentOutOfRangeException(nameof(artworkId), artworkId, "Unknown face artwork.");
         }
     }
@@ -500,6 +507,35 @@ internal static class FaceArtwork
         canvas.Line(42, 28, 36, 34, Cyan, 1);
         canvas.Line(36, 34, 42, 34, Cyan, 1);
         canvas.PlotMany(White, (8, 10), (13, 7), (20, 12), (7, 39), (39, 42));
+    }
+
+    private static void DrawHolyPriestMask(
+        FaceArtCanvas canvas,
+        FaceColor shell,
+        FaceColor shadow,
+        FaceColor highlight,
+        FaceColor accent,
+        FaceColor cross)
+    {
+        canvas.FillEllipse(23, 29, 22, 28, accent);
+        canvas.FillEllipse(23, 29, 20, 26, shadow);
+        canvas.FillEllipse(23, 28, 18, 24, shell);
+        canvas.FillEllipse(17, 13, 5, 7, highlight);
+        canvas.Line(8, 37, 12, 49, shadow, 2);
+        canvas.Line(38, 37, 34, 49, accent, 2);
+
+        canvas.FillRect(20, 5, 7, 48, cross);
+        canvas.FillRect(4, 21, 38, 9, cross);
+        canvas.Line(5, 20, 41, 20, accent);
+        canvas.Line(5, 30, 41, 30, accent);
+        canvas.Line(19, 7, 19, 50, accent);
+        canvas.Line(27, 7, 27, 50, accent);
+
+        canvas.Line(8, 25, 17, 25, accent, 2);
+        canvas.Line(29, 25, 38, 25, accent, 2);
+        canvas.FillRect(22, 9, 3, 8, accent);
+        canvas.FillRect(22, 35, 3, 11, accent);
+        canvas.PlotMany(highlight, (7, 17), (39, 17), (7, 41), (39, 41));
     }
 
     private static void DrawHead(

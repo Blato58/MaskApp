@@ -5,7 +5,7 @@ public sealed record FacePatternStoreState
     public const int LegacySchemaVersion = 1;
     public const int PreviousSchemaVersion = 2;
     public const int CurrentSchemaVersion = 3;
-    public const int CurrentSeedVersion = 4;
+    public const int CurrentSeedVersion = 5;
 
     public static FacePatternStoreState Seeded => new()
     {
@@ -132,10 +132,14 @@ public sealed record FacePatternStoreState
     public FaceSlotInstallation? GetSlotInstallation(int slot) =>
         Normalize().SlotInstallations.FirstOrDefault(installation => installation.Slot == slot);
 
-    public int NextCustomSlot()
+    public int NextCustomSlot(IEnumerable<int>? reservedSlots = null)
     {
+        var reserved = reservedSlots?.ToHashSet() ?? [];
         var usedSlots = Normalize().Patterns.Select(pattern => pattern.PreferredSlot).ToHashSet();
-        for (var slot = 7; slot <= FacePattern.MaxSlot; slot++)
+        var candidates = Enumerable.Range(7, FacePattern.MaxSlot - 6)
+            .Where(slot => !reserved.Contains(slot))
+            .ToArray();
+        foreach (var slot in candidates)
         {
             if (!usedSlots.Contains(slot))
             {
@@ -143,6 +147,6 @@ public sealed record FacePatternStoreState
             }
         }
 
-        return FacePattern.MaxSlot;
+        return candidates.Length == 0 ? FacePattern.MaxSlot : candidates[^1];
     }
 }

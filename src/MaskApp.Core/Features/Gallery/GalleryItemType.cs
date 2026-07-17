@@ -6,6 +6,7 @@ public enum GalleryItemType
     TextPreset,
     BuiltInStaticImage,
     BuiltInAnimation,
+    AppBuiltInAnimation,
     CustomStaticFace,
     FutureCustomImage,
     FutureCustomAnimation,

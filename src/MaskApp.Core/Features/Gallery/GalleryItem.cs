@@ -1,3 +1,4 @@
+using MaskApp.Core.Features.Animations;
 using MaskApp.Core.Features.BuiltIns;
 using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.QuickActions;
@@ -63,11 +64,14 @@ public sealed record GalleryItem
 
     public FacePattern? FacePattern { get; init; }
 
+    public AppBuiltInAnimation? AppAnimation { get; init; }
+
     public string TypeLabel => Type switch
     {
         GalleryItemType.TextPreset => "Text",
         GalleryItemType.BuiltInStaticImage => "Face",
         GalleryItemType.BuiltInAnimation => "Animation",
+        GalleryItemType.AppBuiltInAnimation => "App Animation",
         GalleryItemType.CustomStaticFace => "DIY Face",
         GalleryItemType.QuickAction => "Quick",
         GalleryItemType.FutureCustomImage => "Image Lab",

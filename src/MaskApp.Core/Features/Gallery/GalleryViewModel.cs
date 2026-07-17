@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using MaskApp.Core.Features.Animations;
 using MaskApp.Core.Features.BuiltIns;
 using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.Faces;
@@ -22,8 +23,10 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
     private readonly IMaskCommandTransport commandTransport;
     private readonly ITextUploadTransport textTransport;
     private readonly IFaceUploadTransport faceTransport;
+    private readonly DiySlotPlaybackCoordinator diySlotPlayback;
     private readonly HashSet<string> selectedItemIds = new(StringComparer.Ordinal);
     private GalleryLayoutState layoutState = new();
+    private FacePatternStoreState faceState = new();
     private IReadOnlyList<GalleryItem> allItems = [];
     private IReadOnlyList<GalleryGroupCard> groups = [];
     private IReadOnlyList<GalleryListRow> rows = [];
@@ -66,6 +69,7 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         this.commandTransport = commandTransport;
         this.textTransport = textTransport;
         this.faceTransport = faceTransport;
+        diySlotPlayback = new DiySlotPlaybackCoordinator(facePatternStore, faceTransport, commandTransport);
         GroupingOptions =
         [
             new GalleryGroupingOption("Manual groups", GalleryGroupingMode.Manual),
@@ -390,8 +394,8 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         layoutState = (await layoutStore.LoadAsync(cancellationToken)).Normalize();
         var textState = await textPresetStore.LoadAsync(cancellationToken);
         var builtIns = await builtInArchiveStore.LoadAsync(cancellationToken);
-        var faces = await facePatternStore.LoadAsync(cancellationToken);
-        allItems = catalogBuilder.Build(textState, builtIns, faces, layoutState.Order);
+        faceState = await facePatternStore.LoadAsync(cancellationToken);
+        allItems = catalogBuilder.Build(textState, builtIns, faceState, layoutState.Order);
         RebuildGroups();
     }
 
@@ -417,6 +421,8 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
                     await SendBuiltInAsync(item.BuiltInAssetRecord, cancellationToken),
                 GalleryItemType.CustomStaticFace when item.FacePattern is not null =>
                     await SendFaceAsync(item.FacePattern, cancellationToken),
+                GalleryItemType.AppBuiltInAnimation when item.AppAnimation is not null =>
+                    await SendAppAnimationAsync(item.AppAnimation, cancellationToken),
                 GalleryItemType.QuickAction when item.QuickActionId.HasValue =>
                     await SendQuickActionAsync(item.QuickActionId.Value, cancellationToken),
                 _ => "Not implemented yet"
@@ -637,7 +643,16 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
             GalleryItemType.TextPreset => textTransport.IsReady,
             GalleryItemType.BuiltInStaticImage or GalleryItemType.BuiltInAnimation
                 => commandTransport.TransportState == MaskCommandTransportState.Ready,
-            GalleryItemType.CustomStaticFace => faceTransport.IsReady,
+            GalleryItemType.CustomStaticFace when item.FacePattern is not null &&
+                DiySlotPlaybackCoordinator.IsFacePrepared(item.FacePattern, faceState) =>
+                commandTransport.TransportState == MaskCommandTransportState.Ready,
+            GalleryItemType.CustomStaticFace =>
+                faceTransport.IsReady && commandTransport.TransportState == MaskCommandTransportState.Ready,
+            GalleryItemType.AppBuiltInAnimation when item.AppAnimation is not null &&
+                DiySlotPlaybackCoordinator.IsAnimationPrepared(item.AppAnimation, faceState) =>
+                commandTransport.TransportState == MaskCommandTransportState.Ready,
+            GalleryItemType.AppBuiltInAnimation =>
+                faceTransport.IsReady && commandTransport.TransportState == MaskCommandTransportState.Ready,
             GalleryItemType.QuickAction => item.QuickActionKind switch
             {
                 QuickActionKind.Text or QuickActionKind.Random => textTransport.IsReady,
@@ -672,47 +687,18 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
 
     private async Task<string> SendFaceAsync(FacePattern pattern, CancellationToken cancellationToken)
     {
-        if (!faceTransport.IsReady)
-        {
-            return "Face upload not ready";
-        }
+        var result = await diySlotPlayback.PlayFaceAsync(pattern, cancellationToken);
+        await InitializeAsync(cancellationToken);
+        return result.Message;
+    }
 
-        await FaceUploadOperationLock.Gate.WaitAsync(cancellationToken);
-        try
-        {
-            var normalized = pattern.Normalize();
-            var options = faceTransport.SupportsAcknowledgements
-                ? FaceUploadOptions.RequireAcknowledgements
-                : FaceUploadOptions.WriteOnlyCompatibility;
-            var package = FaceUploadProtocol.CreatePackage(normalized, normalized.PreferredSlot);
-            var state = (await facePatternStore.LoadAsync(cancellationToken))
-                .ClearSlotInstallation(normalized.PreferredSlot);
-            await facePatternStore.SaveAsync(state, cancellationToken);
-            var result = await faceTransport.UploadAsync(package, options, cancellationToken);
-            state = await facePatternStore.LoadAsync(cancellationToken);
-            var status = result.Succeeded
-                ? $"Uploaded slot {normalized.PreferredSlot}; needs real-mask visual confirmation."
-                : result.Message;
-            var timestamp = DateTimeOffset.UtcNow;
-            state = result.Succeeded
-                ? state
-                    .MarkUploaded(normalized.Id, status, timestamp)
-                    .MarkSlotInstalled(
-                        normalized.PreferredSlot,
-                        FaceContentFingerprint.Compute(normalized),
-                        $"face:{normalized.Id}",
-                        timestamp)
-                : state
-                    .MarkUploadFailed(normalized.Id, status)
-                    .ClearSlotInstallation(normalized.PreferredSlot);
-            await facePatternStore.SaveAsync(state, cancellationToken);
-            await InitializeAsync(cancellationToken);
-            return status;
-        }
-        finally
-        {
-            FaceUploadOperationLock.Gate.Release();
-        }
+    private async Task<string> SendAppAnimationAsync(
+        AppBuiltInAnimation animation,
+        CancellationToken cancellationToken)
+    {
+        var result = await diySlotPlayback.PlayAnimationAsync(animation, cancellationToken);
+        await InitializeAsync(cancellationToken);
+        return result.Message;
     }
 
     private async Task<string> SendQuickActionAsync(QuickActionId actionId, CancellationToken cancellationToken)
