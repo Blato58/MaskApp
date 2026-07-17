@@ -104,7 +104,6 @@ public sealed class DiySlotPlaybackCoordinatorTests
         var state = await store.LoadAsync();
         Assert.NotNull(state.GetSlotInstallation(animation.Frames[0].Slot));
         Assert.Null(state.GetSlotInstallation(animation.Frames[1].Slot));
-        Assert.Null(state.GetSlotInstallation(animation.Frames[2].Slot));
     }
 
     [Fact]
@@ -129,9 +128,9 @@ public sealed class DiySlotPlaybackCoordinatorTests
         var retried = await coordinator.PlayAnimationAsync(animation);
 
         Assert.True(retried.Succeeded);
-        Assert.Equal(2, retried.UploadedSlotCount);
+        Assert.Equal(1, retried.UploadedSlotCount);
         Assert.Equal(1, retried.ReusedSlotCount);
-        Assert.Equal(4, faceTransport.Packages.Count);
+        Assert.Equal(3, faceTransport.Packages.Count);
         Assert.Single(commandTransport.Commands);
     }
 

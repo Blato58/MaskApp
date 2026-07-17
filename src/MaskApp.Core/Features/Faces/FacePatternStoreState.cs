@@ -5,7 +5,7 @@ public sealed record FacePatternStoreState
     public const int LegacySchemaVersion = 1;
     public const int PreviousSchemaVersion = 2;
     public const int CurrentSchemaVersion = 3;
-    public const int CurrentSeedVersion = 5;
+    public const int CurrentSeedVersion = 6;
 
     public static FacePatternStoreState Seeded => new()
     {
@@ -35,15 +35,19 @@ public sealed record FacePatternStoreState
 
         foreach (var pattern in Patterns.Select(pattern => pattern.Normalize()))
         {
-            if (pattern.IsBuiltIn && builtIns.TryGetValue(pattern.Id, out var builtIn))
+            if (pattern.IsBuiltIn)
             {
-                result[pattern.Id] = builtIn with
+                if (builtIns.TryGetValue(pattern.Id, out var builtIn))
                 {
-                    IsFavorite = pattern.IsFavorite,
-                    PreferredSlot = pattern.PreferredSlot,
-                    LastUploadedAt = pattern.LastUploadedAt,
-                    LastUploadStatus = pattern.LastUploadStatus
-                };
+                    result[pattern.Id] = builtIn with
+                    {
+                        IsFavorite = pattern.IsFavorite,
+                        PreferredSlot = pattern.PreferredSlot,
+                        LastUploadedAt = pattern.LastUploadedAt,
+                        LastUploadStatus = pattern.LastUploadStatus
+                    };
+                }
+
                 continue;
             }
 

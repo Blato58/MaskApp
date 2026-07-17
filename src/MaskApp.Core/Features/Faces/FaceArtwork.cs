@@ -24,6 +24,9 @@ internal static class FaceArtwork
     private static readonly FaceColor Green = new(0x22, 0xC5, 0x5E);
     private static readonly FaceColor Lime = new(0xA3, 0xE6, 0x35);
     private static readonly FaceColor DeepGreen = new(0x14, 0x53, 0x2D);
+    private static readonly FaceColor PureWhite = new(0xFF, 0xFF, 0xFF);
+    private static readonly FaceColor PureRed = new(0xFF, 0x00, 0x00);
+    private static readonly FaceColor PureBlue = new(0x00, 0x00, 0xFF);
 
     public static void Draw(string artworkId, FaceArtCanvas canvas)
     {
@@ -59,13 +62,10 @@ internal static class FaceArtwork
             case "three-eyed-monster": DrawThreeEyedMonster(canvas); break;
             case "cyclops": DrawCyclops(canvas); break;
             case "sleepy": DrawSleepy(canvas); break;
-            case "holy-priest-cross": DrawHolyPriestMask(canvas, White, Silver, White, Cyan, FaceColor.Black); break;
-            case "holy-priest-dim": DrawHolyPriestMask(canvas, Gray, Ink, Silver, DeepBlue, FaceColor.Black); break;
-            case "holy-priest-flash": DrawHolyPriestMask(canvas, White, Cyan, White, Blue, FaceColor.Black); break;
-            case "holy-priest-red": DrawHolyPriestMask(canvas, Bone, Gray, White, Red, FaceColor.Black); break;
-            case "holy-priest-red-dim": DrawHolyPriestMask(canvas, Gray, DeepRed, Silver, DeepRed, FaceColor.Black); break;
-            case "holy-priest-red-flash": DrawHolyPriestMask(canvas, White, Red, Bone, Orange, FaceColor.Black); break;
-            case "holy-priest-negative": DrawHolyPriestMask(canvas, Ink, DeepPurple, Gray, Purple, White); break;
+            case "holy-priest-cross": DrawHolyPriestMask(canvas, PureWhite, FaceColor.Black); break;
+            case "holy-priest-inverted": DrawHolyPriestMask(canvas, FaceColor.Black, PureWhite); break;
+            case "holy-priest-red": DrawHolyPriestMask(canvas, PureWhite, PureRed); break;
+            case "holy-priest-blue": DrawHolyPriestMask(canvas, PureWhite, PureBlue); break;
             default: throw new ArgumentOutOfRangeException(nameof(artworkId), artworkId, "Unknown face artwork.");
         }
     }
@@ -512,30 +512,18 @@ internal static class FaceArtwork
     private static void DrawHolyPriestMask(
         FaceArtCanvas canvas,
         FaceColor shell,
-        FaceColor shadow,
-        FaceColor highlight,
-        FaceColor accent,
         FaceColor cross)
     {
-        canvas.FillEllipse(23, 29, 22, 28, accent);
-        canvas.FillEllipse(23, 29, 20, 26, shadow);
-        canvas.FillEllipse(23, 28, 18, 24, shell);
-        canvas.FillEllipse(17, 13, 5, 7, highlight);
-        canvas.Line(8, 37, 12, 49, shadow, 2);
-        canvas.Line(38, 37, 34, 49, accent, 2);
+        canvas.FillRect(0, 0, FacePattern.Width, FacePattern.Height, shell);
+        canvas.FillRect(20, 0, 7, FacePattern.Height, cross);
+        canvas.FillRect(0, 15, FacePattern.Width, 5, cross);
 
-        canvas.FillRect(20, 5, 7, 48, cross);
-        canvas.FillRect(4, 21, 38, 9, cross);
-        canvas.Line(5, 20, 41, 20, accent);
-        canvas.Line(5, 30, 41, 30, accent);
-        canvas.Line(19, 7, 19, 50, accent);
-        canvas.Line(27, 7, 27, 50, accent);
-
-        canvas.Line(8, 25, 17, 25, accent, 2);
-        canvas.Line(29, 25, 38, 25, accent, 2);
-        canvas.FillRect(22, 9, 3, 8, accent);
-        canvas.FillRect(22, 35, 3, 11, accent);
-        canvas.PlotMany(highlight, (7, 17), (39, 17), (7, 41), (39, 41));
+        canvas.FillRect(9, 16, 7, 1, FaceColor.Black);
+        canvas.FillRect(6, 17, 12, 1, FaceColor.Black);
+        canvas.FillRect(9, 18, 7, 1, FaceColor.Black);
+        canvas.FillRect(30, 16, 7, 1, FaceColor.Black);
+        canvas.FillRect(28, 17, 10, 1, FaceColor.Black);
+        canvas.FillRect(30, 18, 7, 1, FaceColor.Black);
     }
 
     private static void DrawHead(

@@ -101,8 +101,9 @@ storage, or editing content can require a refresh. MaskApp keeps a durable
 per-slot content fingerprint for its own DIY writes, so an in-app overwrite or
 failed refresh invalidates older Pages shortcuts even if the source face is
 later renamed, moved to another preferred slot, or deleted from the Library.
-The current app-built animation catalog reserves slots `15..20` for two
-three-frame sequences. Automatic Pages slot allocation skips those numbers;
+The current app-built animation catalog reserves slots `15..19` for one
+two-frame black/white flash and one three-frame black/red/blue sequence.
+Automatic Pages slot allocation skips those numbers;
 Face Studio's automatic custom-face allocation skips them too. An explicit
 user-selected face slot can still overwrite them, which invalidates the affected
 animation until it is prepared again.

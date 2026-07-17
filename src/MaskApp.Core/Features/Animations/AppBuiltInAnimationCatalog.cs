@@ -5,36 +5,36 @@ namespace MaskApp.Core.Features.Animations;
 public static class AppBuiltInAnimationCatalog
 {
     public static IReadOnlyList<int> ReservedSlots { get; } =
-        Array.AsReadOnly(new[] { 15, 16, 17, 18, 19, 20 });
+        Array.AsReadOnly(new[] { 15, 16, 17, 18, 19 });
 
     public static IReadOnlyList<AppBuiltInAnimation> CreateBuiltIns()
     {
+        // Gallery and Pages persist these ids, so keep them stable as the artwork evolves.
         return
         [
             Create(
                 id: "holy-priest-cross-pulse",
-                displayName: "Holy Priest · Cross Pulse",
-                description: "White-mask cross pulse built for prepared DIY playback.",
-                colorHex: "#F8FAFC",
+                displayName: "Holy Priest · Black / White Flash",
+                description: "Fast black-and-white inversion built for prepared DIY playback.",
+                colorHex: "#FFFFFF",
                 frames:
                 [
-                    CreateFrame("holy-priest-cross-pulse", "dim", "holy-priest-dim", 15),
-                    CreateFrame("holy-priest-cross-pulse", "core", "holy-priest-cross", 16),
-                    CreateFrame("holy-priest-cross-pulse", "flash", "holy-priest-flash", 17)
+                    CreateFrame("holy-priest-cross-pulse", "normal", "holy-priest-cross", 15),
+                    CreateFrame("holy-priest-cross-pulse", "inverted", "holy-priest-inverted", 16)
                 ],
-                playbackSlots: [15, 16, 17, 16]),
+                playbackSlots: [15, 16, 15, 16, 15, 16, 15, 16, 15, 16]),
             Create(
                 id: "holy-priest-red-mass",
-                displayName: "Holy Priest · Red Mass",
-                description: "Red-edged cross strobe built for prepared DIY playback.",
-                colorHex: "#EF4444",
+                displayName: "Holy Priest · Black → Red → Blue",
+                description: "Fast black-to-red-to-blue cross cycle built for prepared DIY playback.",
+                colorHex: "#0000FF",
                 frames:
                 [
-                    CreateFrame("holy-priest-red-mass", "dim", "holy-priest-red-dim", 18),
-                    CreateFrame("holy-priest-red-mass", "core", "holy-priest-red", 19),
-                    CreateFrame("holy-priest-red-mass", "flash", "holy-priest-red-flash", 20)
+                    CreateFrame("holy-priest-red-mass", "black", "holy-priest-cross", 17),
+                    CreateFrame("holy-priest-red-mass", "red", "holy-priest-red", 18),
+                    CreateFrame("holy-priest-red-mass", "blue", "holy-priest-blue", 19)
                 ],
-                playbackSlots: [18, 19, 20, 19])
+                playbackSlots: [17, 18, 19, 17, 18, 19, 17, 18, 19])
         ];
     }
 

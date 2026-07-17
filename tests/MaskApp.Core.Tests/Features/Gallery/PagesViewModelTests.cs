@@ -150,10 +150,7 @@ public sealed class PagesViewModelTests
         var saved = layoutStore.State.Pages
             .SelectMany(page => page.Items)
             .Single(item => item.GalleryItemId == $"text:{preset.Id.Value}");
-        var firstAnimationSlot = AppBuiltInAnimationCatalog.CreateBuiltIns()
-            .SelectMany(animation => animation.ReservedSlots)
-            .Min();
-        Assert.Equal(firstAnimationSlot - 1, saved.FastMaskSlot);
+        Assert.Equal(FacePattern.MaxSlot, saved.FastMaskSlot);
         Assert.NotEmpty(saved.FastContentFingerprint);
         Assert.True(Assert.Single(viewModel.Shortcuts).IsFastSlotPrepared);
 
@@ -254,7 +251,7 @@ public sealed class PagesViewModelTests
         shortcut = viewModel.Shortcuts.Single(item => item.Item.Id == animation.Id);
         await shortcut.SendCommand.ExecuteAsync();
 
-        Assert.Equal(3, faceTransport.UploadCount);
+        Assert.Equal(2, faceTransport.UploadCount);
         Assert.Equal(2, commandTransport.Commands.Count);
         Assert.All(commandTransport.Commands, command => Assert.Equal(MaskCommandKind.FacePlay, command.Kind));
         Assert.True(viewModel.Shortcuts.Single(item => item.Item.Id == animation.Id).IsFastSlotPrepared);
@@ -277,7 +274,7 @@ public sealed class PagesViewModelTests
         shortcut = viewModel.Shortcuts.Single(item => item.Item.Id == animation.Id);
         await shortcut.PrepareCommand.ExecuteAsync();
 
-        Assert.Equal(6, faceTransport.UploadCount);
+        Assert.Equal(4, faceTransport.UploadCount);
         Assert.Single(commandTransport.Commands);
         Assert.Contains("Refreshed", viewModel.StatusText, StringComparison.OrdinalIgnoreCase);
         Assert.True(viewModel.Shortcuts.Single(item => item.Item.Id == animation.Id).IsFastSlotPrepared);

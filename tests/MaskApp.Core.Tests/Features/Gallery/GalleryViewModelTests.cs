@@ -300,7 +300,7 @@ public sealed class GalleryViewModelTests
         await viewModel.SendAsync(animation);
         await viewModel.SendAsync(animation);
 
-        Assert.Equal(3, faceTransport.Packages.Count);
+        Assert.Equal(2, faceTransport.Packages.Count);
         Assert.Equal(2, commandTransport.SentCommands.Count);
         Assert.All(commandTransport.SentCommands, command => Assert.Equal(MaskCommandKind.FacePlay, command.Kind));
         Assert.Contains("no upload", viewModel.StatusText, StringComparison.OrdinalIgnoreCase);
