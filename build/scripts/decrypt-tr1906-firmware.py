@@ -99,14 +99,14 @@ def validate_container(encrypted: bytes, decrypted: bytes) -> tuple[bytes, list[
             f"{encrypted_body_length}, expected {len(encrypted) - OTA_HEADER_SIZE}"
         )
 
-    initial_sp, reset_pointer = struct.unpack_from("<II", image)
+    initial_sp, entry_candidate = struct.unpack_from("<II", image)
     if initial_sp & 0xFFF00000 != 0x20000000 or initial_sp & 0x3:
         errors.append(f"implausible initial stack pointer 0x{initial_sp:08x}")
 
-    reset_address = reset_pointer & ~1
+    entry_address = entry_candidate & ~1
     image_end = IMAGE_LOAD_ADDRESS + len(image)
-    if reset_pointer & 1 == 0 or not IMAGE_LOAD_ADDRESS <= reset_address < image_end:
-        errors.append(f"implausible Thumb reset pointer 0x{reset_pointer:08x}")
+    if entry_candidate & 1 == 0 or not IMAGE_LOAD_ADDRESS <= entry_address < image_end:
+        errors.append(f"implausible Thumb entry candidate 0x{entry_candidate:08x}")
 
     input_sha1 = sha1(encrypted)
     known = KNOWN_FIRMWARE.get(input_sha1)
@@ -151,13 +151,13 @@ def decrypt_file(input_path: Path, output_dir: Path, force: bool) -> None:
     write_file(image_path, image, force)
 
     label = known.name if known is not None else "unknown TR1906-compatible input"
-    initial_sp, reset_pointer = struct.unpack_from("<II", image)
+    initial_sp, entry_candidate = struct.unpack_from("<II", image)
     print(f"{input_path}: {label}")
     print(f"  encrypted SHA-1:       {input_sha1}")
     print(f"  decrypted SHA-256:     {sha256(decrypted)}")
     print(f"  raw image SHA-256:     {sha256(image)}")
     print(f"  image mapping:         file +0x{IMAGE_OFFSET:x} -> 0x{IMAGE_LOAD_ADDRESS:08x}")
-    print(f"  initial SP / reset:    0x{initial_sp:08x} / 0x{reset_pointer:08x}")
+    print(f"  initial SP / entry:    0x{initial_sp:08x} / 0x{entry_candidate:08x}")
     print(f"  decrypted container:   {decrypted_path}")
     print(f"  raw Cortex-M image:    {image_path}")
 

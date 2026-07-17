@@ -81,9 +81,21 @@ corrupts the plaintext OTA header. The repo script preserves that header.
 | `0x10` | 8 | Decrypted inner image header. Its field meanings are not yet confirmed. |
 | `0x18` | remainder | Raw Cortex-M application image, loaded at address `0x00010000`. |
 
-The image starts with initial stack pointer `0x20003910` and Thumb reset pointer
-`0x00016a01`. Executable content therefore begins at file offset `0x18`, not at
-the `0x400` offset suggested by the earlier binwalk heuristic.
+The first two image words are `0x20003910` and `0x00016a01`. The first is a
+plausible initial stack pointer and the second is an in-range odd Thumb address,
+but the second word must be described as an **entry candidate**, not a confirmed
+Cortex-M reset vector. At `0x00016a00`, one build contains a ten-byte function
+tail and the other build's decompiler enters a larger function with
+already-live registers. Forcing `Reset_Handler` at that address created a
+misleading symbol.
+
+Bytes at image address `0x00010008` look like a startup stub: they load
+`0x20003910` into `sp`, call an initializer-record walker at `0x000108e4`, then
+transfer through a target stored at `0x00010014`. That final target points to
+bytes that decompile as data in both builds. The exact boot contract is
+therefore unresolved. What is established is that the Cortex-M image begins at
+decrypted file offset `0x18`, not at the `0x400` offset suggested by the earlier
+binwalk heuristic.
 
 | Firmware | Correct decrypted container SHA-256 | Raw image SHA-256 |
 | --- | --- | --- |
@@ -93,8 +105,11 @@ the `0x400` offset suggested by the earlier binwalk heuristic.
 ## Static Analysis Setup
 
 The raw images were loaded in Ghidra as `ARM:LE:32:Cortex` binaries at base
-address `0x00010000`, with Thumb mode enabled and entry point `0x00016a00`.
-Both builds contain the same BLE parser and data handlers after relocation.
+address `0x00010000`, with Thumb mode enabled. The two header words are defined
+as data. `0x00016a00` is retained as `ImageHeaderEntryCandidate`, with an
+explicit unresolved comment, rather than being forced to `Reset_Handler`. Both
+builds contain the same BLE parser, cryptography, persistence, and display
+handlers after relocation.
 
 Useful function addresses are:
 
@@ -102,11 +117,124 @@ Useful function addresses are:
 | --- | ---: | ---: |
 | BLE service initialization | `0x00011954` | `0x0001185c` |
 | Command parser | `0x00011a5c` | `0x00011964` |
-| Upload-data handler | `0x00011de0` | `0x00011ce8` |
-| Visualizer handler | `0x00011eac` | `0x00011db4` |
+| Upload write handler | `0x00011de0` | `0x00011ce8` |
+| Visualizer write handler | `0x00011eac` | `0x00011db4` |
+| AES encrypt block | `0x00016284` | `0x00016180` |
 | AES decrypt block | `0x00018abc` | `0x000189b8` |
+| AES-128 key expansion | `0x00018df4` | `0x00018cf0` |
 | GATT write dispatcher | `0x000199b8` | `0x000198b4` |
 | Encrypted notification builder | `0x0001ac54` | `0x0001ab50` |
+| Persist type-1 upload to flash | `0x0001b0c4` | `0x0001afc0` |
+| Visualizer frame decoder | `0x0001b2fc` | `0x0001b1f8` |
+| Display-mode selector | `0x0001b5c8` | `0x0001b4c4` |
+| LED-frame serializer/sender | `0x0001b9c0` | `0x0001b8bc` |
+
+### Reproducible Ghidra import and annotation
+
+The tracked scripts under `build/scripts/ghidra/` replace the earlier
+machine-local-only annotations:
+
+- `SetupTr1906Firmware.py` configures Thumb mode, replaces the raw loader's
+  initial disassembly with two header dwords, and records the unresolved
+  startup/entry evidence.
+- `ApplyTr1906Annotations.py` applies the address map for both revisions,
+  including evidence-graded function comments and selected parameter/local
+  names. It identifies the revision from the exact image range and embedded
+  version string and rejects unsupported images rather than guessing from the
+  project filename.
+- `ExportTr1906Firmware.py` decompiles every discovered function and exports
+  function inventory, call graph, variables, instructions, raw strings, and
+  unresolved-function inventory.
+
+With Ghidra installed at `C:\Program Files\Ghidra`, a fresh raw-image import is:
+
+```powershell
+$ghidra = 'C:\Program Files\Ghidra\support\analyzeHeadless.bat'
+$projectDir = 'artifacts\firmware-analysis\ghidra-project'
+New-Item -ItemType Directory -Force $projectDir | Out-Null
+
+& $ghidra $projectDir TR1906Firmware `
+  -import 'artifacts\firmware-analysis\decrypted\TR1906R04-10_OTA.bin.image.bin' `
+  -processor 'ARM:LE:32:Cortex' `
+  -loader 'BinaryLoader' `
+  -loader-baseAddr '0x00010000' `
+  -scriptPath 'build\scripts\ghidra' `
+  -preScript 'SetupTr1906Firmware.py' `
+  -postScript 'ApplyTr1906Annotations.py'
+```
+
+Repeat the import with the `TR1906R04-1-10` image. To refresh annotations in
+an existing project without rerunning analysis:
+
+```powershell
+& $ghidra $projectDir TR1906Firmware `
+  -process 'TR1906R04-10_OTA.bin.image.bin' `
+  -noanalysis `
+  -scriptPath 'build\scripts\ghidra' `
+  -postScript 'ApplyTr1906Annotations.py'
+```
+
+Generate a complete review snapshot under ignored `artifacts/` with:
+
+```powershell
+& $ghidra $projectDir TR1906Firmware `
+  -process 'TR1906R04-10_OTA.bin.image.bin' `
+  -readOnly `
+  -noanalysis `
+  -scriptPath 'build\scripts\ghidra' `
+  -postScript 'ExportTr1906Firmware.py' `
+  'artifacts\firmware-analysis\annotated-export\TR1906R04-10'
+```
+
+The scripts are idempotent: rerunning the annotation pass preserves the same
+names and comments instead of accumulating generated aliases.
+
+### What "whole firmware" means for these files
+
+The exporter covers every function Ghidra discovers in each supplied OTA
+image, not every byte that exists on the physical device. Final export coverage
+is:
+
+| Firmware | Discovered | Decompiled | Meaningfully named | Documented | Deliberately generic |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `R04-10` | 230 | 230 | 228 | 230 | 2 |
+| `R04-01-10` | 228 | 228 | 225 | 228 | 3 |
+
+The portable map covers compiler arithmetic and formatting helpers, controller
+register and timing operations, message queues, the record/attribute database,
+link-profile lifecycle, service-handle lookup, AES, the BLE application
+protocol, flash persistence, display modes, and all 19 built-in-animation
+initializer/tick pairs. Names and comments are evidence graded as `CONFIRMED`,
+`INFERRED`, `LOW-CONFIDENCE`, or `UNRESOLVED`. A clean `R04-10` import applies
+228 function names/comments and 215 selected parameter/local names in one pass;
+an immediate second pass makes zero changes.
+
+Only these Ghidra-discovered entries intentionally retain `FUN_*` names:
+
+| Firmware | Address | Reason |
+| --- | ---: | --- |
+| `R04-10` | `0x00016730` | The eight-byte body has no stable cross-build boundary and runs into later code. |
+| `R04-10` | `0x0001f86c` | The indirect entry target decodes as repetitive invalid instructions/data. |
+| `R04-01-10` | `0x0001662c` | Its boundary is incompatible with the paired build and does not expose a stable routine. |
+| `R04-01-10` | `0x00016700` | Ghidra finds a four-byte body containing bad instruction data. |
+| `R04-01-10` | `0x0001f768` | The indirect entry target decodes as repetitive invalid instructions/data. |
+
+Each unresolved entry still has an explicit Ghidra comment explaining why a
+semantic name would be misleading.
+
+The OTA images also contain absolute references beyond their loaded ranges:
+
+- AES key material is read from `0x00022b94` / `0x00022a90`.
+- Visualizer palettes are read from `0x00022da8` and `0x00022dd0` in `R04-10`.
+- Built-in-animation frame tables span referenced addresses from approximately
+  `0x00022f06` through `0x00025cde` in `R04-10`.
+- Uploaded content is persisted in flash sectors `0x0003c000` through
+  `0x0003c800`.
+
+Those regions, the bootloader, and any complete hardware vector table are not
+present in either OTA asset. Their contents cannot be decompiled from these
+files. Recovering them requires a full physical flash dump or another firmware
+package that actually includes those address ranges.
 
 ## BLE GATT Topology
 
@@ -256,6 +384,29 @@ The type-specific behavior is:
 and completion responses; no `REOK` per-block response is present in this
 firmware path.
 
+### Type-1 flash persistence
+
+After a successful `DATCP` for type `1`, `PersistUploadToFlash` performs this
+sequence:
+
+1. Erase the sectors beginning at `0x0003c000`, `0x0003c200`,
+   `0x0003c400`, `0x0003c600`, and `0x0003c800`.
+2. Write the complete `0x600`-byte upload buffer at `0x0003c000`.
+3. Write an eight-byte metadata record at `0x0003c800`.
+
+The known metadata fields are:
+
+| Metadata offset | Size | Meaning |
+| ---: | ---: | --- |
+| `0` | 4 | Magic `0x5a5a5a6a` |
+| `4` | 2 | Received-count value passed by the completion path |
+| `6` | 1 | Upload type (`1` on this path) |
+| `7` | 1 | Not yet established |
+
+These flash addresses lie outside the supplied OTA image. Static analysis
+establishes the erase/write calls and record shape, but not the preexisting
+contents, bootloader ownership, or wear/failure behavior of the physical flash.
+
 ## Live Visualizer Protocol on Characteristic `960B`
 
 `SMVEW` controls the live-view state stored at RAM address `0x2000309c`.
@@ -326,14 +477,24 @@ High-confidence static findings:
 - OTA XOR transform, header boundary, and Cortex-M load mapping.
 - GATT UUIDs, characteristic properties, and relative attribute indexes.
 - One-block AES processing on all three inbound characteristics and responses.
+- AES-128 key expansion plus the forward/inverse round helpers used by those
+  block operations.
 - The exact command names and branch mappings listed above.
 - Upload type `1`/`2` data handling and visualizer nibble expansion.
+- Type-1 flash erase/write layout and its metadata record.
+- The 24-pixel LED packet serializer, RGB565 expansion, additive checksum, and
+  distinction between normal and live-frame submission.
+- Control-flow roles for all 19 built-in-animation initializer/tick pairs,
+  although their frame tables are absent.
 - Equivalent BLE behavior in both firmware revisions after relocation.
 
 Not yet established:
 
-- Meanings of the remaining OTA and inner-header fields.
+- Meanings of the remaining OTA and image-header fields, including the exact
+  startup contract of the `0x00016a01` entry candidate.
 - The AES key bytes stored outside each OTA image, independent of app evidence.
+- Contents of the external palette, built-in-animation, bootloader, and flash
+  regions referenced by the OTA code.
 - Which physical mask/glasses hardware revisions run these binaries.
 - LED orientation, palette colors, timing, and recovery behavior for this
   alternate profile.
