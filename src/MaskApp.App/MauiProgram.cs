@@ -240,7 +240,13 @@ public static class MauiProgram
                 sp.GetRequiredService<IAnimationClock>(),
                 sp.GetRequiredService<FlashSafetyAnalyzer>(),
                 sp.GetRequiredService<IFlashSafetyAcknowledgementStore>()));
-        builder.Services.AddSingleton<DiySlotPlaybackCoordinator>();
+        builder.Services.AddSingleton<DiySlotPlaybackCoordinator>(sp =>
+            new DiySlotPlaybackCoordinator(
+                sp.GetRequiredService<IFacePatternStore>(),
+                sp.GetRequiredService<IFaceUploadTransport>(),
+                sp.GetRequiredService<IMaskCommandTransport>(),
+                sp.GetRequiredService<PerformanceAnimationEngine>(),
+                sp.GetRequiredService<PerformanceAnimationBuilder>()));
         builder.Services.AddSingleton<SceneExecutionEngine>();
         builder.Services.AddSingleton<ISceneExecutionControl>(sp =>
             sp.GetRequiredService<SceneExecutionEngine>());
