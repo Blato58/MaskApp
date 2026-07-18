@@ -226,11 +226,19 @@ public sealed class TextUploadViewModelTests
     {
         var viewModel = new TextUploadViewModel(new SimulatedTextUploadTransport());
         var originalPreview = viewModel.PreviewCells;
+        var previewChanged = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        viewModel.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(TextUploadViewModel.PreviewCells))
+            {
+                previewChanged.TrySetResult();
+            }
+        };
 
         viewModel.Text = "DROP";
         var previewBeforeDebounce = viewModel.PreviewCells;
 
-        await Task.Delay(250);
+        await previewChanged.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
         Assert.Same(originalPreview, previewBeforeDebounce);
         Assert.NotSame(originalPreview, viewModel.PreviewCells);
