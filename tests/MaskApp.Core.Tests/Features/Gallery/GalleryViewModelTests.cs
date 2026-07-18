@@ -116,6 +116,37 @@ public sealed class GalleryViewModelTests
     }
 
     [Fact]
+    public async Task TypeFiltersQuickDeckAndOperationalBadgesExposeTruthfulLibraryState()
+    {
+        var preset = CreatePreset("Live caption", "Show", favorite: true);
+        var archive = new BuiltInAssetArchive(
+        [
+            new BuiltInAssetRecord(BuiltInAssetType.StaticImage, 7)
+            {
+                DisplayName = "Instant face",
+                IsFavorite = true,
+                Status = BuiltInAssetStatus.Working
+            }
+        ]);
+        var viewModel = CreateViewModel(textPresets: [preset], archive: archive);
+
+        await viewModel.InitializeAsync();
+
+        Assert.True(viewModel.HasQuickDeckItems);
+        Assert.Contains(viewModel.QuickDeckItems, card => card.Title == "Live caption" && card.OperationalStatusText == "Upload required");
+        Assert.Contains(viewModel.QuickDeckItems, card => card.Title == "Instant face" && card.OperationalStatusText == "Instant");
+        Assert.Contains(viewModel.Rows, row => row.IsItemRow && row.HasRight);
+
+        await viewModel.ShowTextCommand.ExecuteAsync();
+
+        Assert.True(viewModel.IsTextFilterSelected);
+        Assert.All(Flatten(viewModel), card => Assert.True(
+            card.Item.Type == GalleryItemType.TextPreset ||
+            card.Item.Type == GalleryItemType.QuickAction && card.Item.QuickActionKind is QuickActionKind.Text or QuickActionKind.Random));
+        Assert.DoesNotContain(Flatten(viewModel), card => card.Item.Type == GalleryItemType.BuiltInStaticImage);
+    }
+
+    [Fact]
     public async Task MoveItemAsync_UpdatesGlobalOrderFromFilteredView()
     {
         var first = CreatePreset("Move target one", "Move Pack");

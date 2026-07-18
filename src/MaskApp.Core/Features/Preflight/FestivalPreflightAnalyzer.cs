@@ -5,6 +5,7 @@ using MaskApp.Core.Features.Gallery;
 using MaskApp.Core.Features.Profiles;
 using MaskApp.Core.Features.QuickActions;
 using MaskApp.Core.Features.Scenes;
+using MaskApp.Core.Features.Connect;
 
 namespace MaskApp.Core.Features.Preflight;
 
@@ -37,6 +38,15 @@ public sealed class FestivalPreflightAnalyzer
         var issues = new List<PreflightIssue>();
         var profile = request.ActiveProfile?.Normalize();
         var capabilities = profile?.Capabilities.Normalize();
+        if (request.ConnectionState != BleConnectionState.Connected)
+        {
+            issues.Add(new PreflightIssue(
+                "mask-disconnected",
+                PreflightIssueSeverity.Blocking,
+                "The show mask is not connected now.",
+                "Open Device, connect the physical show mask, then rerun Preflight."));
+        }
+
         AddProfileIssues(profile, capabilities, request.EvaluatedAt, issues);
         if (request.SchedulerSnapshot is { PendingOperationCount: > 0 } scheduler)
         {
@@ -53,7 +63,7 @@ public sealed class FestivalPreflightAnalyzer
                 "latency-unmeasured",
                 PreflightIssueSeverity.Warning,
                 "No command-latency measurement is stored for the active mask.",
-                "Run the Device latency check before relying on rapid cue timing."));
+                "Treat rapid cue timing as unverified and rehearse it on the physical show mask."));
         }
 
         var pages = SelectPages(request.Layout.Normalize(), request.SelectedPageIds);

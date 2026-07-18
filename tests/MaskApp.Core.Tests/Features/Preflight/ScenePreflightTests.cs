@@ -1,4 +1,5 @@
 using MaskApp.Core.Features.Faces;
+using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.Gallery;
 using MaskApp.Core.Features.Profiles;
 using MaskApp.Core.Features.Preflight;
@@ -151,6 +152,7 @@ public sealed class ScenePreflightTests
             ]
         },
         ActiveProfile = profile,
+        ConnectionState = BleConnectionState.Connected,
         EvaluatedAt = Now
     };
 

@@ -84,6 +84,8 @@ public static class MauiProgram
         builder.Services.AddTransient<FestivalPreflightViewModel>();
         builder.Services.AddTransient<StageModePage>();
         builder.Services.AddTransient<StageModeViewModel>();
+        builder.Services.AddTransient<StageHubPage>();
+        builder.Services.AddTransient<StageHubViewModel>();
         builder.Services.AddTransient<PagesStageShowSource>();
         builder.Services.AddTransient<IStageShowSource, PerformanceStageShowSource>();
         builder.Services.AddTransient<IStageReadinessProvider, PreflightStageReadinessProvider>();
@@ -93,6 +95,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<FlashSafetyAnalyzer>();
         builder.Services.AddSingleton<AnimationLoadAnalyzer>();
         builder.Services.AddSingleton<FestivalPreflightAnalyzer>();
+        builder.Services.AddSingleton<PreflightStatusSession>();
         builder.Services.AddTransient<FestivalShowPreparationService>();
         builder.Services.AddSingleton<QuickActionCatalog>();
         builder.Services.AddSingleton<IQuickActionTextSettingsStore, JsonQuickActionTextSettingsStore>();

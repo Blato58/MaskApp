@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="MaskApp.App.Controls.ConnectionStatusView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Name="Root">
+    <Grid
+        ColumnDefinitions="Auto,*"
+        ColumnSpacing="10"
+        SemanticProperties.Description="{Binding StateText, Source={x:Reference Root}}">
+        <Border
+            HeightRequest="28"
+            WidthRequest="28"
+            Padding="0"
+            BackgroundColor="Transparent"
+            Stroke="{Binding State, Source={x:Reference Root}, Converter={StaticResource TransportStateColorConverter}}"
+            StrokeThickness="2">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="14" />
+            </Border.StrokeShape>
+            <Label
+                Text="{Binding StatusIcon, Source={x:Reference Root}}"
+                TextColor="{Binding State, Source={x:Reference Root}, Converter={StaticResource TransportStateColorConverter}}"
+                FontSize="14"
+                FontAttributes="Bold"
+                HorizontalTextAlignment="Center"
+                VerticalTextAlignment="Center" />
+        </Border>
+        <VerticalStackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center">
+            <Label
+                Text="{Binding StateText, Source={x:Reference Root}}"
+                TextColor="{Binding State, Source={x:Reference Root}, Converter={StaticResource TransportStateColorConverter}}"
+                FontSize="13"
+                FontAttributes="Bold"
+                CharacterSpacing="0.8" />
+            <Label
+                Text="{Binding DetailText, Source={x:Reference Root}}"
+                IsVisible="{Binding HasDetail, Source={x:Reference Root}}"
+                Style="{StaticResource TinyLabelStyle}"
+                MaxLines="2" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentView>

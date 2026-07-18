@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="MaskApp.App.Controls.EmptyStateView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Name="Root">
+    <VerticalStackLayout
+        Padding="24"
+        Spacing="10"
+        HorizontalOptions="Center"
+        VerticalOptions="Center"
+        SemanticProperties.Description="{Binding Title, Source={x:Reference Root}}">
+        <Label
+            Text="{Binding Icon, Source={x:Reference Root}}"
+            TextColor="{StaticResource AccentColor}"
+            FontSize="34"
+            HorizontalTextAlignment="Center" />
+        <Label
+            Text="{Binding Title, Source={x:Reference Root}}"
+            FontSize="20"
+            FontAttributes="Bold"
+            HorizontalTextAlignment="Center" />
+        <Label
+            Text="{Binding Message, Source={x:Reference Root}}"
+            Style="{StaticResource MutedLabelStyle}"
+            HorizontalTextAlignment="Center"
+            MaxLines="4" />
+        <Button
+            Text="{Binding ActionText, Source={x:Reference Root}}"
+            Command="{Binding ActionCommand, Source={x:Reference Root}}"
+            IsVisible="{Binding ShowAction, Source={x:Reference Root}}"
+            Style="{StaticResource PrimaryButtonStyle}"
+            HorizontalOptions="Center" />
+    </VerticalStackLayout>
+</ContentView>

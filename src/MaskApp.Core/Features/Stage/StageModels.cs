@@ -1,5 +1,6 @@
 using MaskApp.Core.Features.Gallery;
 using MaskApp.Core.Features.Preflight;
+using MaskApp.Core.Features.Faces;
 
 namespace MaskApp.Core.Features.Stage;
 
@@ -10,6 +11,14 @@ public enum StageLayoutMode
     Dense
 }
 
+public enum StageActionDeliveryState
+{
+    Idle,
+    Pending,
+    Sent,
+    Failed
+}
+
 public sealed record StageTile(
     string TileId,
     string Label,
@@ -18,7 +27,10 @@ public sealed record StageTile(
     GalleryItemType ItemType,
     bool IsPrepared,
     bool IsHoldAction,
-    string ReadinessText)
+    string ReadinessText,
+    string PreviewResourceName = "",
+    FacePattern? FacePattern = null,
+    bool PreviewIsAnimated = false)
 {
     public string ReadinessBadgeText => IsPrepared ? "READY" : "UNPREPARED";
 
@@ -27,6 +39,12 @@ public sealed record StageTile(
     public string ActionHint => IsHoldAction
         ? $"Hold to play {Label}; release to restore the previous look"
         : $"Show {Label}";
+
+    public bool HasResourcePreview => !string.IsNullOrWhiteSpace(PreviewResourceName);
+
+    public bool HasFacePreview => FacePattern is not null;
+
+    public bool HasAnyPreview => HasResourcePreview || HasFacePreview;
 }
 
 public sealed record StageShowSnapshot(

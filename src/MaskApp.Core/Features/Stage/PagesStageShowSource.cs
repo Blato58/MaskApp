@@ -68,5 +68,8 @@ public sealed class PagesStageShowSource : IStageShowSource
             shortcut.Item.Type,
             !shortcut.IsFastSlotCapable || shortcut.IsFastSlotPrepared,
             false,
-            shortcut.FastSlotStatusText);
+            shortcut.FastSlotStatusText,
+            shortcut.Item.PreviewResourceName,
+            shortcut.Item.FacePattern,
+            shortcut.Item.PreviewIsAnimated);
 }

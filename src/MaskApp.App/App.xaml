@@ -11,34 +11,45 @@
             <visuals:TransportStateColorConverter x:Key="TransportStateColorConverter" />
             <visuals:InvertedBoolConverter x:Key="InvertedBoolConverter" />
 
-            <Color x:Key="PageBackgroundColor">#000000</Color>
-            <Color x:Key="SurfaceColor">#111113</Color>
-            <Color x:Key="PanelColor">#1C1C1E</Color>
-            <Color x:Key="PanelRaisedColor">#2C2C2E</Color>
-            <Color x:Key="PanelBorderColor">#38383A</Color>
-            <Color x:Key="SeparatorColor">#38383A</Color>
-            <Color x:Key="SelectedSurfaceColor">#163A63</Color>
+            <!-- Performance design system: near-black foundation, graphite surfaces,
+                 violet selection, and cyan for live connectivity. -->
+            <Color x:Key="PageBackgroundColor">#050506</Color>
+            <Color x:Key="SurfaceColor">#101114</Color>
+            <Color x:Key="PanelColor">#17181B</Color>
+            <Color x:Key="PanelRaisedColor">#222328</Color>
+            <Color x:Key="PanelBorderColor">#34363B</Color>
+            <Color x:Key="SeparatorColor">#2C2E33</Color>
+            <Color x:Key="SelectedSurfaceColor">#2A1B4D</Color>
             <Color x:Key="OverlayScrimColor">#B3000000</Color>
-            <Color x:Key="PrimaryTextColor">#FFFFFF</Color>
-            <Color x:Key="SecondaryTextColor">#D1D1D6</Color>
-            <Color x:Key="MutedTextColor">#8E8E93</Color>
-            <Color x:Key="AccentColor">#0A84FF</Color>
-            <Color x:Key="AccentBlueColor">#0A84FF</Color>
-            <Color x:Key="AccentGreenColor">#30D158</Color>
-            <Color x:Key="AccentYellowColor">#FFD60A</Color>
-            <Color x:Key="AccentPinkColor">#FF375F</Color>
-            <Color x:Key="DangerColor">#FF453A</Color>
-            <Color x:Key="ChipBackgroundColor">#2C2C2E</Color>
-            <Color x:Key="InputBackgroundColor">#2C2C2E</Color>
+            <Color x:Key="PrimaryTextColor">#F7F7F8</Color>
+            <Color x:Key="SecondaryTextColor">#C4C5CA</Color>
+            <Color x:Key="MutedTextColor">#92949B</Color>
+            <Color x:Key="AccentColor">#8B5CF6</Color>
+            <Color x:Key="AccentBlueColor">#8B5CF6</Color>
+            <Color x:Key="ConnectedColor">#22D3EE</Color>
+            <Color x:Key="VerifiedColor">#22C55E</Color>
+            <Color x:Key="WarningColor">#F59E0B</Color>
+            <Color x:Key="DangerColor">#EF4444</Color>
+            <Color x:Key="AccentGreenColor">#22C55E</Color>
+            <Color x:Key="AccentYellowColor">#F59E0B</Color>
+            <Color x:Key="AccentPinkColor">#EC4899</Color>
+            <Color x:Key="ChipBackgroundColor">#202126</Color>
+            <Color x:Key="InputBackgroundColor">#1D1E22</Color>
             <Color x:Key="DisabledActionColor">#475569</Color>
-            <Thickness x:Key="PagePadding">18,16</Thickness>
+            <Thickness x:Key="PagePadding">16,16</Thickness>
+            <Thickness x:Key="PageHorizontalPadding">16,0</Thickness>
+            <x:Double x:Key="Space1">8</x:Double>
+            <x:Double x:Key="Space2">16</x:Double>
+            <x:Double x:Key="Space3">24</x:Double>
+            <x:Double x:Key="ControlMinimumHeight">48</x:Double>
+            <x:Double x:Key="StageControlMinimumHeight">72</x:Double>
 
             <Style TargetType="Label">
                 <Setter Property="TextColor" Value="{StaticResource PrimaryTextColor}" />
                 <Setter Property="LineBreakMode" Value="WordWrap" />
             </Style>
             <Style x:Key="PageTitleLabelStyle" TargetType="Label">
-                <Setter Property="FontSize" Value="28" />
+                <Setter Property="FontSize" Value="30" />
                 <Setter Property="FontAttributes" Value="Bold" />
                 <Setter Property="TextColor" Value="{StaticResource PrimaryTextColor}" />
                 <Setter Property="LineBreakMode" Value="WordWrap" />
@@ -50,10 +61,10 @@
                 <Setter Property="LineBreakMode" Value="WordWrap" />
             </Style>
             <Style x:Key="SectionTitleLabelStyle" TargetType="Label">
-                <Setter Property="FontSize" Value="14" />
+                <Setter Property="FontSize" Value="15" />
                 <Setter Property="FontAttributes" Value="Bold" />
-                <Setter Property="TextColor" Value="{StaticResource SecondaryTextColor}" />
-                <Setter Property="CharacterSpacing" Value="0" />
+                <Setter Property="TextColor" Value="{StaticResource PrimaryTextColor}" />
+                <Setter Property="CharacterSpacing" Value="1.1" />
             </Style>
             <Style x:Key="MutedLabelStyle" TargetType="Label">
                 <Setter Property="FontSize" Value="14" />
@@ -68,7 +79,7 @@
             <Style x:Key="MetricLabelStyle" TargetType="Label">
                 <Setter Property="FontSize" Value="18" />
                 <Setter Property="FontAttributes" Value="Bold" />
-                <Setter Property="TextColor" Value="{StaticResource AccentBlueColor}" />
+                <Setter Property="TextColor" Value="{StaticResource ConnectedColor}" />
             </Style>
             <Style x:Key="ChipLabelStyle" TargetType="Label">
                 <Setter Property="FontSize" Value="12" />
@@ -84,6 +95,58 @@
                 <Setter Property="StrokeShape">
                     <Setter.Value>
                         <RoundRectangle CornerRadius="14" />
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="ContentCardBorderStyle" TargetType="Border" BasedOn="{StaticResource PanelBorderStyle}">
+                <Setter Property="Padding" Value="12" />
+                <Setter Property="MinimumHeightRequest" Value="224" />
+                <Setter Property="StrokeShape">
+                    <Setter.Value>
+                        <RoundRectangle CornerRadius="16" />
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="QuickDeckCardBorderStyle" TargetType="Border" BasedOn="{StaticResource ContentCardBorderStyle}">
+                <Setter Property="MinimumHeightRequest" Value="164" />
+                <Setter Property="WidthRequest" Value="136" />
+                <Setter Property="Padding" Value="10" />
+            </Style>
+            <Style x:Key="ReadinessCardBorderStyle" TargetType="Border" BasedOn="{StaticResource PanelBorderStyle}">
+                <Setter Property="Padding" Value="18" />
+                <Setter Property="StrokeThickness" Value="2" />
+                <Setter Property="StrokeShape">
+                    <Setter.Value>
+                        <RoundRectangle CornerRadius="16" />
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="MetricTileBorderStyle" TargetType="Border" BasedOn="{StaticResource PanelBorderStyle}">
+                <Setter Property="Padding" Value="12" />
+                <Setter Property="MinimumHeightRequest" Value="104" />
+                <Setter Property="StrokeShape">
+                    <Setter.Value>
+                        <RoundRectangle CornerRadius="14" />
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="PerformanceTileBorderStyle" TargetType="Border" BasedOn="{StaticResource PanelBorderStyle}">
+                <Setter Property="Padding" Value="12" />
+                <Setter Property="StrokeThickness" Value="2" />
+                <Setter Property="StrokeShape">
+                    <Setter.Value>
+                        <RoundRectangle CornerRadius="16" />
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="FrameThumbnailBorderStyle" TargetType="Border">
+                <Setter Property="Padding" Value="6" />
+                <Setter Property="BackgroundColor" Value="{StaticResource PanelColor}" />
+                <Setter Property="Stroke" Value="{StaticResource PanelBorderColor}" />
+                <Setter Property="StrokeThickness" Value="1" />
+                <Setter Property="StrokeShape">
+                    <Setter.Value>
+                        <RoundRectangle CornerRadius="12" />
                     </Setter.Value>
                 </Setter>
             </Style>
@@ -129,6 +192,16 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+            <Style x:Key="FilterButtonStyle" TargetType="Button">
+                <Setter Property="MinimumHeightRequest" Value="44" />
+                <Setter Property="Padding" Value="14,8" />
+                <Setter Property="CornerRadius" Value="11" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="BackgroundColor" Value="Transparent" />
+                <Setter Property="BorderColor" Value="Transparent" />
+                <Setter Property="BorderWidth" Value="0" />
+                <Setter Property="TextColor" Value="{StaticResource SecondaryTextColor}" />
+            </Style>
             <Style TargetType="Button">
                 <Setter Property="CornerRadius" Value="12" />
                 <Setter Property="FontAttributes" Value="Bold" />
@@ -159,31 +232,45 @@
             </Style>
             <Style x:Key="QuietButtonStyle" TargetType="Button" BasedOn="{StaticResource CompactButtonStyle}">
                 <Setter Property="BackgroundColor" Value="Transparent" />
-                <Setter Property="TextColor" Value="{StaticResource AccentBlueColor}" />
+                <Setter Property="TextColor" Value="{StaticResource AccentColor}" />
             </Style>
             <Style x:Key="PrimaryButtonStyle" TargetType="Button">
-                <Setter Property="BackgroundColor" Value="{StaticResource AccentBlueColor}" />
-                <Setter Property="BorderColor" Value="#7AB0FF" />
+                <Setter Property="BackgroundColor" Value="{StaticResource AccentColor}" />
+                <Setter Property="BorderColor" Value="#A78BFA" />
                 <Setter Property="BorderWidth" Value="1" />
                 <Setter Property="TextColor" Value="#FFFFFF" />
             </Style>
             <Style x:Key="DangerButtonStyle" TargetType="Button">
-                <Setter Property="BackgroundColor" Value="#2A0B0B" />
+                <Setter Property="BackgroundColor" Value="#2A1012" />
                 <Setter Property="BorderColor" Value="{StaticResource DangerColor}" />
                 <Setter Property="BorderWidth" Value="1" />
                 <Setter Property="TextColor" Value="{StaticResource DangerColor}" />
             </Style>
             <Style x:Key="BrightButtonStyle" TargetType="Button">
-                <Setter Property="BackgroundColor" Value="#152515" />
-                <Setter Property="BorderColor" Value="{StaticResource AccentGreenColor}" />
+                <Setter Property="BackgroundColor" Value="#10261A" />
+                <Setter Property="BorderColor" Value="{StaticResource VerifiedColor}" />
                 <Setter Property="BorderWidth" Value="1" />
-                <Setter Property="TextColor" Value="{StaticResource AccentGreenColor}" />
+                <Setter Property="TextColor" Value="{StaticResource VerifiedColor}" />
             </Style>
             <Style x:Key="NeonBlueButtonStyle" TargetType="Button">
-                <Setter Property="BackgroundColor" Value="#071827" />
-                <Setter Property="BorderColor" Value="{StaticResource AccentBlueColor}" />
+                <Setter Property="BackgroundColor" Value="#092329" />
+                <Setter Property="BorderColor" Value="{StaticResource ConnectedColor}" />
                 <Setter Property="BorderWidth" Value="1" />
-                <Setter Property="TextColor" Value="{StaticResource AccentBlueColor}" />
+                <Setter Property="TextColor" Value="{StaticResource ConnectedColor}" />
+            </Style>
+            <Style x:Key="EmergencyButtonStyle" TargetType="Button" BasedOn="{StaticResource DangerButtonStyle}">
+                <Setter Property="BackgroundColor" Value="{StaticResource DangerColor}" />
+                <Setter Property="BorderColor" Value="#FF7A7A" />
+                <Setter Property="TextColor" Value="#050506" />
+                <Setter Property="FontSize" Value="24" />
+                <Setter Property="FontAttributes" Value="Bold" />
+                <Setter Property="MinimumHeightRequest" Value="{StaticResource StageControlMinimumHeight}" />
+            </Style>
+            <Style x:Key="EditorToolButtonStyle" TargetType="Button" BasedOn="{StaticResource CompactButtonStyle}">
+                <Setter Property="MinimumHeightRequest" Value="56" />
+                <Setter Property="Padding" Value="8" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="CornerRadius" Value="10" />
             </Style>
 
             <Style TargetType="Entry">
@@ -212,15 +299,15 @@
                 <Setter Property="MinimumHeightRequest" Value="48" />
             </Style>
             <Style TargetType="ActivityIndicator">
-                <Setter Property="Color" Value="{StaticResource AccentBlueColor}" />
+                <Setter Property="Color" Value="{StaticResource ConnectedColor}" />
             </Style>
             <Style TargetType="Slider">
                 <Setter Property="ThumbColor" Value="{StaticResource AccentColor}" />
-                <Setter Property="MinimumTrackColor" Value="{StaticResource AccentBlueColor}" />
+                <Setter Property="MinimumTrackColor" Value="{StaticResource AccentColor}" />
                 <Setter Property="MaximumTrackColor" Value="{StaticResource PanelBorderColor}" />
             </Style>
             <Style TargetType="Switch">
-                <Setter Property="OnColor" Value="{StaticResource AccentGreenColor}" />
+                <Setter Property="OnColor" Value="{StaticResource AccentColor}" />
                 <Setter Property="ThumbColor" Value="{StaticResource PrimaryTextColor}" />
             </Style>
         </ResourceDictionary>

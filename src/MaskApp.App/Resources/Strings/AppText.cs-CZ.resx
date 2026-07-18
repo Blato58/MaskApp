@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="Library" xml:space="preserve"><value>Knihovna</value></data>
+  <data name="Stage" xml:space="preserve"><value>Scéna</value></data>
+  <data name="Device" xml:space="preserve"><value>Zařízení</value></data>
+  <data name="SearchLibrary" xml:space="preserve"><value>Hledat v knihovně</value></data>
+  <data name="Add" xml:space="preserve"><value>Vytvořit</value></data>
+  <data name="QuickDeck" xml:space="preserve"><value>Rychlá sada</value></data>
+  <data name="All" xml:space="preserve"><value>Vše</value></data>
+  <data name="Faces" xml:space="preserve"><value>Obličeje</value></data>
+  <data name="Text" xml:space="preserve"><value>Text</value></data>
+  <data name="Animations" xml:space="preserve"><value>Animace</value></data>
+  <data name="Scenes" xml:space="preserve"><value>Scény</value></data>
+  <data name="Build" xml:space="preserve"><value>Sestavit</value></data>
+  <data name="Preflight" xml:space="preserve"><value>Kontrola</value></data>
+  <data name="Connection" xml:space="preserve"><value>Připojení</value></data>
+  <data name="Diagnostics" xml:space="preserve"><value>Diagnostika</value></data>
+  <data name="ShowReady" xml:space="preserve"><value>SHOW PŘIPRAVENA</value></data>
+  <data name="ShowDegraded" xml:space="preserve"><value>OMEZENÁ</value></data>
+  <data name="ShowNotReady" xml:space="preserve"><value>NEPŘIPRAVENA</value></data>
+  <data name="EnterStage" xml:space="preserve"><value>Vstoupit do uzamčené scény</value></data>
+  <data name="Stop" xml:space="preserve"><value>STOP</value></data>
+  <data name="Blackout" xml:space="preserve"><value>ZATEMNIT</value></data>
+  <data name="AnimationStudio" xml:space="preserve"><value>Studio animací</value></data>
+  <data name="Save" xml:space="preserve"><value>Uložit</value></data>
+</root>

@@ -59,6 +59,8 @@ public sealed class StageModeViewModelTests
         fixture.Source.Results[second.TileId] = GalleryActionResult.Failure("Transport failed.");
 
         await fixture.ViewModel.TriggerAsync(first);
+        Assert.Equal(StageActionDeliveryState.Sent, fixture.ViewModel.ActionDeliveryState);
+        Assert.Equal("SENT", fixture.ViewModel.ActionDeliveryText);
         await fixture.ViewModel.TriggerAsync(second);
 
         Assert.Equal([first.TileId, second.TileId], fixture.Source.TriggeredTileIds);
@@ -66,6 +68,8 @@ public sealed class StageModeViewModelTests
         Assert.Equal(1, fixture.Feedback.SuccessCount);
         Assert.Equal(1, fixture.Feedback.FailureCount);
         Assert.Equal("Transport failed.", fixture.ViewModel.StatusText);
+        Assert.Equal(StageActionDeliveryState.Failed, fixture.ViewModel.ActionDeliveryState);
+        Assert.Equal("Transport failed.", fixture.ViewModel.ActionDeliveryDetail);
     }
 
     [Fact]
@@ -79,6 +83,7 @@ public sealed class StageModeViewModelTests
 
         Assert.Empty(fixture.Source.TriggeredTileIds);
         Assert.Contains("not prepared", fixture.ViewModel.StatusText, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(StageActionDeliveryState.Failed, fixture.ViewModel.ActionDeliveryState);
         Assert.Equal(1, fixture.Feedback.FailureCount);
     }
 

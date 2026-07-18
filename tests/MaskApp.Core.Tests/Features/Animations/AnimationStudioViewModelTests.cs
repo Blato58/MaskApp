@@ -103,6 +103,49 @@ public sealed class AnimationStudioViewModelTests
         Assert.Equal(TimeSpan.FromTicks(durationAt120.Ticks / 2), viewModel.SelectedFrame.Duration);
     }
 
+    [Fact]
+    public async Task EditorTools_SymmetryFillSelectMoveAndHistoryRemainNonDestructive()
+    {
+        var viewModel = CreateViewModel(new InMemoryAnimationProjectStore());
+        await viewModel.InitializeAsync();
+
+        viewModel.IsSymmetryEnabled = true;
+        viewModel.BeginCanvasInteraction(2, 3);
+        viewModel.EndCanvasInteraction();
+
+        Assert.True(viewModel.SelectedFrame.Pattern.GetPixel(2, 3).IsLit);
+        Assert.True(viewModel.SelectedFrame.Pattern.GetPixel(43, 3).IsLit);
+        Assert.True(viewModel.CanUndo);
+        viewModel.Undo();
+        Assert.False(viewModel.SelectedFrame.Pattern.GetPixel(2, 3).IsLit);
+        Assert.True(viewModel.CanRedo);
+        viewModel.Redo();
+        Assert.True(viewModel.SelectedFrame.Pattern.GetPixel(43, 3).IsLit);
+
+        viewModel.IsSymmetryEnabled = false;
+        await viewModel.SelectFillToolCommand.ExecuteAsync();
+        viewModel.SelectColor("Red");
+        viewModel.BeginCanvasInteraction(0, 0);
+        viewModel.EndCanvasInteraction();
+        Assert.Equal("#EF4444", viewModel.SelectedFrame.Pattern.GetPixel(45, 57).Color.Hex);
+
+        await viewModel.SelectDrawToolCommand.ExecuteAsync();
+        viewModel.SelectColor("White");
+        viewModel.BeginCanvasInteraction(10, 10);
+        viewModel.ContinueCanvasInteraction(11, 10);
+        viewModel.EndCanvasInteraction();
+        await viewModel.SelectMoveToolCommand.ExecuteAsync();
+        viewModel.BeginCanvasInteraction(10, 10);
+        viewModel.ContinueCanvasInteraction(14, 12);
+        viewModel.EndCanvasInteraction();
+
+        Assert.False(viewModel.SelectedFrame.Pattern.GetPixel(10, 10).IsLit);
+        Assert.Equal("#FFFFFF", viewModel.SelectedFrame.Pattern.GetPixel(14, 12).Color.Hex);
+        Assert.NotNull(viewModel.SelectionBounds);
+        Assert.True(viewModel.GuidesEnabled);
+        Assert.True(viewModel.IsDirty);
+    }
+
     private static AnimationStudioViewModel CreateViewModel(
         IAnimationProjectStore projectStore,
         IAnimationMediaDecoder? decoder = null,

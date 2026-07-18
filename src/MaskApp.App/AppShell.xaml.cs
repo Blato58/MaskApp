@@ -9,6 +9,7 @@ using MaskApp.App.Features.Scenes;
 using MaskApp.App.Features.Stage;
 using MaskApp.App.Features.Text;
 using Microsoft.Extensions.DependencyInjection;
+using MaskApp.App.Resources.Strings;
 
 namespace MaskApp.App;
 
@@ -26,6 +27,7 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("scene-studio", typeof(SceneStudioPage));
         Routing.RegisterRoute("library-add", typeof(LibraryAddPage));
         Routing.RegisterRoute("page-add-item", typeof(PageAddItemPage));
+        Routing.RegisterRoute("pages-manage", typeof(PagesPage));
         Routing.RegisterRoute("preflight", typeof(FestivalPreflightPage));
         Routing.RegisterRoute("stage", typeof(StageModePage));
 
@@ -33,9 +35,9 @@ public partial class AppShell : Shell
         {
             Items =
             {
-                CreateShellContent<GalleryPage>("Library", "library", "icon_library.svg", services),
-                CreateShellContent<PagesPage>("Pages", "pages", "icon_pages.svg", services),
-                CreateShellContent<ConnectPage>("Device", "device", "icon_device.svg", services)
+                CreateShellContent<GalleryPage>(AppText.Library, "library", "icon_library.svg", services),
+                CreateShellContent<StageHubPage>(AppText.Stage, "stage-hub", "icon_pages.svg", services),
+                CreateShellContent<ConnectPage>(AppText.Device, "device", "icon_device.svg", services)
             }
         });
     }

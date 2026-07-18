@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="MaskApp.App.Controls.LibraryItemCardView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:MaskApp.App.Controls"
+    x:Name="Root">
+    <Border
+        Style="{StaticResource ContentCardBorderStyle}"
+        SemanticProperties.Description="{Binding Item.Title, Source={x:Reference Root}}">
+        <Grid RowDefinitions="126,Auto,Auto,Auto,Auto" RowSpacing="8">
+            <Grid>
+                <controls:BuiltInPreviewView
+                    IsAnimationPlaying="{Binding Item.IsAnimationPlaying, Source={x:Reference Root}}"
+                    IsVisible="{Binding Item.HasPreview, Source={x:Reference Root}}"
+                    SemanticDescription="{Binding Item.Title, Source={x:Reference Root}, StringFormat='{0} preview'}"
+                    Source="{Binding Item.PreviewResourceName, Source={x:Reference Root}}" />
+                <controls:FacePatternPreviewView
+                    IsVisible="{Binding Item.HasFacePreview, Source={x:Reference Root}}"
+                    Pattern="{Binding Item.FacePattern, Source={x:Reference Root}}"
+                    SemanticDescription="{Binding Item.Title, Source={x:Reference Root}, StringFormat='{0} face preview'}" />
+                <Border
+                    BackgroundColor="{Binding Item.ColorHex, Source={x:Reference Root}}"
+                    IsVisible="{Binding Item.HasAnyPreview, Source={x:Reference Root}, Converter={StaticResource InvertedBoolConverter}}"
+                    Stroke="Transparent"
+                    StrokeThickness="0">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="12" /></Border.StrokeShape>
+                    <Label
+                        Text="{Binding Item.IconKey, Source={x:Reference Root}}"
+                        TextColor="#050506"
+                        FontSize="12"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"
+                        VerticalTextAlignment="Center" />
+                </Border>
+                <Label
+                    Text="★"
+                    IsVisible="{Binding Item.IsFavorite, Source={x:Reference Root}}"
+                    Margin="8"
+                    TextColor="{StaticResource WarningColor}"
+                    FontSize="20"
+                    HorizontalOptions="End"
+                    VerticalOptions="Start"
+                    SemanticProperties.Description="Favorite" />
+                <Border
+                    Margin="8"
+                    Padding="8,4"
+                    HorizontalOptions="Start"
+                    VerticalOptions="Start"
+                    BackgroundColor="#E6111216"
+                    Style="{StaticResource StatusPillBorderStyle}">
+                    <Label
+                        Text="{Binding Item.TypeLabel, Source={x:Reference Root}}"
+                        Style="{StaticResource ChipLabelStyle}"
+                        MaxLines="1" />
+                </Border>
+            </Grid>
+
+            <Label
+                Grid.Row="1"
+                Text="{Binding Item.Title, Source={x:Reference Root}}"
+                FontSize="17"
+                FontAttributes="Bold"
+                MaxLines="2" />
+            <Label
+                Grid.Row="2"
+                Text="{Binding Item.Subtitle, Source={x:Reference Root}}"
+                Style="{StaticResource TinyLabelStyle}"
+                MaxLines="2" />
+            <controls:OperationalStatusBadge
+                Grid.Row="3"
+                HorizontalOptions="Start"
+                Text="{Binding Item.OperationalStatusText, Source={x:Reference Root}}"
+                Icon="{Binding Item.OperationalStatusIcon, Source={x:Reference Root}}"
+                AccentColor="{Binding Item.OperationalStatusColorHex, Source={x:Reference Root}}" />
+
+            <Grid Grid.Row="4" ColumnDefinitions="*,*" ColumnSpacing="8" IsVisible="{Binding Item.IsNormalMode, Source={x:Reference Root}}">
+                <Button
+                    Text="Edit"
+                    Clicked="OnEditClicked"
+                    IsVisible="{Binding Item.CanManage, Source={x:Reference Root}}"
+                    Style="{StaticResource CompactButtonStyle}" />
+                <Button
+                    Grid.Column="1"
+                    Text="Send"
+                    Command="{Binding Item.SendCommand, Source={x:Reference Root}}"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    SemanticProperties.Description="{Binding Item.Title, Source={x:Reference Root}, StringFormat='Send {0}'}" />
+            </Grid>
+
+            <Grid Grid.Row="4" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8" IsVisible="{Binding Item.IsEditMode, Source={x:Reference Root}}">
+                <Button Text="Select" Command="{Binding Item.ToggleSelectionCommand, Source={x:Reference Root}}" Style="{StaticResource CompactButtonStyle}" />
+                <Button Grid.Column="1" Text="Edit" Clicked="OnEditClicked" Style="{StaticResource CompactButtonStyle}" />
+                <Button Grid.Row="1" Text="Earlier" Command="{Binding Item.MoveEarlierCommand, Source={x:Reference Root}}" Style="{StaticResource CompactButtonStyle}" />
+                <Button Grid.Row="1" Grid.Column="1" Text="Later" Command="{Binding Item.MoveLaterCommand, Source={x:Reference Root}}" Style="{StaticResource CompactButtonStyle}" />
+            </Grid>
+        </Grid>
+    </Border>
+</ContentView>

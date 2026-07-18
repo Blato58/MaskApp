@@ -1,6 +1,12 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Text;
+using System.Text.RegularExpressions;
+using MaskApp.Core.Features.Animations;
+using MaskApp.Core.Features.MaskControl;
+using MaskApp.Core.Features.Preflight;
+using MaskApp.Core.Features.Profiles;
 
 namespace MaskApp.Core.Features.Connect;
 
@@ -8,23 +14,63 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
 {
     private readonly IBleScanner scanner;
     private readonly BleAutoConnectCoordinator autoConnectCoordinator;
+    private readonly IBleDeviceConnection connection;
+    private readonly MaskProfileSession? profileSession;
+    private readonly MaskBleScheduler? scheduler;
+    private readonly PerformanceAnimationEngine? animationEngine;
+    private readonly PreflightStatusSession? preflightStatusSession;
     private DiscoveredMaskDevice? selectedDevice;
     private BleConnectionState connectionState = BleConnectionState.Disconnected;
     private bool isScanning;
     private string statusText = "Ready to scan for masks.";
+    private MaskProfile? activeProfile;
+    private MaskBleSchedulerSnapshot? schedulerSnapshot;
+    private AnimationPlaybackSnapshot animationSnapshot = new();
+    private PreflightStatusSnapshot preflightSnapshot = PreflightStatusSnapshot.NotRun;
+    private string diagnosticsStatusText = "Diagnostics use observed state only.";
+    private IReadOnlyList<string> reconnectHistory = [];
+    private IReadOnlyList<string> recentSchedulerErrors = [];
 
     public ConnectViewModel(
         IBleScanner scanner,
         IBleDeviceConnection connection,
-        BleAutoConnectCoordinator? autoConnectCoordinator = null)
+        BleAutoConnectCoordinator? autoConnectCoordinator = null,
+        MaskProfileSession? profileSession = null,
+        MaskBleScheduler? scheduler = null,
+        PerformanceAnimationEngine? animationEngine = null,
+        PreflightStatusSession? preflightStatusSession = null)
     {
         this.scanner = scanner;
+        this.connection = connection;
+        connectionState = connection.State;
         this.autoConnectCoordinator = autoConnectCoordinator ?? new BleAutoConnectCoordinator(scanner, connection);
+        this.profileSession = profileSession;
+        this.scheduler = scheduler;
+        this.animationEngine = animationEngine;
+        this.preflightStatusSession = preflightStatusSession;
+        schedulerSnapshot = scheduler?.GetSnapshot();
+        animationSnapshot = animationEngine?.GetSnapshot() ?? new AnimationPlaybackSnapshot();
+        preflightSnapshot = preflightStatusSession?.Snapshot ?? PreflightStatusSnapshot.NotRun;
+        CaptureSchedulerError(schedulerSnapshot?.LastError);
 
         scanner.DeviceDiscovered += OnDeviceDiscovered;
         scanner.ScannerStateChanged += OnScannerStateChanged;
         connection.ConnectionStateChanged += OnConnectionStateChanged;
         this.autoConnectCoordinator.PropertyChanged += OnAutoConnectPropertyChanged;
+        if (scheduler is not null)
+        {
+            scheduler.DiagnosticsChanged += OnSchedulerDiagnosticsChanged;
+        }
+
+        if (animationEngine is not null)
+        {
+            animationEngine.SnapshotChanged += OnAnimationSnapshotChanged;
+        }
+
+        if (preflightStatusSession is not null)
+        {
+            preflightStatusSession.SnapshotChanged += OnPreflightSnapshotChanged;
+        }
 
         StartScanCommand = new AsyncRelayCommand(StartScanAsync, () => !IsScanning);
         StopScanCommand = new AsyncRelayCommand(StopScanAsync, () => IsScanning);
@@ -37,6 +83,26 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public ObservableCollection<DiscoveredMaskDevice> Devices { get; } = [];
+
+    public IReadOnlyList<string> ReconnectHistory
+    {
+        get => reconnectHistory;
+        private set
+        {
+            if (SetField(ref reconnectHistory, value))
+            {
+                OnPropertyChanged(nameof(HasReconnectHistory));
+            }
+        }
+    }
+
+    public bool HasReconnectHistory => ReconnectHistory.Count > 0;
+
+    public IReadOnlyList<string> RecentRedactedErrors => recentSchedulerErrors
+        .Select(RedactDiagnosticText)
+        .ToArray();
+
+    public bool HasRecentRedactedErrors => recentSchedulerErrors.Count > 0;
 
     public AsyncRelayCommand StartScanCommand { get; }
 
@@ -59,6 +125,8 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
             {
                 OnPropertyChanged(nameof(DeviceNameText));
                 OnPropertyChanged(nameof(DeviceSignalText));
+                OnPropertyChanged(nameof(SchedulerErrorText));
+                OnPropertyChanged(nameof(RecentRedactedErrors));
                 RaiseCommandStates();
             }
         }
@@ -155,10 +223,166 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
 
     public string DeviceSignalText => SelectedDevice is null ? "Signal unavailable" : $"{SelectedDevice.SignalStrength} dBm";
 
+    public bool HasActiveProfile => activeProfile is not null;
+
+    public bool CanResetPreparedSlots => activeProfile is { PreparedSlots.Count: > 0 };
+
+    public string FirmwareText => string.IsNullOrWhiteSpace(activeProfile?.Capabilities.FirmwareRevision)
+        ? "Unavailable"
+        : activeProfile.Capabilities.FirmwareRevision;
+
+    public string TransportText => string.IsNullOrWhiteSpace(activeProfile?.Capabilities.TransportName)
+        ? "Unavailable"
+        : activeProfile.Capabilities.TransportName;
+
+    public string AcknowledgementText => activeProfile is null
+        ? "Unavailable"
+        : activeProfile.Capabilities.AcknowledgementMode.ToString();
+
+    public string CommandWriteText => CapabilityText(activeProfile?.Capabilities.CommandWriteAvailable);
+
+    public string TextUploadText => CapabilityText(activeProfile?.Capabilities.TextUploadAvailable);
+
+    public string FaceUploadText => CapabilityText(activeProfile?.Capabilities.FaceUploadAvailable);
+
+    public string UploadCapabilitiesText => $"{TextUploadText} / {FaceUploadText}";
+
+    public string PreparedSlotText => activeProfile is null
+        ? "Unavailable"
+        : $"{activeProfile.PreparedSlots.Count} of {activeProfile.Capabilities.DiySlotCapacity} recorded";
+
+    public string PreparedSlotDetailText => activeProfile?.PreparedStateStatus
+        ?? "Connect a mask before the app can scope prepared content.";
+
+    public string LatencyText => activeProfile?.AverageCommandLatencyMilliseconds is { } latency
+        ? $"{latency:0.#} ms observed"
+        : "Unavailable (not measured)";
+
+    public string CadenceText => activeProfile?.SustainableCadenceHz is { } cadence
+        ? $"{cadence:0.##} Hz observed"
+        : "Unavailable (not measured)";
+
+    public string BatteryText => "Unavailable (not reported)";
+
+    public string SchedulerQueueText => schedulerSnapshot is null
+        ? "Unavailable"
+        : schedulerSnapshot.PendingOperationCount == 0
+            ? "Idle"
+            : $"{schedulerSnapshot.PendingOperationCount} queued";
+
+    public string SchedulerLastDurationText => schedulerSnapshot?.LastOperationDuration is { } duration
+        ? $"{duration.TotalMilliseconds:0.#} ms"
+        : "Unavailable";
+
+    public string SchedulerErrorText => string.IsNullOrWhiteSpace(schedulerSnapshot?.LastError)
+        ? "None recorded"
+        : RedactDiagnosticText(schedulerSnapshot.LastError!);
+
+    public string AnimationStateText => animationSnapshot.State.ToString();
+
+    public string AnimationDeliveryText => animationSnapshot.FramesSent == 0 && animationSnapshot.FramesDropped == 0
+        ? "No playback sample"
+        : $"{animationSnapshot.FramesSent} sent · {animationSnapshot.FramesDropped} dropped · {animationSnapshot.LateFrames} late";
+
+    public string PreflightStatusText => preflightSnapshot.StatusText;
+
+    public string PreflightSummaryText => preflightSnapshot.Summary;
+
+    public string PreflightIcon => preflightSnapshot.Status switch
+    {
+        FestivalPreflightStatus.ShowReady => "✓",
+        FestivalPreflightStatus.Degraded => "!",
+        _ => "×"
+    };
+
+    public string PreflightColorHex => preflightSnapshot.Status switch
+    {
+        FestivalPreflightStatus.ShowReady => "#22C55E",
+        FestivalPreflightStatus.Degraded => "#F59E0B",
+        _ => "#EF4444"
+    };
+
+    public string DiagnosticsStatusText
+    {
+        get => diagnosticsStatusText;
+        private set => SetField(ref diagnosticsStatusText, value);
+    }
+
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         await autoConnectCoordinator.InitializeAsync(cancellationToken);
         await autoConnectCoordinator.StartForegroundAutoConnectAsync(cancellationToken);
+        await RefreshDiagnosticsAsync(cancellationToken);
+    }
+
+    public async Task RefreshDiagnosticsAsync(CancellationToken cancellationToken = default)
+    {
+        activeProfile = profileSession is null
+            ? null
+            : await profileSession.GetActiveProfileAsync(cancellationToken);
+        schedulerSnapshot = scheduler?.GetSnapshot();
+        animationSnapshot = animationEngine?.GetSnapshot() ?? new AnimationPlaybackSnapshot();
+        preflightSnapshot = preflightStatusSession?.Snapshot ?? PreflightStatusSnapshot.NotRun;
+        DiagnosticsStatusText = activeProfile is null
+            ? "No active mask profile. Connect a mask to collect capability evidence."
+            : "Diagnostics refreshed from the active mask profile and current transports.";
+        NotifyDiagnosticsChanged();
+    }
+
+    public async Task<bool> ResetPreparedSlotsAsync(CancellationToken cancellationToken = default)
+    {
+        if (profileSession is null || activeProfile is null)
+        {
+            DiagnosticsStatusText = "No active mask profile to reset.";
+            return false;
+        }
+
+        await profileSession.ReplacePreparedSlotsAsync([], cancellationToken);
+        await RefreshDiagnosticsAsync(cancellationToken);
+        DiagnosticsStatusText = "Cleared only the app's prepared-slot ledger for the active mask. Physical mask content was not erased.";
+        return true;
+    }
+
+    public async Task<string> BuildRedactedDiagnosticsReportAsync(CancellationToken cancellationToken = default)
+    {
+        await RefreshDiagnosticsAsync(cancellationToken);
+        var report = new StringBuilder()
+            .AppendLine("MaskApp redacted diagnostics")
+            .AppendLine($"Generated (UTC): {DateTimeOffset.UtcNow:O}")
+            .AppendLine("Device identifiers and remembered names: REDACTED")
+            .AppendLine($"Connection: {ConnectionState}")
+            .AppendLine($"Signal: {(SelectedDevice is null ? "Unavailable" : $"{SelectedDevice.SignalStrength} dBm")}")
+            .AppendLine($"Transport: {TransportText}")
+            .AppendLine($"Firmware: {FirmwareText}")
+            .AppendLine($"Acknowledgement mode: {AcknowledgementText}")
+            .AppendLine($"Command write: {CommandWriteText}")
+            .AppendLine($"Text upload: {TextUploadText}")
+            .AppendLine($"Face upload: {FaceUploadText}")
+            .AppendLine($"Prepared slots: {PreparedSlotText}")
+            .AppendLine($"Command latency: {LatencyText}")
+            .AppendLine($"Sustainable cadence: {CadenceText}")
+            .AppendLine($"Battery: {BatteryText}")
+            .AppendLine($"Scheduler queue: {SchedulerQueueText}")
+            .AppendLine($"Scheduler last duration: {SchedulerLastDurationText}")
+            .AppendLine($"Scheduler last error: {SchedulerErrorText}")
+            .AppendLine($"Animation state: {AnimationStateText}")
+            .AppendLine($"Animation delivery: {AnimationDeliveryText}")
+            .AppendLine($"Last preflight: {PreflightStatusText}")
+            .AppendLine($"Preflight summary: {PreflightSummaryText}");
+        if (RecentRedactedErrors.Count == 0)
+        {
+            report.AppendLine("Recent redacted errors: None recorded");
+        }
+        else
+        {
+            report.AppendLine("Recent redacted errors:");
+            foreach (var error in RecentRedactedErrors)
+            {
+                report.AppendLine($"- {error}");
+            }
+        }
+
+        return report.ToString();
     }
 
     private async Task StartScanAsync(CancellationToken cancellationToken)
@@ -204,10 +428,16 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
     {
         ConnectionState = e.State;
         StatusText = e.Message;
+        AddReconnectHistory($"{e.State}: {e.Message}");
+        if (e.State is BleConnectionState.Connected or BleConnectionState.Disconnected or BleConnectionState.Failed)
+        {
+            _ = RefreshDiagnosticsAsync();
+        }
     }
 
     private async Task StartAutoConnectAsync(CancellationToken cancellationToken)
     {
+        AddReconnectHistory("Reconnect requested for the remembered mask.");
         await autoConnectCoordinator.StartForegroundAutoConnectAsync(cancellationToken);
         StatusText = autoConnectCoordinator.AutoConnectStatusText;
     }
@@ -240,9 +470,120 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanStartAutoConnect));
         OnPropertyChanged(nameof(DeviceNameText));
         OnPropertyChanged(nameof(ConnectionDetailText));
+        OnPropertyChanged(nameof(SchedulerErrorText));
+        OnPropertyChanged(nameof(RecentRedactedErrors));
         StartAutoConnectCommand.RaiseCanExecuteChanged();
         ForgetKnownMaskCommand.RaiseCanExecuteChanged();
     }
+
+    private void OnSchedulerDiagnosticsChanged(object? sender, MaskBleSchedulerDiagnosticsChangedEventArgs e)
+    {
+        schedulerSnapshot = e.Snapshot;
+        CaptureSchedulerError(e.Snapshot.LastError);
+        NotifyDiagnosticsChanged();
+    }
+
+    private void OnAnimationSnapshotChanged(object? sender, AnimationPlaybackSnapshotChangedEventArgs e)
+    {
+        animationSnapshot = e.Snapshot;
+        NotifyDiagnosticsChanged();
+    }
+
+    private void OnPreflightSnapshotChanged(object? sender, PreflightStatusSnapshot e)
+    {
+        preflightSnapshot = e;
+        NotifyDiagnosticsChanged();
+    }
+
+    private void NotifyDiagnosticsChanged()
+    {
+        OnPropertyChanged(nameof(HasActiveProfile));
+        OnPropertyChanged(nameof(CanResetPreparedSlots));
+        OnPropertyChanged(nameof(FirmwareText));
+        OnPropertyChanged(nameof(TransportText));
+        OnPropertyChanged(nameof(AcknowledgementText));
+        OnPropertyChanged(nameof(CommandWriteText));
+        OnPropertyChanged(nameof(TextUploadText));
+        OnPropertyChanged(nameof(FaceUploadText));
+        OnPropertyChanged(nameof(UploadCapabilitiesText));
+        OnPropertyChanged(nameof(PreparedSlotText));
+        OnPropertyChanged(nameof(PreparedSlotDetailText));
+        OnPropertyChanged(nameof(LatencyText));
+        OnPropertyChanged(nameof(CadenceText));
+        OnPropertyChanged(nameof(BatteryText));
+        OnPropertyChanged(nameof(SchedulerQueueText));
+        OnPropertyChanged(nameof(SchedulerLastDurationText));
+        OnPropertyChanged(nameof(SchedulerErrorText));
+        OnPropertyChanged(nameof(RecentRedactedErrors));
+        OnPropertyChanged(nameof(HasRecentRedactedErrors));
+        OnPropertyChanged(nameof(AnimationStateText));
+        OnPropertyChanged(nameof(AnimationDeliveryText));
+        OnPropertyChanged(nameof(PreflightStatusText));
+        OnPropertyChanged(nameof(PreflightSummaryText));
+        OnPropertyChanged(nameof(PreflightIcon));
+        OnPropertyChanged(nameof(PreflightColorHex));
+    }
+
+    private void AddReconnectHistory(string detail)
+    {
+        ReconnectHistory =
+        [
+            $"{DateTimeOffset.Now:HH:mm:ss} · {detail}",
+            .. ReconnectHistory.Take(7)
+        ];
+    }
+
+    private void CaptureSchedulerError(string? error)
+    {
+        if (string.IsNullOrWhiteSpace(error)
+            || recentSchedulerErrors.FirstOrDefault()?.EndsWith(error, StringComparison.Ordinal) == true)
+        {
+            return;
+        }
+
+        recentSchedulerErrors =
+        [
+            $"{DateTimeOffset.Now:HH:mm:ss} · {error}",
+            .. recentSchedulerErrors.Take(7)
+        ];
+        OnPropertyChanged(nameof(RecentRedactedErrors));
+        OnPropertyChanged(nameof(HasRecentRedactedErrors));
+    }
+
+    private string RedactDiagnosticText(string value)
+    {
+        var redacted = value.Length > 512 ? $"{value[..512]}…" : value;
+        var knownValues = new[]
+        {
+            SelectedDevice?.Id,
+            SelectedDevice?.Name,
+            HasKnownMask ? LastKnownMaskText : null
+        };
+        foreach (var knownValue in knownValues.Where(candidate => !string.IsNullOrWhiteSpace(candidate)))
+        {
+            redacted = redacted.Replace(knownValue!, "[REDACTED]", StringComparison.OrdinalIgnoreCase);
+        }
+
+        redacted = Regex.Replace(
+            redacted,
+            @"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b",
+            "[REDACTED UUID]",
+            RegexOptions.CultureInvariant,
+            TimeSpan.FromMilliseconds(50));
+        return Regex.Replace(
+            redacted,
+            @"\b(?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}\b",
+            "[REDACTED ADDRESS]",
+            RegexOptions.CultureInvariant,
+            TimeSpan.FromMilliseconds(50));
+    }
+
+    private static string CapabilityText(bool? value) => value switch
+    {
+        true => "Ready",
+        false => "Unavailable",
+        null => "Unknown"
+    };
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {

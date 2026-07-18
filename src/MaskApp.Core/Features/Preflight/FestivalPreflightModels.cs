@@ -2,6 +2,7 @@ using MaskApp.Core.Features.Gallery;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.Profiles;
 using MaskApp.Core.Features.Animations;
+using MaskApp.Core.Features.Connect;
 
 namespace MaskApp.Core.Features.Preflight;
 
@@ -37,6 +38,8 @@ public sealed record PreflightIssue(
 
     public string ColorHex => Severity == PreflightIssueSeverity.Blocking ? "#FF5C54" : "#FACC15";
 }
+
+public sealed record PreflightVerifiedCheck(string Title, string Detail);
 
 public sealed record DiySlotRequirement(
     string RequirementId,
@@ -102,6 +105,8 @@ public sealed record FestivalPreflightRequest
     public MaskProfile? ActiveProfile { get; init; }
 
     public MaskBleSchedulerSnapshot? SchedulerSnapshot { get; init; }
+
+    public BleConnectionState ConnectionState { get; init; } = BleConnectionState.Disconnected;
 
     public FlashSafetyAcknowledgementState FlashSafetyAcknowledgements { get; init; } = new();
 

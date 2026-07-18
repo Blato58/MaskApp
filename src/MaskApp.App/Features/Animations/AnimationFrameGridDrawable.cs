@@ -6,6 +6,16 @@ namespace MaskApp.App.Features.Animations;
 
 public sealed class AnimationFrameGridDrawable(AnimationStudioViewModel viewModel) : IDrawable
 {
+    private static readonly (int Left, int Right)[] MaskRowBounds =
+    [
+        (18,27), (13,32), (11,34), (9,36), (8,37), (7,38), (6,39), (6,39), (5,40), (4,41),
+        (4,41), (3,42), (3,42), (3,42), (2,43), (2,43), (2,44), (1,43), (1,44), (1,44),
+        (1,44), (1,44), (1,44), (1,44), (1,44), (1,44), (1,44), (1,44), (1,44), (1,44),
+        (1,44), (1,44), (1,44), (1,44), (2,43), (2,43), (2,43), (2,43), (3,42), (3,42),
+        (4,41), (4,41), (4,41), (5,40), (5,40), (6,39), (6,39), (7,38), (8,37), (9,36),
+        (9,36), (10,35), (11,34), (12,33), (13,32), (15,30), (17,28), (21,24)
+    ];
+
     public RectF LastGridBounds { get; private set; }
 
     public float CellSize { get; private set; }
@@ -61,6 +71,24 @@ public sealed class AnimationFrameGridDrawable(AnimationStudioViewModel viewMode
             var y = LastGridBounds.Y + (row * CellSize);
             canvas.DrawLine(LastGridBounds.X, y, LastGridBounds.Right, y);
         }
+
+        if (viewModel.GuidesEnabled)
+        {
+            DrawMaskGuides(canvas);
+        }
+
+        if (viewModel.SelectionBounds is { } selection)
+        {
+            canvas.StrokeColor = Color.FromArgb("#F59E0B");
+            canvas.StrokeSize = 2;
+            canvas.StrokeDashPattern = [4, 3];
+            canvas.DrawRectangle(
+                LastGridBounds.X + (selection.Left * CellSize),
+                LastGridBounds.Y + (selection.Top * CellSize),
+                (selection.Right - selection.Left + 1) * CellSize,
+                (selection.Bottom - selection.Top + 1) * CellSize);
+            canvas.StrokeDashPattern = null;
+        }
     }
 
     public bool TryGetCell(PointF point, out int column, out int row)
@@ -98,4 +126,55 @@ public sealed class AnimationFrameGridDrawable(AnimationStudioViewModel viewMode
             }
         }
     }
+
+    private void DrawMaskGuides(ICanvas canvas)
+    {
+        canvas.SaveState();
+        canvas.StrokeColor = Color.FromArgb("#F7F7F8");
+        canvas.StrokeSize = Math.Max(1.5f, CellSize * 0.28f);
+        canvas.Alpha = 0.9f;
+
+        var outline = new PathF();
+        outline.MoveTo(CellX(MaskRowBounds[0].Left), CellY(0.5f));
+        for (var row = 1; row < MaskRowBounds.Length; row++)
+        {
+            outline.LineTo(CellX(MaskRowBounds[row].Left), CellY(row + 0.5f));
+        }
+
+        for (var row = MaskRowBounds.Length - 1; row >= 0; row--)
+        {
+            outline.LineTo(CellX(MaskRowBounds[row].Right + 1), CellY(row + 0.5f));
+        }
+
+        outline.Close();
+        canvas.DrawPath(outline);
+        DrawEyeGuide(canvas, [(5, 15), (6, 17), (7, 17), (9, 14)], 16);
+        DrawEyeGuide(canvas, [(30, 40), (28, 38), (28, 38), (31, 36)], 16);
+        canvas.RestoreState();
+    }
+
+    private void DrawEyeGuide(ICanvas canvas, IReadOnlyList<(int Left, int Right)> rows, int firstRow)
+    {
+        var path = new PathF();
+        path.MoveTo(CellX(rows[0].Left), CellY(firstRow));
+        for (var index = 0; index < rows.Count; index++)
+        {
+            path.LineTo(CellX(rows[index].Left), CellY(firstRow + index + 0.5f));
+        }
+
+        path.LineTo(CellX(rows[^1].Left), CellY(firstRow + rows.Count));
+        path.LineTo(CellX(rows[^1].Right + 1), CellY(firstRow + rows.Count));
+        for (var index = rows.Count - 1; index >= 0; index--)
+        {
+            path.LineTo(CellX(rows[index].Right + 1), CellY(firstRow + index + 0.5f));
+        }
+
+        path.LineTo(CellX(rows[0].Right + 1), CellY(firstRow));
+        path.Close();
+        canvas.DrawPath(path);
+    }
+
+    private float CellX(float column) => LastGridBounds.X + (column * CellSize);
+
+    private float CellY(float row) => LastGridBounds.Y + (row * CellSize);
 }

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="Library" xml:space="preserve"><value>Library</value></data>
+  <data name="Stage" xml:space="preserve"><value>Stage</value></data>
+  <data name="Device" xml:space="preserve"><value>Device</value></data>
+  <data name="SearchLibrary" xml:space="preserve"><value>Search Library</value></data>
+  <data name="Add" xml:space="preserve"><value>Create</value></data>
+  <data name="QuickDeck" xml:space="preserve"><value>Quick Deck</value></data>
+  <data name="All" xml:space="preserve"><value>All</value></data>
+  <data name="Faces" xml:space="preserve"><value>Faces</value></data>
+  <data name="Text" xml:space="preserve"><value>Text</value></data>
+  <data name="Animations" xml:space="preserve"><value>Animations</value></data>
+  <data name="Scenes" xml:space="preserve"><value>Scenes</value></data>
+  <data name="Build" xml:space="preserve"><value>Build</value></data>
+  <data name="Preflight" xml:space="preserve"><value>Preflight</value></data>
+  <data name="Connection" xml:space="preserve"><value>Connection</value></data>
+  <data name="Diagnostics" xml:space="preserve"><value>Diagnostics</value></data>
+  <data name="ShowReady" xml:space="preserve"><value>SHOW READY</value></data>
+  <data name="ShowDegraded" xml:space="preserve"><value>DEGRADED</value></data>
+  <data name="ShowNotReady" xml:space="preserve"><value>NOT READY</value></data>
+  <data name="EnterStage" xml:space="preserve"><value>Enter locked Stage</value></data>
+  <data name="Stop" xml:space="preserve"><value>STOP</value></data>
+  <data name="Blackout" xml:space="preserve"><value>BLACKOUT</value></data>
+  <data name="AnimationStudio" xml:space="preserve"><value>Animation Studio</value></data>
+  <data name="Save" xml:space="preserve"><value>Save</value></data>
+</root>

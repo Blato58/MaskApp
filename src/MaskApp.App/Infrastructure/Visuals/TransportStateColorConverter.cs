@@ -11,16 +11,16 @@ public sealed class TransportStateColorConverter : IValueConverter
     {
         var color = value switch
         {
-            MaskCommandTransportState.Ready => Color.FromArgb("#22C55E"),
-            MaskCommandTransportState.Discovering => Color.FromArgb("#FACC15"),
-            MaskCommandTransportState.Failed => Color.FromArgb("#FF5C54"),
-            TextUploadTransportState.Ready or TextUploadTransportState.CompatibilityReady or TextUploadTransportState.Simulated => Color.FromArgb("#22C55E"),
-            TextUploadTransportState.Discovering => Color.FromArgb("#FACC15"),
-            TextUploadTransportState.Failed or TextUploadTransportState.Unavailable => Color.FromArgb("#FF5C54"),
-            BleConnectionState.Connected => Color.FromArgb("#22C55E"),
-            BleConnectionState.Scanning or BleConnectionState.Connecting => Color.FromArgb("#FACC15"),
-            BleConnectionState.Failed or BleConnectionState.Unavailable => Color.FromArgb("#FF5C54"),
-            _ => Color.FromArgb("#64748B")
+            MaskCommandTransportState.Ready => Color.FromArgb("#22D3EE"),
+            MaskCommandTransportState.Discovering => Color.FromArgb("#F59E0B"),
+            MaskCommandTransportState.Failed => Color.FromArgb("#EF4444"),
+            TextUploadTransportState.Ready or TextUploadTransportState.CompatibilityReady or TextUploadTransportState.Simulated => Color.FromArgb("#22D3EE"),
+            TextUploadTransportState.Discovering => Color.FromArgb("#F59E0B"),
+            TextUploadTransportState.Failed or TextUploadTransportState.Unavailable => Color.FromArgb("#EF4444"),
+            BleConnectionState.Connected => Color.FromArgb("#22D3EE"),
+            BleConnectionState.Scanning or BleConnectionState.Connecting => Color.FromArgb("#F59E0B"),
+            BleConnectionState.Failed or BleConnectionState.Unavailable => Color.FromArgb("#EF4444"),
+            _ => Color.FromArgb("#92949B")
         };
 
         return string.Equals(parameter as string, "soft", StringComparison.OrdinalIgnoreCase)

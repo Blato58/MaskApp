@@ -29,6 +29,8 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
     private readonly FlashSafetyAcknowledgementService flashSafetyAcknowledgementService;
     private readonly IAnimationProjectStore animationProjectStore;
     private readonly ISceneShowStore sceneShowStore;
+    private readonly IBleDeviceConnection deviceConnection;
+    private readonly PreflightStatusSession? statusSession;
     private PreflightPageOption? selectedPage;
     private bool isBusy;
     private string statusText = "NOT READY";
@@ -43,6 +45,8 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
     private bool lastRunActiveSetlist;
     private SceneShowState sceneState = new();
     private string preparationStatusText = "Run Preflight before preparation.";
+    private MaskProfile? analyzedProfile;
+    private BleConnectionState analyzedConnectionState = BleConnectionState.Disconnected;
 
     public FestivalPreflightViewModel(
         ITextPresetStore textPresetStore,
@@ -56,8 +60,10 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
         FestivalShowPreparationService preparationService,
         IFlashSafetyAcknowledgementStore flashSafetyAcknowledgementStore,
         FlashSafetyAcknowledgementService flashSafetyAcknowledgementService,
+        IBleDeviceConnection deviceConnection,
         IAnimationProjectStore? animationProjectStore = null,
-        ISceneShowStore? sceneShowStore = null)
+        ISceneShowStore? sceneShowStore = null,
+        PreflightStatusSession? statusSession = null)
     {
         this.textPresetStore = textPresetStore;
         this.builtInArchiveStore = builtInArchiveStore;
@@ -70,8 +76,10 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
         this.preparationService = preparationService;
         this.flashSafetyAcknowledgementStore = flashSafetyAcknowledgementStore;
         this.flashSafetyAcknowledgementService = flashSafetyAcknowledgementService;
+        this.deviceConnection = deviceConnection;
         this.animationProjectStore = animationProjectStore ?? new InMemoryAnimationProjectStore();
         this.sceneShowStore = sceneShowStore ?? new InMemorySceneShowStore();
+        this.statusSession = statusSession;
 
         RunSelectedPageCommand = new AsyncRelayCommand(
             cancellationToken => AnalyzeAsync(selectedOnly: true, cancellationToken),
@@ -96,9 +104,60 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
 
     public ObservableCollection<PreflightIssue> Issues { get; } = [];
 
+    public ObservableCollection<PreflightIssue> Blockers { get; } = [];
+
+    public ObservableCollection<PreflightIssue> Warnings { get; } = [];
+
+    public ObservableCollection<PreflightVerifiedCheck> VerifiedChecks { get; } = [];
+
     public ObservableCollection<PreflightActionAssessment> Actions { get; } = [];
 
     public bool HasNoIssues => Issues.Count == 0;
+
+    public bool HasIssues => Issues.Count > 0;
+
+    public bool HasBlockers => Blockers.Count > 0;
+
+    public bool HasWarnings => Warnings.Count > 0;
+
+    public bool HasVerifiedChecks => VerifiedChecks.Count > 0;
+
+    public int BlockingIssueCount => Issues.Count(issue => issue.Severity == PreflightIssueSeverity.Blocking);
+
+    public int WarningIssueCount => Issues.Count(issue => issue.Severity == PreflightIssueSeverity.Warning);
+
+    public string InstantMetricText => (currentReport?.InstantActionCount ?? 0).ToString();
+
+    public string PreparedMetricText => (currentReport?.PreparedActionCount ?? 0).ToString();
+
+    public string UploadMetricText => (currentReport?.UploadRequiredActionCount ?? 0).ToString();
+
+    public string UnverifiedMetricText => (currentReport?.UnverifiedActionCount ?? 0).ToString();
+
+    public string SlotUsageMetricText => currentReport is null || analyzedProfile is null
+        ? "Unavailable"
+        : $"{currentReport.SlotAllocations.Select(allocation => allocation.AssignedSlot).Distinct().Count()} / {analyzedProfile.Capabilities.DiySlotCapacity}";
+
+    public string LatencyMetricText => analyzedProfile?.AverageCommandLatencyMilliseconds is { } latency
+        ? $"{latency:0.#} ms measured"
+        : "Unavailable (not measured)";
+
+    public string AcknowledgementMetricText => analyzedProfile is null
+        ? "Unavailable"
+        : analyzedProfile.Capabilities.AcknowledgementMode.ToString();
+
+    public string ConnectionMetricText => analyzedConnectionState == BleConnectionState.Connected
+        ? "Connected now"
+        : analyzedConnectionState.ToString();
+
+    public string SafetyMetricText => currentReport is null ? "Not checked" : FlashSafetySummary;
+
+    public string ReadinessIcon => currentReport?.Status switch
+    {
+        FestivalPreflightStatus.ShowReady => "✓",
+        FestivalPreflightStatus.Degraded => "!",
+        _ => "×"
+    };
 
     public bool HasBlockedFlashSafety => currentReport?.FlashSafetyResults.Any(result =>
         result.Decision.Status == FlashSafetyStatus.Blocked) == true;
@@ -196,6 +255,8 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
 
     public FestivalPreflightReport? CurrentReport => currentReport;
 
+    public bool CanEnterStage => currentReport?.Status is FestivalPreflightStatus.ShowReady or FestivalPreflightStatus.Degraded;
+
     public bool HasActiveSetlist => !string.IsNullOrWhiteSpace(sceneState.ActiveSetlistId)
         && sceneState.Setlists.Any(setlist => setlist.Id == sceneState.ActiveSetlistId);
 
@@ -286,14 +347,22 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
                 SelectedPageIds = selectedPageIds,
                 ActiveProfile = profile,
                 SchedulerSnapshot = scheduler.GetSnapshot(),
+                ConnectionState = deviceConnection.State,
                 FlashSafetyAcknowledgements = safetyAcknowledgements,
                 EvaluatedAt = DateTimeOffset.UtcNow
             });
             currentCatalog = catalog;
             currentReport = report;
+            analyzedProfile = profile;
+            analyzedConnectionState = deviceConnection.State;
             lastRunSelectedOnly = selectedOnly;
             lastRunActiveSetlist = activeSetlist;
             ApplyReport(report);
+            statusSession?.Update(new PreflightStatusSnapshot(
+                report.Status,
+                report.StatusText,
+                SummaryText,
+                DateTimeOffset.UtcNow));
             ScopeText = activeSetlist && HasActiveSetlist
                 ? $"Setlist · {sceneState.Setlists.First(setlist => setlist.Id == sceneState.ActiveSetlistId).DisplayName}"
                 : selectedOnly && SelectedPage is not null
@@ -319,15 +388,32 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
             StatusColorHex = "#FF5C54";
             SummaryText = $"Preflight could not load show data: {exception.Message}";
             Issues.Clear();
-            Issues.Add(new PreflightIssue(
+            Blockers.Clear();
+            Warnings.Clear();
+            VerifiedChecks.Clear();
+            var issue = new PreflightIssue(
                 "preflight-load-failed",
                 PreflightIssueSeverity.Blocking,
                 SummaryText,
-                "Retry. If the error persists, export diagnostics before resetting only the affected store."));
+                "Retry. If the error persists, export diagnostics before resetting only the affected store.");
+            Issues.Add(issue);
+            Blockers.Add(issue);
             OnPropertyChanged(nameof(HasNoIssues));
+            OnPropertyChanged(nameof(HasIssues));
+            OnPropertyChanged(nameof(HasBlockers));
+            OnPropertyChanged(nameof(HasWarnings));
+            OnPropertyChanged(nameof(HasVerifiedChecks));
             Actions.Clear();
             currentReport = null;
             currentCatalog = [];
+            analyzedProfile = null;
+            analyzedConnectionState = deviceConnection.State;
+            NotifyReportStateChanged();
+            statusSession?.Update(new PreflightStatusSnapshot(
+                FestivalPreflightStatus.NotReady,
+                "NOT READY",
+                SummaryText,
+                DateTimeOffset.UtcNow));
             PrepareDiyContentCommand.RaiseCanExecuteChanged();
         }
         finally
@@ -477,11 +563,26 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
             + $"{report.UnverifiedActionCount} unverified";
 
         Issues.Clear();
+        Blockers.Clear();
+        Warnings.Clear();
         foreach (var issue in report.Issues)
         {
             Issues.Add(issue);
+            if (issue.Severity == PreflightIssueSeverity.Blocking)
+            {
+                Blockers.Add(issue);
+            }
+            else
+            {
+                Warnings.Add(issue);
+            }
         }
         OnPropertyChanged(nameof(HasNoIssues));
+        OnPropertyChanged(nameof(HasIssues));
+        OnPropertyChanged(nameof(HasBlockers));
+        OnPropertyChanged(nameof(HasWarnings));
+        OnPropertyChanged(nameof(BlockingIssueCount));
+        OnPropertyChanged(nameof(WarningIssueCount));
 
         Actions.Clear();
         foreach (var action in report.Actions)
@@ -489,9 +590,58 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
             Actions.Add(action);
         }
 
+        NotifyReportStateChanged();
+
+        VerifiedChecks.Clear();
+        if (analyzedConnectionState == BleConnectionState.Connected)
+        {
+            VerifiedChecks.Add(new PreflightVerifiedCheck(
+                "Mask connected",
+                "The active physical mask is connected for this check."));
+        }
+
+        if (analyzedProfile?.Capabilities.CommandWriteAvailable == true)
+        {
+            VerifiedChecks.Add(new PreflightVerifiedCheck(
+                "Command write ready",
+                string.IsNullOrWhiteSpace(analyzedProfile.Capabilities.TransportName)
+                    ? "The command characteristic was observed ready."
+                    : $"Observed using {analyzedProfile.Capabilities.TransportName}."));
+        }
+
+        if (report.SlotAllocations.Count == 0 || report.SlotAllocations.All(allocation => allocation.IsPrepared))
+        {
+            VerifiedChecks.Add(new PreflightVerifiedCheck(
+                "DIY preparation resolved",
+                "No required DIY upload remains in this checked scope."));
+        }
+
+        if (report.FlashSafetyResults.All(result => result.Decision.Status == FlashSafetyStatus.Safe))
+        {
+            VerifiedChecks.Add(new PreflightVerifiedCheck(
+                "Safety gate clear",
+                "No checked animation revision is blocked by flash analysis."));
+        }
+
+        OnPropertyChanged(nameof(HasVerifiedChecks));
+    }
+
+    private void NotifyReportStateChanged()
+    {
         OnPropertyChanged(nameof(HasBlockedFlashSafety));
         OnPropertyChanged(nameof(HasAcknowledgedFlashSafety));
         OnPropertyChanged(nameof(FlashSafetySummary));
+        OnPropertyChanged(nameof(InstantMetricText));
+        OnPropertyChanged(nameof(PreparedMetricText));
+        OnPropertyChanged(nameof(UploadMetricText));
+        OnPropertyChanged(nameof(UnverifiedMetricText));
+        OnPropertyChanged(nameof(ReadinessIcon));
+        OnPropertyChanged(nameof(CanEnterStage));
+        OnPropertyChanged(nameof(SlotUsageMetricText));
+        OnPropertyChanged(nameof(LatencyMetricText));
+        OnPropertyChanged(nameof(AcknowledgementMetricText));
+        OnPropertyChanged(nameof(ConnectionMetricText));
+        OnPropertyChanged(nameof(SafetyMetricText));
     }
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)

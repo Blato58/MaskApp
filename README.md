@@ -10,6 +10,14 @@ The original source snapshot is kept in `android/` and should be treated as migr
 - `src/MaskApp.Core` - platform-neutral migration code for BLE protocol, feature state, parsing, and transformations.
 - `tests/MaskApp.Core.Tests` - xUnit tests for migrated core behavior.
 
+## App Navigation
+
+The primary Shell destinations are **Library**, **Stage**, and **Device**.
+Library owns content discovery and editor entry points. Stage contains Build and
+Preflight, with Pages, Scenes, setlists, and the full-screen locked performance
+surface underneath it. Device keeps ordinary connection and brightness controls
+ahead of progressively disclosed diagnostics and recovery tools.
+
 ## Prerequisites
 
 - .NET SDK `10.0.300` or a compatible .NET 10 feature band.

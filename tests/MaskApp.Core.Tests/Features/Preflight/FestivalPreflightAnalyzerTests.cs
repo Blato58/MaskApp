@@ -1,4 +1,5 @@
 using MaskApp.Core.Features.Animations;
+using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.Gallery;
 using MaskApp.Core.Features.Profiles;
@@ -50,6 +51,34 @@ public sealed class FestivalPreflightAnalyzerTests
         var issue = Assert.Single(report.Issues, item => item.Code == "mask-profile-missing");
         Assert.Equal(PreflightIssueSeverity.Blocking, issue.Severity);
         Assert.Contains("connect", issue.RecoveryAction, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Analyze_DisconnectedActiveProfile_CannotReportShowReady()
+    {
+        var face = FacePatternFactory.CreateBlank("Prepared", preferredSlot: 7);
+        var item = CreateFaceItem(face);
+        var request = CreateRequest(
+            [item],
+            [CreatePage("page-a", item.Id)],
+            CreateProfile(new MaskPreparedSlot
+            {
+                Slot = 7,
+                ContentFingerprint = FaceContentFingerprint.Compute(face),
+                SourceId = item.Id,
+                InstalledAt = Now,
+                Verification = MaskPreparedSlotVerification.Acknowledged
+            })) with
+        {
+            ConnectionState = BleConnectionState.Disconnected
+        };
+
+        var report = new FestivalPreflightAnalyzer().Analyze(request);
+
+        Assert.Equal(FestivalPreflightStatus.NotReady, report.Status);
+        var issue = Assert.Single(report.Issues, candidate => candidate.Code == "mask-disconnected");
+        Assert.Equal(PreflightIssueSeverity.Blocking, issue.Severity);
+        Assert.Contains("Device", issue.RecoveryAction, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -227,6 +256,7 @@ public sealed class FestivalPreflightAnalyzerTests
             Catalog = catalog,
             Layout = new GalleryLayoutState { Pages = pages },
             ActiveProfile = profile,
+            ConnectionState = BleConnectionState.Connected,
             EvaluatedAt = Now
         };
 

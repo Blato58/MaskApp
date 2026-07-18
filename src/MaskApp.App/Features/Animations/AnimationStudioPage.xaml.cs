@@ -57,20 +57,39 @@ public partial class AnimationStudioPage : ContentPage, IQueryAttributable
     {
         if (e.PropertyName is nameof(AnimationStudioViewModel.PreviewCells)
             or nameof(AnimationStudioViewModel.OnionSkinPattern)
-            or nameof(AnimationStudioViewModel.SelectedFrameIndex))
+            or nameof(AnimationStudioViewModel.SelectedFrameIndex)
+            or nameof(AnimationStudioViewModel.GuidesEnabled)
+            or nameof(AnimationStudioViewModel.SelectionBounds))
         {
             MainThread.BeginInvokeOnMainThread(FrameCanvas.Invalidate);
         }
     }
 
-    private void OnCanvasInteraction(object? sender, TouchEventArgs e)
+    private void OnCanvasStartInteraction(object? sender, TouchEventArgs e)
     {
         if (e.Touches.Length > 0 && drawable.TryGetCell(e.Touches[0], out var column, out var row))
         {
-            viewModel.SetCell(column, row);
+            viewModel.BeginCanvasInteraction(column, row);
             FrameCanvas.Invalidate();
         }
     }
+
+    private void OnCanvasDragInteraction(object? sender, TouchEventArgs e)
+    {
+        if (e.Touches.Length > 0 && drawable.TryGetCell(e.Touches[0], out var column, out var row))
+        {
+            viewModel.ContinueCanvasInteraction(column, row);
+            FrameCanvas.Invalidate();
+        }
+    }
+
+    private void OnCanvasEndInteraction(object? sender, TouchEventArgs e)
+    {
+        viewModel.EndCanvasInteraction();
+        FrameCanvas.Invalidate();
+    }
+
+    private async void OnBackClicked(object? sender, EventArgs e) => await Shell.Current.GoToAsync("..");
 
     private void OnProjectSelected(object? sender, EventArgs e)
     {

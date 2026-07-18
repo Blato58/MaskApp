@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="MaskApp.App.Features.Stage.StageHubPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:MaskApp.App.Controls"
+    xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
+    xmlns:preflight="clr-namespace:MaskApp.Core.Features.Preflight;assembly=MaskApp.Core"
+    xmlns:scenes="clr-namespace:MaskApp.Core.Features.Scenes;assembly=MaskApp.Core"
+    xmlns:stage="clr-namespace:MaskApp.Core.Features.Stage;assembly=MaskApp.Core"
+    x:DataType="stage:StageHubViewModel"
+    Title="{x:Static loc:AppText.Stage}"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{StaticResource PageBackgroundColor}">
+    <Grid>
+        <ScrollView>
+            <VerticalStackLayout Padding="16" Spacing="16">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="{x:Static loc:AppText.Stage}" Style="{StaticResource PageTitleLabelStyle}" SemanticProperties.HeadingLevel="Level1" />
+                        <Label Text="{Binding StatusText}" Style="{StaticResource TinyLabelStyle}" />
+                    </VerticalStackLayout>
+                    <Button Grid.Column="1" Text="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource QuietButtonStyle}" />
+                </Grid>
+
+                <controls:ConnectionStatusView
+                    State="{Binding ConnectionState}"
+                    StateText="{Binding ConnectionStatusText}"
+                    DetailText="{Binding ConnectionDetailText}" />
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                    <Button Text="{x:Static loc:AppText.Build}" Clicked="OnBuildClicked" Style="{StaticResource ModeButtonStyle}">
+                        <Button.Triggers><DataTrigger TargetType="Button" Binding="{Binding IsBuildMode}" Value="True"><Setter Property="BackgroundColor" Value="{StaticResource SelectedSurfaceColor}" /><Setter Property="TextColor" Value="{StaticResource AccentColor}" /></DataTrigger></Button.Triggers>
+                    </Button>
+                    <Button Grid.Column="1" Text="{x:Static loc:AppText.Preflight}" Clicked="OnPreflightClicked" Style="{StaticResource ModeButtonStyle}">
+                        <Button.Triggers><DataTrigger TargetType="Button" Binding="{Binding IsPreflightMode}" Value="True"><Setter Property="BackgroundColor" Value="{StaticResource SelectedSurfaceColor}" /><Setter Property="TextColor" Value="{StaticResource AccentColor}" /></DataTrigger></Button.Triggers>
+                    </Button>
+                </Grid>
+
+                <VerticalStackLayout IsVisible="{Binding IsBuildMode}" Spacing="18">
+                    <controls:SectionHeaderView Title="Current set" Subtitle="Build ordered cues here; edit detailed scene steps in Show Builder." />
+                    <Border Style="{StaticResource PanelBorderStyle}" Stroke="{Binding Preflight.StatusColorHex}">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                            <Label Text="{Binding Preflight.StatusText}" TextColor="{Binding Preflight.StatusColorHex}" FontAttributes="Bold" VerticalTextAlignment="Center" />
+                            <Label Grid.Column="1" Text="{Binding Preflight.SummaryText}" Style="{StaticResource TinyLabelStyle}" MaxLines="2" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource PanelBorderStyle}">
+                        <VerticalStackLayout Spacing="12">
+                            <Entry
+                                Text="{Binding SceneStudio.SetlistName, Mode=TwoWay}"
+                                Placeholder="Setlist name"
+                                SemanticProperties.Description="Current setlist name" />
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                <Label Text="{Binding SceneStudio.SetlistPositionText}" Style="{StaticResource MutedLabelStyle}" VerticalTextAlignment="Center" />
+                                <Button Grid.Column="1" Text="Save set" Command="{Binding SceneStudio.SaveSetlistCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                            </Grid>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <Button Text="New set" Command="{Binding SceneStudio.NewSetlistCommand}" Style="{StaticResource CompactButtonStyle}" />
+                                <Button Grid.Column="1" Text="Use Pages on Stage" Command="{Binding SceneStudio.UsePagesCommand}" Style="{StaticResource CompactButtonStyle}" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <controls:SectionHeaderView Title="Cues" Subtitle="The Stage follows this exact order when the set is active." />
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding SceneStudio.CueRows}" Spacing="0">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="scenes:SetlistCueRow">
+                                <Border Style="{StaticResource ActionCardBorderStyle}">
+                                    <Border.GestureRecognizers>
+                                        <DragGestureRecognizer DragStarting="OnCueDragStarting" />
+                                        <DropGestureRecognizer AllowDrop="True" Drop="OnCueDropped" />
+                                    </Border.GestureRecognizers>
+                                    <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" RowSpacing="8">
+                                        <Label Text="{Binding DisplayIndex}" TextColor="{StaticResource AccentColor}" FontSize="20" FontAttributes="Bold" VerticalTextAlignment="Center" />
+                                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                            <Label Text="{Binding Cue.Label}" FontAttributes="Bold" MaxLines="1" />
+                                            <Label Text="{Binding SceneName}" Style="{StaticResource TinyLabelStyle}" MaxLines="1" />
+                                        </VerticalStackLayout>
+                                        <Label Grid.Column="2" Text="CUE" Style="{StaticResource ChipLabelStyle}" VerticalTextAlignment="Center" />
+                                        <Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" ColumnDefinitions="*,*,*" ColumnSpacing="6">
+                                            <Button Text="Earlier" Clicked="OnCueEarlierClicked" CommandParameter="{Binding .}" Style="{StaticResource CompactButtonStyle}" />
+                                            <Button Grid.Column="1" Text="Later" Clicked="OnCueLaterClicked" CommandParameter="{Binding .}" Style="{StaticResource CompactButtonStyle}" />
+                                            <Button Grid.Column="2" Text="Remove" Clicked="OnCueRemoveClicked" CommandParameter="{Binding .}" Style="{StaticResource CompactButtonStyle}" />
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                        <Button Text="Previous" Command="{Binding SceneStudio.PreviousCueCommand}" Style="{StaticResource SecondaryButtonStyle}" SemanticProperties.Description="Previous cue" />
+                        <Button Grid.Column="1" Text="Trigger cue" Command="{Binding SceneStudio.TriggerCueCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Grid.Column="2" Text="Next" Command="{Binding SceneStudio.NextCueCommand}" Style="{StaticResource SecondaryButtonStyle}" SemanticProperties.Description="Next cue" />
+                    </Grid>
+
+                    <Border Style="{StaticResource PanelBorderStyle}">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="Add cue" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Picker
+                                Title="Choose a scene"
+                                ItemsSource="{Binding SceneStudio.Scenes}"
+                                ItemDisplayBinding="{Binding DisplayName}"
+                                SelectedItem="{Binding SceneStudio.SelectedCueScene, Mode=TwoWay}" />
+                            <Button Text="Add scene to set" Clicked="OnAddCueClicked" Style="{StaticResource PrimaryButtonStyle}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button Text="Manage Pages" Clicked="OnPagesClicked" Style="{StaticResource SecondaryButtonStyle}" />
+                        <Button Grid.Column="1" Text="Open Show Builder" Clicked="OnShowBuilderClicked" Style="{StaticResource SecondaryButtonStyle}" />
+                    </Grid>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout IsVisible="{Binding IsPreflightMode}" Spacing="18">
+                    <controls:ReadinessCardView
+                        StatusText="{Binding Preflight.StatusText}"
+                        Summary="{Binding Preflight.SummaryText}"
+                        Icon="{Binding Preflight.ReadinessIcon}"
+                        AccentColor="{Binding Preflight.StatusColorHex}" />
+
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                        <controls:MetricTileView Label="Instant" Value="{Binding Preflight.InstantMetricText}" Icon="⚡" AccentColor="{StaticResource ConnectedColor}" />
+                        <controls:MetricTileView Grid.Column="1" Label="Prepared" Value="{Binding Preflight.PreparedMetricText}" Icon="✓" AccentColor="{StaticResource VerifiedColor}" />
+                        <controls:MetricTileView Grid.Row="1" Label="Upload" Value="{Binding Preflight.UploadMetricText}" Icon="↑" AccentColor="{StaticResource WarningColor}" />
+                        <controls:MetricTileView Grid.Row="1" Grid.Column="1" Label="Unverified" Value="{Binding Preflight.UnverifiedMetricText}" Icon="?" AccentColor="{StaticResource MutedTextColor}" />
+                    </Grid>
+
+                    <Border Style="{StaticResource PanelBorderStyle}">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="Live evidence" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="9">
+                                <Label Text="DIY slots used / available" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Column="1" Text="{Binding Preflight.SlotUsageMetricText}" FontAttributes="Bold" />
+                                <Label Grid.Row="1" Text="Connection" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="1" Grid.Column="1" Text="{Binding Preflight.ConnectionMetricText}" FontAttributes="Bold" />
+                                <Label Grid.Row="2" Text="ACK / write mode" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="2" Grid.Column="1" Text="{Binding Preflight.AcknowledgementMetricText}" FontAttributes="Bold" />
+                                <Label Grid.Row="3" Text="Command latency" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="3" Grid.Column="1" Text="{Binding Preflight.LatencyMetricText}" FontAttributes="Bold" />
+                                <Label Grid.Row="4" Text="Safety" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="4" Grid.Column="1" Text="{Binding Preflight.SafetyMetricText}" FontAttributes="Bold" MaxLines="2" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Style="{StaticResource PanelBorderStyle}">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="Check scope" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Label Text="{Binding Preflight.ScopeText}" Style="{StaticResource MutedLabelStyle}" />
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <Button Text="Whole show" Command="{Binding Preflight.RunWholeShowCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                                <Button Grid.Column="1" Text="Active set" Command="{Binding Preflight.RunActiveSetlistCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                            </Grid>
+                            <Picker
+                                Title="Choose a Page"
+                                ItemsSource="{Binding Preflight.Pages}"
+                                ItemDisplayBinding="{Binding DisplayName}"
+                                SelectedItem="{Binding Preflight.SelectedPage, Mode=TwoWay}" />
+                            <Button Text="Check selected Page" Command="{Binding Preflight.RunSelectedPageCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <controls:SectionHeaderView Title="Issues and recovery" Subtitle="Fix blocking items before entering Stage; warnings keep the show degraded." />
+                    <VerticalStackLayout Spacing="8">
+                        <Button Text="Open Device" Clicked="OnDeviceClicked" IsVisible="{Binding IsDisconnected}" Style="{StaticResource SecondaryButtonStyle}" />
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                            <Button Text="Manage Pages" Clicked="OnPagesClicked" Style="{StaticResource SecondaryButtonStyle}" />
+                            <Button Grid.Column="1" Text="Retry" Command="{Binding Preflight.RunWholeShowCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                        </Grid>
+                    </VerticalStackLayout>
+                    <controls:EmptyStateView
+                        IsVisible="{Binding Preflight.HasNoIssues}"
+                        Icon="✓"
+                        Title="No preflight issues"
+                        Message="The checked scope has no known blockers or warnings." />
+                    <Label Text="BLOCKERS" IsVisible="{Binding Preflight.HasBlockers}" TextColor="{StaticResource DangerColor}" FontAttributes="Bold" CharacterSpacing="1" />
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Preflight.Blockers}" Spacing="8">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="preflight:PreflightIssue">
+                                <Border Style="{StaticResource PanelBorderStyle}" Stroke="{Binding ColorHex}">
+                                    <VerticalStackLayout Spacing="6">
+                                        <Label Text="{Binding SeverityText}" TextColor="{Binding ColorHex}" FontAttributes="Bold" CharacterSpacing="0.8" />
+                                        <Label Text="{Binding Message}" FontAttributes="Bold" />
+                                        <Label Text="{Binding RecoveryAction, StringFormat='Next: {0}'}" Style="{StaticResource MutedLabelStyle}" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+
+                    <Label Text="WARNINGS" IsVisible="{Binding Preflight.HasWarnings}" TextColor="{StaticResource WarningColor}" FontAttributes="Bold" CharacterSpacing="1" />
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Preflight.Warnings}" Spacing="8">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="preflight:PreflightIssue">
+                                <Border Style="{StaticResource PanelBorderStyle}" Stroke="{Binding ColorHex}">
+                                    <VerticalStackLayout Spacing="6">
+                                        <Label Text="{Binding SeverityText}" TextColor="{Binding ColorHex}" FontAttributes="Bold" CharacterSpacing="0.8" />
+                                        <Label Text="{Binding Message}" FontAttributes="Bold" />
+                                        <Label Text="{Binding RecoveryAction, StringFormat='Next: {0}'}" Style="{StaticResource MutedLabelStyle}" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+
+                    <Label Text="VERIFIED CHECKS" IsVisible="{Binding Preflight.HasVerifiedChecks}" TextColor="{StaticResource VerifiedColor}" FontAttributes="Bold" CharacterSpacing="1" />
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Preflight.VerifiedChecks}" Spacing="0">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="preflight:PreflightVerifiedCheck">
+                                <Border Style="{StaticResource ListRowBorderStyle}">
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                        <Label Text="✓" TextColor="{StaticResource VerifiedColor}" FontAttributes="Bold" />
+                                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                            <Label Text="{Binding Title}" FontAttributes="Bold" />
+                                            <Label Text="{Binding Detail}" Style="{StaticResource TinyLabelStyle}" />
+                                        </VerticalStackLayout>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+
+                    <Border Style="{StaticResource PanelBorderStyle}">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="Preparation" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Label Text="{Binding Preflight.PreparationStatusText}" Style="{StaticResource MutedLabelStyle}" />
+                            <Button Text="Prepare required DIY content" Command="{Binding Preflight.PrepareDiyContentCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                            <Button Text="Acknowledge exact blocked flash revisions" Clicked="OnAcknowledgeFlashRiskClicked" IsVisible="{Binding Preflight.HasBlockedFlashSafety}" Style="{StaticResource DangerButtonStyle}" />
+                            <Button Text="Revoke flash-risk overrides" Clicked="OnRevokeFlashRiskClicked" IsVisible="{Binding Preflight.HasAcknowledgedFlashSafety}" Style="{StaticResource SecondaryButtonStyle}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Button
+                        Text="{x:Static loc:AppText.EnterStage}"
+                        Clicked="OnEnterStageClicked"
+                        IsEnabled="{Binding Preflight.CanEnterStage}"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        MinimumHeightRequest="64"
+                        SemanticProperties.Hint="Opens a locked performance surface with Stop and Blackout always available" />
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid IsVisible="{Binding IsBusy}" BackgroundColor="{StaticResource OverlayScrimColor}" InputTransparent="False">
+            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="10">
+                <ActivityIndicator IsRunning="{Binding IsBusy}" HeightRequest="44" WidthRequest="44" />
+                <Label Text="Checking show…" Style="{StaticResource MutedLabelStyle}" />
+            </VerticalStackLayout>
+        </Grid>
+    </Grid>
+</ContentPage>

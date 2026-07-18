@@ -13,9 +13,19 @@ public sealed record AnimationTimelineFrame(
     FacePattern Pattern,
     bool IsSelected);
 
+public enum AnimationEditorTool
+{
+    Draw,
+    Fill,
+    SelectMove
+}
+
+public sealed record AnimationSelectionBounds(int Left, int Top, int Right, int Bottom);
+
 public sealed class AnimationStudioViewModel : INotifyPropertyChanged
 {
     private const string OffColor = "#05070D";
+    private const int MaxHistoryDepth = 50;
 
     private readonly IAnimationProjectStore store;
     private readonly AnimationProjectCompiler compiler;
@@ -49,6 +59,19 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
     private double importHorizontalPosition;
     private double importVerticalPosition;
     private double importSampleMilliseconds = 100;
+    private readonly Stack<EditorSnapshot> undoHistory = new();
+    private readonly Stack<EditorSnapshot> redoHistory = new();
+    private EditorSnapshot? editTransactionStart;
+    private AnimationEditorTool selectedTool;
+    private bool isSymmetryEnabled;
+    private bool guidesEnabled = true;
+    private bool isDirty;
+    private HashSet<int> selectedCellIndices = [];
+    private AnimationSelectionBounds? selectionBounds;
+    private (int Column, int Row)? selectionDragStart;
+    private FacePattern? selectionDragPattern;
+    private int[] selectionDragIndices = [];
+    private (int Column, int Row)? lastInteractionCell;
 
     public AnimationStudioViewModel(
         IAnimationProjectStore store,
@@ -75,6 +98,19 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
         StopCommand = new AsyncRelayCommand(StopAsync, () => !IsBusy, SetCommandError);
         AcknowledgeSafetyCommand = new AsyncRelayCommand(AcknowledgeSafetyAsync, CanAcknowledgeSafety, SetCommandError);
         RevokeSafetyCommand = new AsyncRelayCommand(RevokeSafetyAsync, CanRevokeSafety, SetCommandError);
+        UndoCommand = new AsyncRelayCommand(_ =>
+        {
+            Undo();
+            return Task.CompletedTask;
+        }, () => CanUndo);
+        RedoCommand = new AsyncRelayCommand(_ =>
+        {
+            Redo();
+            return Task.CompletedTask;
+        }, () => CanRedo);
+        SelectDrawToolCommand = CreateToolCommand(AnimationEditorTool.Draw);
+        SelectFillToolCommand = CreateToolCommand(AnimationEditorTool.Fill);
+        SelectMoveToolCommand = CreateToolCommand(AnimationEditorTool.SelectMove);
         ApplyProject(currentProject);
     }
 
@@ -98,6 +134,11 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
     public AsyncRelayCommand StopCommand { get; }
     public AsyncRelayCommand AcknowledgeSafetyCommand { get; }
     public AsyncRelayCommand RevokeSafetyCommand { get; }
+    public AsyncRelayCommand UndoCommand { get; }
+    public AsyncRelayCommand RedoCommand { get; }
+    public AsyncRelayCommand SelectDrawToolCommand { get; }
+    public AsyncRelayCommand SelectFillToolCommand { get; }
+    public AsyncRelayCommand SelectMoveToolCommand { get; }
 
     public IReadOnlyList<AnimationProject> Projects
     {
@@ -133,6 +174,7 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
             if (!string.Equals(CurrentProject.DisplayName, normalized, StringComparison.Ordinal))
             {
                 CurrentProject = CurrentProject with { DisplayName = normalized, UpdatedAt = DateTimeOffset.UtcNow };
+                IsDirty = true;
                 RefreshDerivedState();
             }
         }
@@ -146,6 +188,7 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
             if (CurrentProject.LoopMode != value)
             {
                 CurrentProject = CurrentProject with { LoopMode = value, UpdatedAt = DateTimeOffset.UtcNow };
+                IsDirty = true;
                 OnPropertyChanged(nameof(IsFiniteLoop));
                 RefreshDerivedState();
             }
@@ -163,6 +206,7 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
             if (CurrentProject.FiniteLoopCount != normalized)
             {
                 CurrentProject = CurrentProject with { FiniteLoopCount = normalized, UpdatedAt = DateTimeOffset.UtcNow };
+                IsDirty = true;
                 RefreshDerivedState();
             }
         }
@@ -195,6 +239,7 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
                     Frames = frames,
                     UpdatedAt = DateTimeOffset.UtcNow
                 };
+                IsDirty = true;
                 RefreshDerivedState();
             }
         }
@@ -214,6 +259,7 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
             var normalized = Math.Clamp(value, 0, Math.Max(0, CurrentProject.Frames.Count - 1));
             if (SetField(ref selectedFrameIndex, normalized))
             {
+                ClearSelection();
                 OnPropertyChanged(nameof(SelectedFrame));
                 OnPropertyChanged(nameof(SelectedFrameDurationMilliseconds));
                 OnPropertyChanged(nameof(OnionSkinPattern));
@@ -260,6 +306,93 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
     }
 
     public string DrawModeText => IsEraseMode ? "Erase" : "Paint";
+
+    public AnimationEditorTool SelectedTool
+    {
+        get => selectedTool;
+        private set
+        {
+            if (SetField(ref selectedTool, value))
+            {
+                OnPropertyChanged(nameof(IsDrawTool));
+                OnPropertyChanged(nameof(IsFillTool));
+                OnPropertyChanged(nameof(IsSelectMoveTool));
+                OnPropertyChanged(nameof(EditorHintText));
+                if (value != AnimationEditorTool.SelectMove)
+                {
+                    ClearSelection();
+                }
+            }
+        }
+    }
+
+    public bool IsDrawTool => SelectedTool == AnimationEditorTool.Draw;
+
+    public bool IsFillTool => SelectedTool == AnimationEditorTool.Fill;
+
+    public bool IsSelectMoveTool => SelectedTool == AnimationEditorTool.SelectMove;
+
+    public bool IsSymmetryEnabled
+    {
+        get => isSymmetryEnabled;
+        set
+        {
+            if (SetField(ref isSymmetryEnabled, value))
+            {
+                OnPropertyChanged(nameof(EditorHintText));
+            }
+        }
+    }
+
+    public bool GuidesEnabled
+    {
+        get => guidesEnabled;
+        set => SetField(ref guidesEnabled, value);
+    }
+
+    public AnimationSelectionBounds? SelectionBounds
+    {
+        get => selectionBounds;
+        private set
+        {
+            if (SetField(ref selectionBounds, value))
+            {
+                OnPropertyChanged(nameof(HasSelection));
+                OnPropertyChanged(nameof(EditorHintText));
+            }
+        }
+    }
+
+    public bool HasSelection => SelectionBounds is not null;
+
+    public string EditorHintText => SelectedTool switch
+    {
+        AnimationEditorTool.Draw => IsSymmetryEnabled
+            ? "Draw mirrors across the center line. Guides never become pixels."
+            : "Drag to draw or erase. Guides never become pixels.",
+        AnimationEditorTool.Fill => "Tap a connected region to fill it.",
+        _ => HasSelection
+            ? "Drag the selected connected region to move it."
+            : "Tap a lit region to select it, then drag to move."
+    };
+
+    public bool IsDirty
+    {
+        get => isDirty;
+        private set
+        {
+            if (SetField(ref isDirty, value))
+            {
+                OnPropertyChanged(nameof(SaveStateText));
+            }
+        }
+    }
+
+    public string SaveStateText => IsDirty ? "Unsaved changes" : "Saved state";
+
+    public bool CanUndo => undoHistory.Count > 0;
+
+    public bool CanRedo => redoHistory.Count > 0;
 
     public bool OnionSkinEnabled
     {
@@ -406,12 +539,69 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
 
     public void SetCell(int column, int row)
     {
-        var pixel = IsEraseMode ? FacePixel.Off : new FacePixel(true, SelectedColor.Color);
-        ReplaceSelectedPattern(SelectedFrame.Pattern.WithPixel(column, row, pixel));
+        var standalone = editTransactionStart is null;
+        if (standalone)
+        {
+            BeginEditTransaction();
+        }
+
+        ApplyToolAt(column, row);
+        if (standalone)
+        {
+            EndEditTransaction();
+        }
+    }
+
+    public void BeginCanvasInteraction(int column, int row)
+    {
+        BeginEditTransaction();
+        lastInteractionCell = (column, row);
+        if (SelectedTool == AnimationEditorTool.SelectMove)
+        {
+            if (!selectedCellIndices.Contains((row * FacePattern.Width) + column))
+            {
+                SelectConnectedRegion(column, row);
+            }
+
+            selectionDragStart = (column, row);
+            selectionDragPattern = SelectedFrame.Pattern.Normalize();
+            selectionDragIndices = selectedCellIndices.ToArray();
+            return;
+        }
+
+        ApplyToolAt(column, row);
+    }
+
+    public void ContinueCanvasInteraction(int column, int row)
+    {
+        if (lastInteractionCell == (column, row))
+        {
+            return;
+        }
+
+        lastInteractionCell = (column, row);
+        if (SelectedTool == AnimationEditorTool.Draw)
+        {
+            DrawAt(column, row);
+        }
+        else if (SelectedTool == AnimationEditorTool.SelectMove)
+        {
+            MoveSelectionTo(column, row);
+        }
+    }
+
+    public void EndCanvasInteraction()
+    {
+        selectionDragStart = null;
+        selectionDragPattern = null;
+        selectionDragIndices = [];
+        lastInteractionCell = null;
+        EndEditTransaction();
     }
 
     public void ClearSelectedFrame()
     {
+        RecordUndoSnapshot();
         ReplaceSelectedPattern(SelectedFrame.Pattern with
         {
             Pixels = Enumerable.Repeat(FacePixel.Off, FacePattern.PixelCount).ToArray()
@@ -421,6 +611,7 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
 
     public void MirrorSelectedFrameHorizontally()
     {
+        RecordUndoSnapshot();
         var pattern = SelectedFrame.Pattern.Normalize();
         var pixels = pattern.Pixels.ToArray();
         for (var row = 0; row < FacePattern.Height; row++)
@@ -444,6 +635,7 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
             return;
         }
 
+        RecordUndoSnapshot();
         var frames = CurrentProject.Frames.ToList();
         frames.Insert(SelectedFrameIndex + 1, SelectedFrame with { Id = $"frame-{Guid.NewGuid():N}" });
         ReplaceFrames(frames, SelectedFrameIndex + 1, "Frame duplicated.");
@@ -457,6 +649,7 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
             return;
         }
 
+        RecordUndoSnapshot();
         var frames = CurrentProject.Frames.ToList();
         frames.Insert(SelectedFrameIndex + 1, new AnimationProjectFrame
         {
@@ -475,6 +668,7 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
             return;
         }
 
+        RecordUndoSnapshot();
         var frames = CurrentProject.Frames.ToList();
         frames.RemoveAt(SelectedFrameIndex);
         ReplaceFrames(frames, Math.Min(SelectedFrameIndex, frames.Count - 1), "Frame deleted.");
@@ -490,6 +684,7 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
             return;
         }
 
+        RecordUndoSnapshot();
         var frames = CurrentProject.Frames.ToList();
         var frame = frames[fromIndex];
         frames.RemoveAt(fromIndex);
@@ -504,9 +699,284 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
             : duration > PerformanceAnimation.MaxFrameDuration
                 ? PerformanceAnimation.MaxFrameDuration
                 : duration;
+        RecordUndoSnapshot();
         var frames = CurrentProject.Frames.ToArray();
         frames[SelectedFrameIndex] = SelectedFrame with { Duration = normalized };
         ReplaceFrames(frames, SelectedFrameIndex, $"Frame duration {normalized.TotalMilliseconds:0} ms.");
+    }
+
+    public void Undo()
+    {
+        if (undoHistory.Count == 0)
+        {
+            return;
+        }
+
+        PushBounded(redoHistory, CaptureSnapshot());
+        ApplySnapshot(undoHistory.Pop());
+        StatusText = "Undid the last editor change.";
+        NotifyHistoryChanged();
+    }
+
+    public void Redo()
+    {
+        if (redoHistory.Count == 0)
+        {
+            return;
+        }
+
+        PushBounded(undoHistory, CaptureSnapshot());
+        ApplySnapshot(redoHistory.Pop());
+        StatusText = "Redid the editor change.";
+        NotifyHistoryChanged();
+    }
+
+    private void ApplyToolAt(int column, int row)
+    {
+        if (column is < 0 or >= FacePattern.Width || row is < 0 or >= FacePattern.Height)
+        {
+            return;
+        }
+
+        if (SelectedTool == AnimationEditorTool.Fill)
+        {
+            FillAt(column, row);
+        }
+        else if (SelectedTool == AnimationEditorTool.SelectMove)
+        {
+            SelectConnectedRegion(column, row);
+        }
+        else
+        {
+            DrawAt(column, row);
+        }
+    }
+
+    private void DrawAt(int column, int row)
+    {
+        var pattern = SelectedFrame.Pattern.Normalize();
+        var pixels = pattern.Pixels.ToArray();
+        var pixel = IsEraseMode ? FacePixel.Off : new FacePixel(true, SelectedColor.Color);
+        pixels[(row * FacePattern.Width) + column] = pixel;
+        if (IsSymmetryEnabled)
+        {
+            var mirrorColumn = FacePattern.Width - column - 1;
+            pixels[(row * FacePattern.Width) + mirrorColumn] = pixel;
+        }
+
+        ReplaceSelectedPattern(pattern with { Pixels = pixels });
+    }
+
+    private void FillAt(int column, int row)
+    {
+        var pattern = SelectedFrame.Pattern.Normalize();
+        var replacement = IsEraseMode ? FacePixel.Off : new FacePixel(true, SelectedColor.Color);
+        var pixels = pattern.Pixels.ToArray();
+        FloodFill(pixels, column, row, replacement);
+        if (IsSymmetryEnabled)
+        {
+            FloodFill(pixels, FacePattern.Width - column - 1, row, replacement);
+        }
+
+        ReplaceSelectedPattern(pattern with { Pixels = pixels });
+        StatusText = "Connected region filled.";
+    }
+
+    private static void FloodFill(FacePixel[] pixels, int column, int row, FacePixel replacement)
+    {
+        var target = pixels[(row * FacePattern.Width) + column].Normalize();
+        replacement = replacement.Normalize();
+        if (target == replacement)
+        {
+            return;
+        }
+
+        var queue = new Queue<(int Column, int Row)>();
+        queue.Enqueue((column, row));
+        while (queue.TryDequeue(out var cell))
+        {
+            if (cell.Column is < 0 or >= FacePattern.Width || cell.Row is < 0 or >= FacePattern.Height)
+            {
+                continue;
+            }
+
+            var index = (cell.Row * FacePattern.Width) + cell.Column;
+            if (pixels[index].Normalize() != target)
+            {
+                continue;
+            }
+
+            pixels[index] = replacement;
+            queue.Enqueue((cell.Column - 1, cell.Row));
+            queue.Enqueue((cell.Column + 1, cell.Row));
+            queue.Enqueue((cell.Column, cell.Row - 1));
+            queue.Enqueue((cell.Column, cell.Row + 1));
+        }
+    }
+
+    private void SelectConnectedRegion(int column, int row)
+    {
+        var pattern = SelectedFrame.Pattern.Normalize();
+        var start = pattern.GetPixel(column, row).Normalize();
+        if (!start.IsLit)
+        {
+            ClearSelection();
+            StatusText = "Tap a lit region to select it.";
+            return;
+        }
+
+        var selected = new HashSet<int>();
+        var queue = new Queue<(int Column, int Row)>();
+        queue.Enqueue((column, row));
+        while (queue.TryDequeue(out var cell))
+        {
+            if (cell.Column is < 0 or >= FacePattern.Width || cell.Row is < 0 or >= FacePattern.Height)
+            {
+                continue;
+            }
+
+            var index = (cell.Row * FacePattern.Width) + cell.Column;
+            if (selected.Contains(index) || pattern.Pixels[index].Normalize() != start)
+            {
+                continue;
+            }
+
+            selected.Add(index);
+            queue.Enqueue((cell.Column - 1, cell.Row));
+            queue.Enqueue((cell.Column + 1, cell.Row));
+            queue.Enqueue((cell.Column, cell.Row - 1));
+            queue.Enqueue((cell.Column, cell.Row + 1));
+        }
+
+        selectedCellIndices = selected;
+        UpdateSelectionBounds();
+        StatusText = $"Selected {selected.Count} connected pixel(s).";
+    }
+
+    private void MoveSelectionTo(int column, int row)
+    {
+        if (selectionDragStart is not { } start || selectionDragPattern is null || selectionDragIndices.Length == 0)
+        {
+            return;
+        }
+
+        var minColumn = selectionDragIndices.Min(index => index % FacePattern.Width);
+        var maxColumn = selectionDragIndices.Max(index => index % FacePattern.Width);
+        var minRow = selectionDragIndices.Min(index => index / FacePattern.Width);
+        var maxRow = selectionDragIndices.Max(index => index / FacePattern.Width);
+        var deltaColumn = Math.Clamp(column - start.Column, -minColumn, FacePattern.Width - maxColumn - 1);
+        var deltaRow = Math.Clamp(row - start.Row, -minRow, FacePattern.Height - maxRow - 1);
+        var source = selectionDragPattern.Normalize();
+        var pixels = source.Pixels.ToArray();
+        foreach (var index in selectionDragIndices)
+        {
+            pixels[index] = FacePixel.Off;
+        }
+
+        selectedCellIndices = [];
+        foreach (var index in selectionDragIndices)
+        {
+            var sourceColumn = index % FacePattern.Width;
+            var sourceRow = index / FacePattern.Width;
+            var destination = ((sourceRow + deltaRow) * FacePattern.Width) + sourceColumn + deltaColumn;
+            pixels[destination] = source.Pixels[index];
+            selectedCellIndices.Add(destination);
+        }
+
+        ReplaceSelectedPattern(source with { Pixels = pixels });
+        UpdateSelectionBounds();
+        StatusText = $"Selection moved {deltaColumn:+0;-0;0} columns, {deltaRow:+0;-0;0} rows.";
+    }
+
+    private void ClearSelection()
+    {
+        selectedCellIndices = [];
+        SelectionBounds = null;
+        OnPropertyChanged(nameof(EditorHintText));
+    }
+
+    private void UpdateSelectionBounds()
+    {
+        if (selectedCellIndices.Count == 0)
+        {
+            SelectionBounds = null;
+            return;
+        }
+
+        SelectionBounds = new AnimationSelectionBounds(
+            selectedCellIndices.Min(index => index % FacePattern.Width),
+            selectedCellIndices.Min(index => index / FacePattern.Width),
+            selectedCellIndices.Max(index => index % FacePattern.Width),
+            selectedCellIndices.Max(index => index / FacePattern.Width));
+        OnPropertyChanged(nameof(EditorHintText));
+    }
+
+    private void BeginEditTransaction() => editTransactionStart ??= CaptureSnapshot();
+
+    private void EndEditTransaction()
+    {
+        if (editTransactionStart is not { } before)
+        {
+            return;
+        }
+
+        editTransactionStart = null;
+        if (!ReferenceEquals(before.Project, CurrentProject))
+        {
+            PushBounded(undoHistory, before);
+            redoHistory.Clear();
+            IsDirty = true;
+            NotifyHistoryChanged();
+        }
+    }
+
+    private void RecordUndoSnapshot()
+    {
+        if (editTransactionStart is not null)
+        {
+            return;
+        }
+
+        PushBounded(undoHistory, CaptureSnapshot());
+        redoHistory.Clear();
+        NotifyHistoryChanged();
+    }
+
+    private EditorSnapshot CaptureSnapshot() => new(CurrentProject, SelectedFrameIndex);
+
+    private void ApplySnapshot(EditorSnapshot snapshot)
+    {
+        CurrentProject = snapshot.Project;
+        selectedFrameIndex = Math.Clamp(snapshot.SelectedFrameIndex, 0, CurrentProject.Frames.Count - 1);
+        OnPropertyChanged(nameof(SelectedFrameIndex));
+        OnPropertyChanged(nameof(SelectedFrame));
+        OnPropertyChanged(nameof(SelectedFrameDurationMilliseconds));
+        ClearSelection();
+        IsDirty = true;
+        RefreshDerivedState();
+    }
+
+    private static void PushBounded(Stack<EditorSnapshot> stack, EditorSnapshot snapshot)
+    {
+        if (stack.Count >= MaxHistoryDepth)
+        {
+            var retained = stack.Reverse().Skip(1).ToArray();
+            stack.Clear();
+            foreach (var item in retained)
+            {
+                stack.Push(item);
+            }
+        }
+
+        stack.Push(snapshot);
+    }
+
+    private void NotifyHistoryChanged()
+    {
+        OnPropertyChanged(nameof(CanUndo));
+        OnPropertyChanged(nameof(CanRedo));
+        UndoCommand.RaiseCanExecuteChanged();
+        RedoCommand.RaiseCanExecuteChanged();
     }
 
     public double? AddTap(TimeSpan monotonicTimestamp)
@@ -547,6 +1017,7 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
             if (result.Succeeded && result.Project is not null)
             {
                 ApplyProject(result.Project);
+                IsDirty = true;
             }
 
             StatusText = result.Message;
@@ -562,6 +1033,7 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
     {
         cancellationToken.ThrowIfCancellationRequested();
         ApplyProject(AnimationProject.CreateBlank());
+        IsDirty = true;
         StatusText = "New unsaved animation ready.";
         return Task.CompletedTask;
     }
@@ -595,6 +1067,7 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
             storeState = (await store.LoadAsync(cancellationToken).ConfigureAwait(false)).Normalize();
             Projects = storeState.Projects;
             ApplyProject(Projects.First(item => item.Id == project.Id));
+            IsDirty = false;
             StoreStatusText = $"Saved {project.DisplayName}.";
         }
         finally
@@ -712,6 +1185,12 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SelectedFrame));
         OnPropertyChanged(nameof(SelectedFrameDurationMilliseconds));
         OnPropertyChanged(nameof(OnionSkinPattern));
+        undoHistory.Clear();
+        redoHistory.Clear();
+        editTransactionStart = null;
+        ClearSelection();
+        IsDirty = false;
+        NotifyHistoryChanged();
         RefreshDerivedState();
     }
 
@@ -722,19 +1201,25 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
         {
             Pattern = pattern.Normalize(),
         };
-        ReplaceFrames(frames, SelectedFrameIndex, "Frame pixels updated.");
+        ReplaceFrames(frames, SelectedFrameIndex, "Frame pixels updated.", preserveSelection: true);
     }
 
     private void ReplaceFrames(
         IReadOnlyList<AnimationProjectFrame> frames,
         int selectedIndex,
-        string message)
+        string message,
+        bool preserveSelection = false)
     {
         CurrentProject = CurrentProject with
         {
             Frames = frames,
             UpdatedAt = DateTimeOffset.UtcNow
         };
+        IsDirty = true;
+        if (!preserveSelection)
+        {
+            ClearSelection();
+        }
         selectedFrameIndex = Math.Clamp(selectedIndex, 0, frames.Count - 1);
         OnPropertyChanged(nameof(SelectedFrameIndex));
         OnPropertyChanged(nameof(SelectedFrame));
@@ -820,7 +1305,15 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
         StopCommand.RaiseCanExecuteChanged();
         AcknowledgeSafetyCommand.RaiseCanExecuteChanged();
         RevokeSafetyCommand.RaiseCanExecuteChanged();
+        UndoCommand.RaiseCanExecuteChanged();
+        RedoCommand.RaiseCanExecuteChanged();
     }
+
+    private AsyncRelayCommand CreateToolCommand(AnimationEditorTool tool) => new(_ =>
+    {
+        SelectedTool = tool;
+        return Task.CompletedTask;
+    });
 
     private void SetCommandError(Exception exception) =>
         StatusText = $"Failed: {ShortMessage(exception)}";
@@ -852,4 +1345,6 @@ public sealed class AnimationStudioViewModel : INotifyPropertyChanged
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+    private sealed record EditorSnapshot(AnimationProject Project, int SelectedFrameIndex);
 }

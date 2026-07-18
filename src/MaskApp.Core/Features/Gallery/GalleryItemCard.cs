@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.Faces;
+using MaskApp.Core.Features.QuickActions;
 
 namespace MaskApp.Core.Features.Gallery;
 
@@ -57,6 +58,32 @@ public sealed class GalleryItemCard : INotifyPropertyChanged
     public string IconKey => GalleryIconOption.Defaults.FirstOrDefault(icon => icon.IconKey == Item.IconKey)?.Label ?? "ITEM";
 
     public string LastSendStatus => string.IsNullOrWhiteSpace(Item.LastSendStatus) ? "Not sent yet" : Item.LastSendStatus;
+
+    public string OperationalStatusText => Item.Type switch
+    {
+        GalleryItemType.BuiltInStaticImage or GalleryItemType.BuiltInAnimation => "Instant",
+        GalleryItemType.QuickAction when Item.QuickActionKind is not QuickActionKind.Text and not QuickActionKind.Random => "Instant",
+        GalleryItemType.CustomStaticFace or GalleryItemType.AppBuiltInAnimation or GalleryItemType.CustomAnimation
+            when Item.LastSendStatus.Contains("Prepared", StringComparison.OrdinalIgnoreCase) => "Prepared",
+        GalleryItemType.TextPreset or GalleryItemType.CustomStaticFace or GalleryItemType.AppBuiltInAnimation or GalleryItemType.CustomAnimation => "Upload required",
+        _ => "Unverified"
+    };
+
+    public string OperationalStatusIcon => OperationalStatusText switch
+    {
+        "Instant" => "⚡",
+        "Prepared" => "✓",
+        "Upload required" => "↑",
+        _ => "?"
+    };
+
+    public string OperationalStatusColorHex => OperationalStatusText switch
+    {
+        "Instant" => "#22D3EE",
+        "Prepared" => "#22C55E",
+        "Upload required" => "#F59E0B",
+        _ => "#92949B"
+    };
 
     public string PreviewResourceName => Item.PreviewResourceName;
 

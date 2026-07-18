@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="MaskApp.App.Controls.MetricTileView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Name="Root">
+    <Border Style="{StaticResource MetricTileBorderStyle}">
+        <VerticalStackLayout Spacing="4">
+            <Label
+                Text="{Binding Icon, Source={x:Reference Root}}"
+                TextColor="{Binding AccentColor, Source={x:Reference Root}}"
+                FontSize="16"
+                FontAttributes="Bold" />
+            <Label
+                Text="{Binding Value, Source={x:Reference Root}}"
+                TextColor="{Binding AccentColor, Source={x:Reference Root}}"
+                FontSize="20"
+                FontAttributes="Bold"
+                MaxLines="2" />
+            <Label
+                Text="{Binding Label, Source={x:Reference Root}}"
+                Style="{StaticResource TinyLabelStyle}"
+                CharacterSpacing="0.5" />
+        </VerticalStackLayout>
+    </Border>
+</ContentView>

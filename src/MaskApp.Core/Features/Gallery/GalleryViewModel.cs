@@ -28,6 +28,7 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
     private readonly IAnimationProjectStore animationProjectStore;
     private readonly ISceneShowStore sceneShowStore;
     private readonly SceneExecutionEngine? sceneEngine;
+    private readonly IBleDeviceConnection? deviceConnection;
     private readonly HashSet<string> selectedItemIds = new(StringComparer.Ordinal);
     private GalleryLayoutState layoutState = new();
     private FacePatternStoreState faceState = new();
@@ -50,6 +51,11 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
     private int firstVisibleRowIndex = -1;
     private int lastVisibleRowIndex = -1;
     private bool reducePreviewMotion = true;
+    private GalleryTypeFilter selectedTypeFilter;
+    private IReadOnlyList<GalleryItemCard> quickDeckItems = [];
+    private bool isLoading;
+    private string loadErrorText = string.Empty;
+    private BleConnectionState connectionState = BleConnectionState.Disconnected;
 
     public GalleryViewModel(
         QuickActionCatalog quickActionCatalog,
@@ -65,7 +71,8 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         DiySlotPlaybackCoordinator diySlotPlayback,
         IAnimationProjectStore? animationProjectStore = null,
         ISceneShowStore? sceneShowStore = null,
-        SceneExecutionEngine? sceneEngine = null)
+        SceneExecutionEngine? sceneEngine = null,
+        IBleDeviceConnection? deviceConnection = null)
     {
         catalogBuilder = new GalleryCatalogBuilder(quickActionCatalog);
         this.textPresetStore = textPresetStore;
@@ -81,6 +88,12 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         this.animationProjectStore = animationProjectStore ?? new InMemoryAnimationProjectStore();
         this.sceneShowStore = sceneShowStore ?? new InMemorySceneShowStore();
         this.sceneEngine = sceneEngine;
+        this.deviceConnection = deviceConnection;
+        connectionState = deviceConnection?.State ?? BleConnectionState.Disconnected;
+        if (deviceConnection is not null)
+        {
+            deviceConnection.ConnectionStateChanged += OnConnectionStateChanged;
+        }
         GroupingOptions =
         [
             new GalleryGroupingOption("Manual groups", GalleryGroupingMode.Manual),
@@ -172,6 +185,12 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
             return Task.CompletedTask;
         });
         DeleteSelectedCommand = new AsyncRelayCommand(DeleteSelectedAsync, () => SelectedDeletableCount > 0);
+        ShowAllTypesCommand = CreateTypeFilterCommand(GalleryTypeFilter.All);
+        ShowFacesCommand = CreateTypeFilterCommand(GalleryTypeFilter.Faces);
+        ShowTextCommand = CreateTypeFilterCommand(GalleryTypeFilter.Text);
+        ShowAnimationsCommand = CreateTypeFilterCommand(GalleryTypeFilter.Animations);
+        ShowScenesCommand = CreateTypeFilterCommand(GalleryTypeFilter.Scenes);
+        RetryCommand = new AsyncRelayCommand(InitializeAsync);
         SelectionActions =
         [
             new GallerySelectionAction(
@@ -212,6 +231,18 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
 
     public AsyncRelayCommand DeleteSelectedCommand { get; }
 
+    public AsyncRelayCommand ShowAllTypesCommand { get; }
+
+    public AsyncRelayCommand ShowFacesCommand { get; }
+
+    public AsyncRelayCommand ShowTextCommand { get; }
+
+    public AsyncRelayCommand ShowAnimationsCommand { get; }
+
+    public AsyncRelayCommand ShowScenesCommand { get; }
+
+    public AsyncRelayCommand RetryCommand { get; }
+
     public IReadOnlyList<GallerySelectionAction> SelectionActions
     {
         get => selectionActions;
@@ -238,6 +269,18 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
             if (SetField(ref rows, value))
             {
                 OnPropertyChanged(nameof(VisibleItemCountText));
+            }
+        }
+    }
+
+    public IReadOnlyList<GalleryItemCard> QuickDeckItems
+    {
+        get => quickDeckItems;
+        private set
+        {
+            if (SetField(ref quickDeckItems, value))
+            {
+                OnPropertyChanged(nameof(HasQuickDeckItems));
             }
         }
     }
@@ -296,6 +339,67 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
     {
         get => isSending;
         private set => SetField(ref isSending, value);
+    }
+
+    public bool IsLoading
+    {
+        get => isLoading;
+        private set
+        {
+            if (SetField(ref isLoading, value))
+            {
+                OnPropertyChanged(nameof(IsContentVisible));
+                OnPropertyChanged(nameof(IsEmptyStateVisible));
+            }
+        }
+    }
+
+    public string LoadErrorText
+    {
+        get => loadErrorText;
+        private set
+        {
+            if (SetField(ref loadErrorText, value))
+            {
+                OnPropertyChanged(nameof(HasLoadError));
+                OnPropertyChanged(nameof(IsContentVisible));
+                OnPropertyChanged(nameof(IsEmptyStateVisible));
+                OnPropertyChanged(nameof(EmptyStateTitle));
+                OnPropertyChanged(nameof(EmptyStateMessage));
+            }
+        }
+    }
+
+    public BleConnectionState ConnectionState
+    {
+        get => connectionState;
+        private set
+        {
+            if (SetField(ref connectionState, value))
+            {
+                OnPropertyChanged(nameof(IsDisconnected));
+                OnPropertyChanged(nameof(ConnectionStatusText));
+                OnPropertyChanged(nameof(ConnectionDetailText));
+                RebuildGroups();
+            }
+        }
+    }
+
+    public GalleryTypeFilter SelectedTypeFilter
+    {
+        get => selectedTypeFilter;
+        private set
+        {
+            if (SetField(ref selectedTypeFilter, value))
+            {
+                OnPropertyChanged(nameof(IsAllFilterSelected));
+                OnPropertyChanged(nameof(IsFacesFilterSelected));
+                OnPropertyChanged(nameof(IsTextFilterSelected));
+                OnPropertyChanged(nameof(IsAnimationsFilterSelected));
+                OnPropertyChanged(nameof(IsScenesFilterSelected));
+                RebuildGroups();
+            }
+        }
     }
 
     public bool IsAddOptionsVisible
@@ -360,6 +464,54 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
 
     public string GalleryModeText => IsEditMode ? "Arrange" : "Browse";
 
+    public bool IsAllFilterSelected => SelectedTypeFilter == GalleryTypeFilter.All;
+
+    public bool IsFacesFilterSelected => SelectedTypeFilter == GalleryTypeFilter.Faces;
+
+    public bool IsTextFilterSelected => SelectedTypeFilter == GalleryTypeFilter.Text;
+
+    public bool IsAnimationsFilterSelected => SelectedTypeFilter == GalleryTypeFilter.Animations;
+
+    public bool IsScenesFilterSelected => SelectedTypeFilter == GalleryTypeFilter.Scenes;
+
+    public bool HasQuickDeckItems => QuickDeckItems.Count > 0;
+
+    public bool HasVisibleItems => Groups.Any(group => group.Items.Count > 0);
+
+    public bool HasLoadError => !string.IsNullOrWhiteSpace(LoadErrorText);
+
+    public bool IsContentVisible => !IsLoading && !HasLoadError;
+
+    public bool IsEmptyStateVisible => !IsLoading && (HasLoadError || !HasVisibleItems);
+
+    public bool IsDisconnected => ConnectionState != BleConnectionState.Connected;
+
+    public string ConnectionStatusText => ConnectionState switch
+    {
+        BleConnectionState.Connected => "Connected",
+        BleConnectionState.Scanning => "Scanning",
+        BleConnectionState.Connecting => "Connecting",
+        BleConnectionState.Failed => "Connection failed",
+        BleConnectionState.Unavailable => "Bluetooth unavailable",
+        _ => "Disconnected"
+    };
+
+    public string ConnectionDetailText => IsDisconnected
+        ? "Browse and edit offline. Connect from Device to send."
+        : "Send controls use the active mask transport.";
+
+    public string EmptyStateTitle => HasLoadError
+        ? "Library unavailable"
+        : SearchText.Length > 0
+            ? "No matching items"
+            : "Nothing in this view";
+
+    public string EmptyStateMessage => HasLoadError
+        ? LoadErrorText
+        : SearchText.Length > 0
+            ? "Try a different search or content filter."
+            : "Add content or choose another content type.";
+
     public string VisibleItemCountText => $"{Groups.Sum(group => group.Items.Count)} items";
 
     public int SelectedCount => selectedItemIds.Count;
@@ -406,14 +558,33 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        layoutState = (await layoutStore.LoadAsync(cancellationToken)).Normalize();
-        var textState = await textPresetStore.LoadAsync(cancellationToken);
-        var builtIns = await builtInArchiveStore.LoadAsync(cancellationToken);
-        faceState = await facePatternStore.LoadAsync(cancellationToken);
-        var animationState = await animationProjectStore.LoadAsync(cancellationToken);
-        var sceneState = await sceneShowStore.LoadAsync(cancellationToken);
-        allItems = catalogBuilder.Build(textState, builtIns, faceState, layoutState.Order, animationState, sceneState);
-        RebuildGroups();
+        try
+        {
+            IsLoading = true;
+            LoadErrorText = string.Empty;
+            ConnectionState = deviceConnection?.State ?? ConnectionState;
+            layoutState = (await layoutStore.LoadAsync(cancellationToken)).Normalize();
+            var textState = await textPresetStore.LoadAsync(cancellationToken);
+            var builtIns = await builtInArchiveStore.LoadAsync(cancellationToken);
+            faceState = await facePatternStore.LoadAsync(cancellationToken);
+            var animationState = await animationProjectStore.LoadAsync(cancellationToken);
+            var sceneState = await sceneShowStore.LoadAsync(cancellationToken);
+            allItems = catalogBuilder.Build(textState, builtIns, faceState, layoutState.Order, animationState, sceneState);
+            RebuildGroups();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            allItems = [];
+            Groups = [];
+            Rows = [];
+            QuickDeckItems = [];
+            LoadErrorText = "Saved content could not be loaded. Your source files were not overwritten.";
+            StatusText = ex.Message;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
     public async Task SendAsync(GalleryItem item, CancellationToken cancellationToken = default)
@@ -569,9 +740,17 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         var query = SearchText.Trim().ToUpperInvariant();
         var visible = allItems
             .Where(item => !ShowFavoritesOnly || item.IsFavorite)
+            .Where(MatchesSelectedType)
             .Where(item => query.Length == 0 || item.SearchText.Contains(query, StringComparison.Ordinal))
             .OrderBy(item => layoutState.Order.GetItemSortIndex(item.Id, item.SortIndex))
             .ThenBy(item => item.Title, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        QuickDeckItems = allItems
+            .Where(item => item.IsFavorite)
+            .Where(MatchesSelectedType)
+            .OrderBy(item => layoutState.Order.GetItemSortIndex(item.Id, item.SortIndex))
+            .Take(6)
+            .Select(CreateCard)
             .ToArray();
 
         Groups = visible
@@ -595,6 +774,10 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
             .ToArray();
         Rows = BuildRows(Groups);
         ApplyPreviewAnimationState();
+        OnPropertyChanged(nameof(HasVisibleItems));
+        OnPropertyChanged(nameof(IsEmptyStateVisible));
+        OnPropertyChanged(nameof(EmptyStateTitle));
+        OnPropertyChanged(nameof(EmptyStateMessage));
     }
 
     private static IReadOnlyList<GalleryListRow> BuildRows(IReadOnlyList<GalleryGroupCard> groups)
@@ -603,9 +786,10 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         foreach (var group in groups)
         {
             result.Add(GalleryListRow.GroupHeader(group.Title, group.Items.Count));
-            foreach (var item in group.Items)
+            for (var index = 0; index < group.Items.Count; index += 2)
             {
-                result.Add(GalleryListRow.ItemRow(item));
+                var right = index + 1 < group.Items.Count ? group.Items[index + 1] : null;
+                result.Add(GalleryListRow.ItemPair(group.Items[index], right));
             }
         }
 
@@ -624,8 +808,9 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
     {
         for (var index = 0; index < Rows.Count; index++)
         {
-            var card = Rows[index].Item;
-            card?.SetAnimationPlaying(!reducePreviewMotion && index >= firstVisibleRowIndex && index <= lastVisibleRowIndex);
+            var shouldPlay = !reducePreviewMotion && index >= firstVisibleRowIndex && index <= lastVisibleRowIndex;
+            Rows[index].Left?.SetAnimationPlaying(shouldPlay);
+            Rows[index].Right?.SetAnimationPlaying(shouldPlay);
         }
     }
 
@@ -636,11 +821,31 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         reducePreviewMotion = true;
         foreach (var row in Rows)
         {
-            row.Item?.SetAnimationPlaying(false);
+            row.Left?.SetAnimationPlaying(false);
+            row.Right?.SetAnimationPlaying(false);
         }
     }
 
     public void StopMaskAnimation() => diySlotPlayback.RequestStopAnimation();
+
+    private AsyncRelayCommand CreateTypeFilterCommand(GalleryTypeFilter filter) => new(_ =>
+    {
+        SelectedTypeFilter = filter;
+        return Task.CompletedTask;
+    });
+
+    private bool MatchesSelectedType(GalleryItem item) => SelectedTypeFilter switch
+    {
+        GalleryTypeFilter.Faces => item.Type is GalleryItemType.CustomStaticFace or GalleryItemType.BuiltInStaticImage,
+        GalleryTypeFilter.Text => item.Type == GalleryItemType.TextPreset ||
+            item.Type == GalleryItemType.QuickAction && item.QuickActionKind is QuickActionKind.Text or QuickActionKind.Random,
+        GalleryTypeFilter.Animations => item.Type is GalleryItemType.BuiltInAnimation or GalleryItemType.AppBuiltInAnimation or GalleryItemType.CustomAnimation,
+        GalleryTypeFilter.Scenes => item.Type == GalleryItemType.Scene,
+        _ => true
+    };
+
+    private void OnConnectionStateChanged(object? sender, BleConnectionStateChangedEventArgs e) =>
+        ConnectionState = e.State;
 
     private GalleryItemCard CreateCard(GalleryItem item) =>
         new(

@@ -41,6 +41,8 @@ public sealed class StageModeViewModel : INotifyPropertyChanged, IDisposable
     private StageTile? holdRestoreTile;
     private string? activeHoldTileId;
     private bool disposed;
+    private StageActionDeliveryState actionDeliveryState;
+    private string actionDeliveryDetail = "No cue sent in this Stage session.";
 
     public StageModeViewModel(
         IStageShowSource showSource,
@@ -266,6 +268,50 @@ public sealed class StageModeViewModel : INotifyPropertyChanged, IDisposable
         private set => SetField(ref statusText, value);
     }
 
+    public StageActionDeliveryState ActionDeliveryState
+    {
+        get => actionDeliveryState;
+        private set
+        {
+            if (SetField(ref actionDeliveryState, value))
+            {
+                OnPropertyChanged(nameof(ActionDeliveryText));
+                OnPropertyChanged(nameof(ActionDeliveryIcon));
+                OnPropertyChanged(nameof(ActionDeliveryColorHex));
+            }
+        }
+    }
+
+    public string ActionDeliveryDetail
+    {
+        get => actionDeliveryDetail;
+        private set => SetField(ref actionDeliveryDetail, value);
+    }
+
+    public string ActionDeliveryText => ActionDeliveryState switch
+    {
+        StageActionDeliveryState.Pending => "PENDING",
+        StageActionDeliveryState.Sent => "SENT",
+        StageActionDeliveryState.Failed => "FAILED",
+        _ => "IDLE"
+    };
+
+    public string ActionDeliveryIcon => ActionDeliveryState switch
+    {
+        StageActionDeliveryState.Pending => "…",
+        StageActionDeliveryState.Sent => "✓",
+        StageActionDeliveryState.Failed => "!",
+        _ => "•"
+    };
+
+    public string ActionDeliveryColorHex => ActionDeliveryState switch
+    {
+        StageActionDeliveryState.Pending => "#F59E0B",
+        StageActionDeliveryState.Sent => "#22C55E",
+        StageActionDeliveryState.Failed => "#EF4444",
+        _ => "#92949B"
+    };
+
     public string CurrentCueText
     {
         get => currentCueText;
@@ -298,6 +344,8 @@ public sealed class StageModeViewModel : INotifyPropertyChanged, IDisposable
         Show = await showSource.InitializeAsync(cancellationToken);
         await RefreshReadinessAsync(cancellationToken);
         StatusText = "Stage ready. Output will occur only when you press a tile.";
+        ActionDeliveryState = StageActionDeliveryState.Idle;
+        ActionDeliveryDetail = "No cue sent in this Stage session.";
     }
 
     public async Task DeactivateAsync(CancellationToken cancellationToken = default)
@@ -375,6 +423,7 @@ public sealed class StageModeViewModel : INotifyPropertyChanged, IDisposable
                 : $"Released {tile.Label}; previous look could not be restored: {restoreResult.Message}";
             if (!restoreResult.Succeeded)
             {
+                SetDelivery(StageActionDeliveryState.Failed, $"Restore after {tile.Label}: {restoreResult.Message}");
                 feedback.Failure();
                 return;
             }
@@ -386,6 +435,7 @@ public sealed class StageModeViewModel : INotifyPropertyChanged, IDisposable
                 : $"Released {tile.Label}; restored {restoreTile.Label}.";
         }
 
+        SetDelivery(StageActionDeliveryState.Sent, StatusText);
         feedback.Success();
     }
 
@@ -432,6 +482,7 @@ public sealed class StageModeViewModel : INotifyPropertyChanged, IDisposable
         if (HasConnectionOverlay)
         {
             StatusText = "Recover the connection explicitly before triggering another Stage action.";
+            SetDelivery(StageActionDeliveryState.Failed, StatusText);
             feedback.Failure();
             return false;
         }
@@ -439,6 +490,7 @@ public sealed class StageModeViewModel : INotifyPropertyChanged, IDisposable
         if (!tile.IsPrepared)
         {
             StatusText = $"{tile.Label} is not prepared for this mask. Hold to exit, prepare it in Preflight, then re-enter Stage.";
+            SetDelivery(StageActionDeliveryState.Failed, StatusText);
             feedback.Failure();
             return false;
         }
@@ -446,6 +498,7 @@ public sealed class StageModeViewModel : INotifyPropertyChanged, IDisposable
         if (Readiness.Status == FestivalPreflightStatus.NotReady)
         {
             StatusText = "Stage Preflight is NOT READY. Resolve its blocking issue before triggering show output.";
+            SetDelivery(StageActionDeliveryState.Failed, StatusText);
             feedback.Failure();
             return false;
         }
@@ -453,6 +506,7 @@ public sealed class StageModeViewModel : INotifyPropertyChanged, IDisposable
         if (!await actionGate.WaitAsync(0, cancellationToken))
         {
             StatusText = "A Stage action is already running.";
+            SetDelivery(StageActionDeliveryState.Pending, StatusText);
             feedback.Warning();
             return false;
         }
@@ -461,6 +515,7 @@ public sealed class StageModeViewModel : INotifyPropertyChanged, IDisposable
         try
         {
             IsBusy = true;
+            SetDelivery(StageActionDeliveryState.Pending, $"Sending {tile.Label}…");
             GalleryActionResult result;
             try
             {
@@ -476,6 +531,9 @@ public sealed class StageModeViewModel : INotifyPropertyChanged, IDisposable
             }
             succeeded = result.Succeeded;
             StatusText = result.Message;
+            SetDelivery(
+                result.Succeeded ? StageActionDeliveryState.Sent : StageActionDeliveryState.Failed,
+                result.Message);
             if (result.Succeeded)
             {
                 if (rememberAsStable)
@@ -519,12 +577,16 @@ public sealed class StageModeViewModel : INotifyPropertyChanged, IDisposable
 
     private async Task StopAsync(CancellationToken cancellationToken)
     {
+        SetDelivery(StageActionDeliveryState.Pending, "Stopping queued and active visual work…");
         sceneExecutionControl?.RequestCancel();
         await playbackCoordinator.StopAnimationAsync(cancellationToken);
         var result = await emergencyControl.StopAsync(cancellationToken);
         StatusText = result.Succeeded
             ? "STOP: queued/active visual work cancelled; the last stable look remains when available."
             : result.Message;
+        SetDelivery(
+            result.Succeeded ? StageActionDeliveryState.Sent : StageActionDeliveryState.Failed,
+            StatusText);
         if (result.Succeeded)
         {
             feedback.Success();
@@ -537,12 +599,16 @@ public sealed class StageModeViewModel : INotifyPropertyChanged, IDisposable
 
     private async Task BlackoutAsync(CancellationToken cancellationToken)
     {
+        SetDelivery(StageActionDeliveryState.Pending, "Sending emergency BLACKOUT…");
         sceneExecutionControl?.RequestCancel();
         var result = await animationEngine.BlackoutAsync(cancellationToken);
         StatusText = result.Succeeded
             ? "BLACKOUT sent. Brightness is forced to the protocol minimum and no previous look is restored."
             : result.Message;
         CurrentCueText = "Current: BLACKOUT";
+        SetDelivery(
+            result.Succeeded ? StageActionDeliveryState.Sent : StageActionDeliveryState.Failed,
+            StatusText);
         if (result.Succeeded)
         {
             feedback.Success();
@@ -597,6 +663,7 @@ public sealed class StageModeViewModel : INotifyPropertyChanged, IDisposable
                 sceneExecutionControl?.RequestCancel();
                 RequiresExplicitRecovery = true;
                 StatusText = "Connection lost. The Stage session is preserved, output is stopped, and reconnect will not replay it.";
+                SetDelivery(StageActionDeliveryState.Failed, StatusText);
                 feedback.Failure();
             }
             else if (RequiresExplicitRecovery)
@@ -627,6 +694,12 @@ public sealed class StageModeViewModel : INotifyPropertyChanged, IDisposable
         BlackoutCommand.RaiseCanExecuteChanged();
         RecoverCommand.RaiseCanExecuteChanged();
         RefreshReadinessCommand.RaiseCanExecuteChanged();
+    }
+
+    private void SetDelivery(StageActionDeliveryState state, string detail)
+    {
+        ActionDeliveryState = state;
+        ActionDeliveryDetail = detail;
     }
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)

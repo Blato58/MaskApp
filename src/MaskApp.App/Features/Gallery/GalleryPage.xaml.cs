@@ -1,5 +1,6 @@
 using MaskApp.Core.Features.Gallery;
 using MaskApp.App.Infrastructure.Accessibility;
+using MaskApp.App.Controls;
 
 namespace MaskApp.App.Features.Gallery;
 
@@ -45,21 +46,12 @@ public partial class GalleryPage : ContentPage
         await Shell.Current.GoToAsync("library-add");
     }
 
-    private async void OnSendClicked(object? sender, EventArgs e)
+    private async void OnCardEditRequested(object? sender, EventArgs e)
     {
         DismissSearch();
-        if (sender is Button { CommandParameter: GalleryItem item })
+        if (sender is LibraryItemCardView { Item: { } card })
         {
-            await viewModel.SendAsync(item);
-        }
-    }
-
-    private async void OnEditClicked(object? sender, EventArgs e)
-    {
-        DismissSearch();
-        if (sender is Button { CommandParameter: GalleryItem item })
-        {
-            await OpenEditorAsync(item);
+            await OpenEditorAsync(card.Item);
         }
     }
 
