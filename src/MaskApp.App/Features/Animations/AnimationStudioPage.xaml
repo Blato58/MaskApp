@@ -186,7 +186,7 @@
                 </VerticalStackLayout>
             </Border>
 
-            <Label Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" SemanticProperties.LiveSetting="Polite" />
+            <Label Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
