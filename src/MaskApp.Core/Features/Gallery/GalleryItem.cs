@@ -2,6 +2,7 @@ using MaskApp.Core.Features.Animations;
 using MaskApp.Core.Features.BuiltIns;
 using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.QuickActions;
+using MaskApp.Core.Features.Scenes;
 using MaskApp.Core.Features.TextPresets;
 
 namespace MaskApp.Core.Features.Gallery;
@@ -66,16 +67,22 @@ public sealed record GalleryItem
 
     public AppBuiltInAnimation? AppAnimation { get; init; }
 
+    public AnimationProject? AnimationProject { get; init; }
+
+    public PerformanceAnimation? PerformanceAnimation { get; init; }
+
+    public PerformanceScene? Scene { get; init; }
+
     public string TypeLabel => Type switch
     {
         GalleryItemType.TextPreset => "Text",
         GalleryItemType.BuiltInStaticImage => "Face",
         GalleryItemType.BuiltInAnimation => "Animation",
         GalleryItemType.AppBuiltInAnimation => "App Animation",
+        GalleryItemType.CustomAnimation => "Animation",
         GalleryItemType.CustomStaticFace => "DIY Face",
+        GalleryItemType.Scene => "Scene",
         GalleryItemType.QuickAction => "Quick",
-        GalleryItemType.FutureCustomImage => "Image Lab",
-        GalleryItemType.FutureCustomAnimation => "Animation Lab",
         _ => "Import"
     };
 

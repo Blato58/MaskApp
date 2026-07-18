@@ -6,6 +6,7 @@ using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.QuickActions;
+using MaskApp.Core.Features.Scenes;
 using MaskApp.Core.Features.Text;
 using MaskApp.Core.Features.TextPresets;
 
@@ -24,6 +25,9 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
     private readonly ITextUploadTransport textTransport;
     private readonly IFaceUploadTransport faceTransport;
     private readonly DiySlotPlaybackCoordinator diySlotPlayback;
+    private readonly IAnimationProjectStore animationProjectStore;
+    private readonly ISceneShowStore sceneShowStore;
+    private readonly SceneExecutionEngine? sceneEngine;
     private readonly HashSet<string> selectedItemIds = new(StringComparer.Ordinal);
     private GalleryLayoutState layoutState = new();
     private FacePatternStoreState faceState = new();
@@ -58,7 +62,10 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         IMaskCommandTransport commandTransport,
         ITextUploadTransport textTransport,
         IFaceUploadTransport faceTransport,
-        DiySlotPlaybackCoordinator diySlotPlayback)
+        DiySlotPlaybackCoordinator diySlotPlayback,
+        IAnimationProjectStore? animationProjectStore = null,
+        ISceneShowStore? sceneShowStore = null,
+        SceneExecutionEngine? sceneEngine = null)
     {
         catalogBuilder = new GalleryCatalogBuilder(quickActionCatalog);
         this.textPresetStore = textPresetStore;
@@ -71,6 +78,9 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         this.textTransport = textTransport;
         this.faceTransport = faceTransport;
         this.diySlotPlayback = diySlotPlayback;
+        this.animationProjectStore = animationProjectStore ?? new InMemoryAnimationProjectStore();
+        this.sceneShowStore = sceneShowStore ?? new InMemorySceneShowStore();
+        this.sceneEngine = sceneEngine;
         GroupingOptions =
         [
             new GalleryGroupingOption("Manual groups", GalleryGroupingMode.Manual),
@@ -87,8 +97,9 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
             new GalleryAddOption(GalleryAddOptionKind.ScanBuiltInStaticFace, "Scan built-in face", "Send and mark IMAG IDs in the hidden scanner.", "face", "#52E3FF", true),
             new GalleryAddOption(GalleryAddOptionKind.ScanBuiltInAnimation, "Scan built-in animation", "Send and mark ANIM IDs in the hidden scanner.", "anim", "#FF3D8B", true),
             new GalleryAddOption(GalleryAddOptionKind.ImportCustomImage, "Create custom face", "Draw, import, save, upload, and play a native 46x58 DIY face.", "face", "#FACC15", true),
-            new GalleryAddOption(GalleryAddOptionKind.ImportCustomAnimation, "Import animation", "Future/Labs until DIY playback is verified.", "anim", "#475569", false),
-            new GalleryAddOption(GalleryAddOptionKind.ImportMaskPack, "Import MaskPack", "Manifest support exists; playback remains future work.", "pack", "#475569", false)
+            new GalleryAddOption(GalleryAddOptionKind.ImportCustomAnimation, "Animation Studio", "Draw or import GIF/video frames, then validate, save, prepare, and preview.", "anim", "#FF3D8B", true),
+            new GalleryAddOption(GalleryAddOptionKind.NewScene, "Scene Studio", "Build bounded typed cues and ordered setlists for Pages and Stage.", "lucide:clapperboard", "#A78BFA", true),
+            new GalleryAddOption(GalleryAddOptionKind.ImportMaskPack, "Import or export MaskPack", "Inspect, resolve conflicts, import, or share a complete offline show package.", "pack", "#22C55E", true)
         ];
         ToggleAddOptionsCommand = new AsyncRelayCommand(_ =>
         {
@@ -376,6 +387,8 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
 
     public string ManagedItemStatusText => ManagedItem is null
         ? "No action selected."
+        : !string.IsNullOrWhiteSpace(ManagedItem.LastSendStatus)
+            ? ManagedItem.LastSendStatus
         : ManagedItem.CanSend
             ? "Implemented and sendable when the device transport is ready."
             : "Labs placeholder; not sendable yet.";
@@ -387,6 +400,7 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         "text" => "Open Text Composer",
         "faces" => "Open Face Studio",
         "builtins" => "Open Built-in Scanner",
+        "animation-studio" => "Open Animation Studio",
         _ => "Editor unavailable"
     };
 
@@ -396,7 +410,9 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         var textState = await textPresetStore.LoadAsync(cancellationToken);
         var builtIns = await builtInArchiveStore.LoadAsync(cancellationToken);
         faceState = await facePatternStore.LoadAsync(cancellationToken);
-        allItems = catalogBuilder.Build(textState, builtIns, faceState, layoutState.Order);
+        var animationState = await animationProjectStore.LoadAsync(cancellationToken);
+        var sceneState = await sceneShowStore.LoadAsync(cancellationToken);
+        allItems = catalogBuilder.Build(textState, builtIns, faceState, layoutState.Order, animationState, sceneState);
         RebuildGroups();
     }
 
@@ -425,6 +441,10 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
                     await SendFaceAsync(item.FacePattern, cancellationToken),
                 GalleryItemType.AppBuiltInAnimation when item.AppAnimation is not null =>
                     await SendAppAnimationAsync(item.AppAnimation, cancellationToken),
+                GalleryItemType.CustomAnimation when item.PerformanceAnimation is not null =>
+                    await SendPerformanceAnimationAsync(item.PerformanceAnimation, cancellationToken),
+                GalleryItemType.Scene when item.Scene is not null && sceneEngine is not null =>
+                    (await sceneEngine.ExecuteAsync(item.Scene, cancellationToken)).Message,
                 GalleryItemType.QuickAction when item.QuickActionId.HasValue =>
                     await SendQuickActionAsync(item.QuickActionId.Value, cancellationToken),
                 _ => "Not implemented yet"
@@ -657,6 +677,12 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
                 commandTransport.TransportState == MaskCommandTransportState.Ready,
             GalleryItemType.AppBuiltInAnimation =>
                 faceTransport.IsReady && commandTransport.TransportState == MaskCommandTransportState.Ready,
+            GalleryItemType.CustomAnimation when item.PerformanceAnimation is not null &&
+                DiySlotPlaybackCoordinator.IsAnimationPrepared(item.PerformanceAnimation, faceState) =>
+                commandTransport.TransportState == MaskCommandTransportState.Ready,
+            GalleryItemType.CustomAnimation =>
+                faceTransport.IsReady && commandTransport.TransportState == MaskCommandTransportState.Ready,
+            GalleryItemType.Scene => sceneEngine is not null && CanSendScene(item),
             GalleryItemType.QuickAction => item.QuickActionKind switch
             {
                 QuickActionKind.Text or QuickActionKind.Random => textTransport.IsReady,
@@ -666,6 +692,26 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
             },
             _ => false
         };
+
+    private bool CanSendScene(GalleryItem item)
+    {
+        if (item.Scene is null || commandTransport.TransportState != MaskCommandTransportState.Ready)
+        {
+            return false;
+        }
+
+        var dependencies = item.Scene.Steps
+            .Where(step => !string.IsNullOrWhiteSpace(step.GalleryItemId))
+            .Select(step => allItems.FirstOrDefault(candidate => candidate.Id == step.GalleryItemId))
+            .Where(dependency => dependency is not null);
+        return dependencies.All(dependency => dependency!.Type switch
+        {
+            GalleryItemType.TextPreset => textTransport.IsReady,
+            GalleryItemType.CustomStaticFace or GalleryItemType.AppBuiltInAnimation or GalleryItemType.CustomAnimation =>
+                faceTransport.IsReady,
+            _ => true
+        });
+    }
 
     private async Task<string> SendTextPresetAsync(TextPreset preset, CancellationToken cancellationToken)
     {
@@ -698,6 +744,15 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
 
     private async Task<string> SendAppAnimationAsync(
         AppBuiltInAnimation animation,
+        CancellationToken cancellationToken)
+    {
+        var result = await diySlotPlayback.PlayAnimationAsync(animation, cancellationToken);
+        await InitializeAsync(cancellationToken);
+        return result.Message;
+    }
+
+    private async Task<string> SendPerformanceAnimationAsync(
+        PerformanceAnimation animation,
         CancellationToken cancellationToken)
     {
         var result = await diySlotPlayback.PlayAnimationAsync(animation, cancellationToken);

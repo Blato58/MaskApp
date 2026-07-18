@@ -1,9 +1,11 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using MaskApp.Core.Features.Animations;
 using MaskApp.Core.Features.BuiltIns;
 using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.QuickActions;
+using MaskApp.Core.Features.Scenes;
 using MaskApp.Core.Features.TextPresets;
 
 namespace MaskApp.Core.Features.Gallery;
@@ -25,6 +27,8 @@ public sealed class PageAddItemViewModel : INotifyPropertyChanged
     private readonly IBuiltInAssetArchiveStore builtInArchiveStore;
     private readonly IFacePatternStore facePatternStore;
     private readonly IGalleryLayoutStore layoutStore;
+    private readonly IAnimationProjectStore animationProjectStore;
+    private readonly ISceneShowStore sceneShowStore;
     private GalleryLayoutState layoutState = new();
     private IReadOnlyList<GalleryItem> allItems = [];
     private GalleryPageLayout selectedPage = new();
@@ -49,13 +53,17 @@ public sealed class PageAddItemViewModel : INotifyPropertyChanged
         ITextPresetStore textPresetStore,
         IBuiltInAssetArchiveStore builtInArchiveStore,
         IFacePatternStore facePatternStore,
-        IGalleryLayoutStore layoutStore)
+        IGalleryLayoutStore layoutStore,
+        IAnimationProjectStore? animationProjectStore = null,
+        ISceneShowStore? sceneShowStore = null)
     {
         catalogBuilder = new GalleryCatalogBuilder(quickActionCatalog);
         this.textPresetStore = textPresetStore;
         this.builtInArchiveStore = builtInArchiveStore;
         this.facePatternStore = facePatternStore;
         this.layoutStore = layoutStore;
+        this.animationProjectStore = animationProjectStore ?? new InMemoryAnimationProjectStore();
+        this.sceneShowStore = sceneShowStore ?? new InMemorySceneShowStore();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -221,7 +229,9 @@ public sealed class PageAddItemViewModel : INotifyPropertyChanged
         var textState = await textPresetStore.LoadAsync(cancellationToken);
         var archive = await builtInArchiveStore.LoadAsync(cancellationToken);
         var faces = await facePatternStore.LoadAsync(cancellationToken);
-        allItems = catalogBuilder.Build(textState, archive, faces, layoutState.Order);
+        var animations = await animationProjectStore.LoadAsync(cancellationToken);
+        var scenes = await sceneShowStore.LoadAsync(cancellationToken);
+        allItems = catalogBuilder.Build(textState, archive, faces, layoutState.Order, animations, scenes);
         selectedPage = layoutState.Pages.FirstOrDefault(page => page.PageId == pageId)
             ?? layoutState.Pages.First();
         pageId = selectedPage.PageId;

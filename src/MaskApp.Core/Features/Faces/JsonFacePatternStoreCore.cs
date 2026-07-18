@@ -13,6 +13,7 @@ public class JsonFacePatternStoreCore : IFacePatternStore
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
     };
 
+    private readonly SemaphoreSlim gate = new(1, 1);
     private readonly string filePath;
 
     public JsonFacePatternStoreCore(string filePath)
@@ -22,72 +23,88 @@ public class JsonFacePatternStoreCore : IFacePatternStore
 
     public async Task<FacePatternStoreState> LoadAsync(CancellationToken cancellationToken = default)
     {
-        if (!File.Exists(filePath))
-        {
-            return FacePatternStoreState.Seeded;
-        }
-
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await using var stream = File.OpenRead(filePath);
-            var document = await JsonSerializer.DeserializeAsync<StoreDocument>(stream, SerializerOptions, cancellationToken)
-                .ConfigureAwait(false);
-            if (document is null ||
-                document.SchemaVersion is not FacePatternStoreState.LegacySchemaVersion and
-                    not FacePatternStoreState.PreviousSchemaVersion and
-                    not FacePatternStoreState.CurrentSchemaVersion)
+            if (!File.Exists(filePath))
+            {
+                return FacePatternStoreState.Seeded;
+            }
+
+            try
+            {
+                await using var stream = File.OpenRead(filePath);
+                var document = await JsonSerializer.DeserializeAsync<StoreDocument>(stream, SerializerOptions, cancellationToken)
+                    .ConfigureAwait(false);
+                if (document is null ||
+                    document.SchemaVersion is not FacePatternStoreState.LegacySchemaVersion and
+                        not FacePatternStoreState.PreviousSchemaVersion and
+                        not FacePatternStoreState.CurrentSchemaVersion)
+                {
+                    return FacePatternStoreState.Seeded with
+                    {
+                        Status = "Face store version changed; seeded fallback loaded.",
+                        UsedFallback = true
+                    };
+                }
+
+                return new FacePatternStoreState
+                {
+                    SchemaVersion = document.SchemaVersion,
+                    SeedVersion = document.SeedVersion,
+                    Patterns = document.Patterns,
+                    SlotInstallations = document.SlotInstallations,
+                    Status = "Ready."
+                }.Normalize();
+            }
+            catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
             {
                 return FacePatternStoreState.Seeded with
                 {
-                    Status = "Face store version changed; seeded fallback loaded.",
+                    Status = "Face store could not be read; seeded fallback loaded.",
                     UsedFallback = true
                 };
             }
-
-            return new FacePatternStoreState
-            {
-                SchemaVersion = document.SchemaVersion,
-                SeedVersion = document.SeedVersion,
-                Patterns = document.Patterns,
-                SlotInstallations = document.SlotInstallations,
-                Status = "Ready."
-            }.Normalize();
         }
-        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+        finally
         {
-            return FacePatternStoreState.Seeded with
-            {
-                Status = "Face store could not be read; seeded fallback loaded.",
-                UsedFallback = true
-            };
+            gate.Release();
         }
     }
 
     public async Task SaveAsync(FacePatternStoreState state, CancellationToken cancellationToken = default)
     {
-        var directory = Path.GetDirectoryName(filePath);
-        if (!string.IsNullOrWhiteSpace(directory))
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            Directory.CreateDirectory(directory);
+            var directory = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            var normalized = state.Normalize();
+            var document = new StoreDocument
+            {
+                SchemaVersion = FacePatternStoreState.CurrentSchemaVersion,
+                SeedVersion = FacePatternStoreState.CurrentSeedVersion,
+                Patterns = normalized.Patterns.ToArray(),
+                SlotInstallations = normalized.SlotInstallations.ToArray()
+            };
+            var tempFilePath = $"{filePath}.tmp";
+
+            await using (var stream = File.Create(tempFilePath))
+            {
+                await JsonSerializer.SerializeAsync(stream, document, SerializerOptions, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            File.Move(tempFilePath, filePath, overwrite: true);
         }
-
-        var normalized = state.Normalize();
-        var document = new StoreDocument
+        finally
         {
-            SchemaVersion = FacePatternStoreState.CurrentSchemaVersion,
-            SeedVersion = FacePatternStoreState.CurrentSeedVersion,
-            Patterns = normalized.Patterns.ToArray(),
-            SlotInstallations = normalized.SlotInstallations.ToArray()
-        };
-        var tempFilePath = $"{filePath}.tmp";
-
-        await using (var stream = File.Create(tempFilePath))
-        {
-            await JsonSerializer.SerializeAsync(stream, document, SerializerOptions, cancellationToken)
-                .ConfigureAwait(false);
+            gate.Release();
         }
-
-        File.Move(tempFilePath, filePath, overwrite: true);
     }
 
     private sealed class StoreDocument

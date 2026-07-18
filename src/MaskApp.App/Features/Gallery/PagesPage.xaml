@@ -13,7 +13,7 @@
     <Grid>
         <Grid RowDefinitions="Auto,Auto,*,Auto">
             <Grid Padding="18,16,18,8" RowDefinitions="Auto,Auto" RowSpacing="12">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
                     <VerticalStackLayout Spacing="2">
                         <Label Text="Pages" Style="{StaticResource PageTitleLabelStyle}" />
                         <Label Text="One-tap controls for live use. Prepare uploads before the show." Style="{StaticResource TinyLabelStyle}" />
@@ -23,6 +23,18 @@
                         IsRunning="{Binding IsSending}"
                         IsVisible="{Binding IsSending}"
                         VerticalOptions="Center" />
+                    <Button
+                        Grid.Column="2"
+                        Text="Stage"
+                        Clicked="OnStageClicked"
+                        SemanticProperties.Description="Enter locked Stage Mode"
+                        Style="{StaticResource NeonBlueButtonStyle}" />
+                    <Button
+                        Grid.Column="3"
+                        Text="Preflight"
+                        Clicked="OnPreflightClicked"
+                        SemanticProperties.Description="Open Festival Preflight"
+                        Style="{StaticResource BrightButtonStyle}" />
                 </Grid>
 
                 <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="8">
@@ -260,7 +272,7 @@
                     <Label
                         Grid.Row="2"
                         IsVisible="{Binding IsManageMode}"
-                        Text="Prepared DIY slots and app animations are remembered for the last mask. Refresh them after switching masks."
+                        Text="Prepared DIY slots are isolated to the active mask profile. Run Preflight after switching masks."
                         Style="{StaticResource TinyLabelStyle}" />
                 </Grid>
             </Border>

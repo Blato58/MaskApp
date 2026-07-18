@@ -44,6 +44,15 @@ public partial class LibraryAddPage : ContentPage
             case GalleryAddOptionKind.ImportCustomImage:
                 await Shell.Current.GoToAsync("faces");
                 break;
+            case GalleryAddOptionKind.ImportCustomAnimation:
+                await Shell.Current.GoToAsync("animation-studio");
+                break;
+            case GalleryAddOptionKind.NewScene:
+                await Shell.Current.GoToAsync("scene-studio");
+                break;
+            case GalleryAddOptionKind.ImportMaskPack:
+                await Shell.Current.GoToAsync("maskpack");
+                break;
         }
     }
 }

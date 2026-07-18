@@ -82,7 +82,15 @@ public sealed class GalleryPageShortcutCard : INotifyPropertyChanged
 
     public bool IsFastSlotPrepared { get; }
 
-    public string FastSlotStatusText => Item.AppAnimation is not null
+    public string FastSlotStatusText => Item.Scene is not null
+        ? IsFastSlotPrepared
+            ? "Scene dependencies prepared · bounded cue"
+            : "Scene dependencies need Preflight"
+        : Item.PerformanceAnimation is not null
+        ? IsFastSlotPrepared
+            ? $"{Item.PerformanceAnimation.StoredFrames.Count} unique DIY slots · timed PLAY"
+            : $"{Item.PerformanceAnimation.StoredFrames.Count} unique DIY slots · prepare once"
+        : Item.AppAnimation is not null
         ? IsFastSlotPrepared
             ? $"{Item.AppAnimation.Frames.Count} DIY slots · continuous 75 ms PLAY"
             : $"{Item.AppAnimation.Frames.Count} DIY slots · prepare once"
@@ -103,7 +111,9 @@ public sealed class GalleryPageShortcutCard : INotifyPropertyChanged
 
     public string UseActionText => IsFastSlotCapable && !IsFastSlotPrepared ? "Prepare + show" : "Show";
 
-    public string PrepareActionText => Item.AppAnimation is not null
+    public string PrepareActionText => Item.Scene is not null
+        ? "Use Preflight"
+        : Item.AppAnimation is not null || Item.PerformanceAnimation is not null
         ? IsFastSlotPrepared ? "Refresh animation" : "Prepare animation"
         : IsFastSlotPrepared ? "Refresh slot" : "Prepare slot";
 

@@ -89,6 +89,26 @@ public partial class GalleryPage : ContentPage
         if (string.Equals(item.ManageTarget, "faces", StringComparison.Ordinal))
         {
             await Shell.Current.GoToAsync("faces");
+            return;
+        }
+
+        if (string.Equals(item.ManageTarget, "animation-studio", StringComparison.Ordinal))
+        {
+            var projectId = item.AnimationProject?.Id;
+            var route = string.IsNullOrWhiteSpace(projectId)
+                ? "animation-studio"
+                : $"animation-studio?projectId={Uri.EscapeDataString(projectId)}";
+            await Shell.Current.GoToAsync(route);
+            return;
+        }
+
+        if (string.Equals(item.ManageTarget, "scene-studio", StringComparison.Ordinal))
+        {
+            var sceneId = item.Scene?.Id;
+            var route = string.IsNullOrWhiteSpace(sceneId)
+                ? "scene-studio"
+                : $"scene-studio?sceneId={Uri.EscapeDataString(sceneId)}";
+            await Shell.Current.GoToAsync(route);
         }
     }
 

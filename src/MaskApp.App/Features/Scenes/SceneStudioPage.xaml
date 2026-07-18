@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="MaskApp.App.Features.Scenes.SceneStudioPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:scenes="clr-namespace:MaskApp.Core.Features.Scenes;assembly=MaskApp.Core"
+    x:DataType="scenes:SceneStudioViewModel"
+    Title="Scene Studio"
+    BackgroundColor="{StaticResource PageBackgroundColor}">
+    <ScrollView>
+        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="16">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="Scene Studio" Style="{StaticResource PageTitleLabelStyle}" />
+                    <Label Text="Compose bounded typed cues, rehearse them, and order them into Stage setlists." Style="{StaticResource MutedLabelStyle}" />
+                </VerticalStackLayout>
+                <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+            </Grid>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Scene" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Picker
+                        x:Name="ScenePicker"
+                        Title="Saved Scenes"
+                        ItemsSource="{Binding Scenes}"
+                        ItemDisplayBinding="{Binding DisplayName}"
+                        SelectedIndexChanged="OnSceneSelected" />
+                    <Entry Placeholder="Scene name" Text="{Binding SceneName, Mode=TwoWay}" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <Entry Placeholder="#A78BFA" Text="{Binding SceneColorHex, Mode=TwoWay}" />
+                        <Picker Grid.Column="1" Title="Failure policy" ItemsSource="{Binding FailurePolicies}" SelectedItem="{Binding FailurePolicy, Mode=TwoWay}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="7">
+                        <Button Text="New" Command="{Binding NewSceneCommand}" />
+                        <Button Grid.Column="1" Text="Save" Command="{Binding SaveSceneCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Grid.Column="2" Text="Duplicate" Command="{Binding DuplicateSceneCommand}" />
+                        <Button Grid.Column="3" Text="Delete" Command="{Binding DeleteSceneCommand}" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Add typed step" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="Only bounded built-in step types are available; arbitrary scripts are not supported." Style="{StaticResource MutedLabelStyle}" />
+                    <Picker Title="Step type" ItemsSource="{Binding StepKinds}" SelectedItem="{Binding NewStepKind, Mode=TwoWay}" />
+                    <Picker
+                        Title="Library content"
+                        ItemsSource="{Binding ContentOptions}"
+                        ItemDisplayBinding="{Binding Title}"
+                        SelectedItem="{Binding SelectedContentItem, Mode=TwoWay}"
+                        IsVisible="{Binding NeedsContentItem}" />
+                    <VerticalStackLayout IsVisible="{Binding NeedsValue}" Spacing="3">
+                        <Label Text="{Binding StepValue, StringFormat='Value {0}%'}" Style="{StaticResource TinyLabelStyle}" />
+                        <Stepper Minimum="1" Maximum="100" Increment="1" Value="{Binding StepValue, Mode=TwoWay}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout IsVisible="{Binding NeedsDuration}" Spacing="3">
+                        <Label Text="{Binding StepDurationMilliseconds, StringFormat='Wait {0:0} ms'}" Style="{StaticResource TinyLabelStyle}" />
+                        <Stepper Minimum="16" Maximum="30000" Increment="100" Value="{Binding StepDurationMilliseconds, Mode=TwoWay}" />
+                    </VerticalStackLayout>
+                    <Grid IsVisible="{Binding NeedsRepeat}" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <Picker
+                            Title="Repeat from earlier step"
+                            ItemsSource="{Binding RepeatTargets}"
+                            ItemDisplayBinding="{Binding Title}"
+                            SelectedItem="{Binding SelectedRepeatTarget, Mode=TwoWay}" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                            <Label Text="{Binding RepeatCount, StringFormat='Total {0}×'}" Style="{StaticResource TinyLabelStyle}" />
+                            <Stepper Minimum="2" Maximum="10" Value="{Binding RepeatCount, Mode=TwoWay}" />
+                        </VerticalStackLayout>
+                    </Grid>
+                    <Button Text="Add after selected step" Clicked="OnAddStepClicked" Style="{StaticResource PrimaryButtonStyle}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Scene steps" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="Long-press and drag, or use the accessible Move earlier/later controls." Style="{StaticResource MutedLabelStyle}" />
+                    <CollectionView ItemsSource="{Binding StepRows}" SelectionMode="None" HeightRequest="330">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="scenes:SceneStepRow">
+                                <Border Padding="10" Margin="0,0,0,7" Stroke="#64748B" BackgroundColor="#111827">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnStepTapped" CommandParameter="{Binding .}" />
+                                        <DragGestureRecognizer DragStarting="OnStepDragStarting" />
+                                        <DropGestureRecognizer AllowDrop="True" Drop="OnStepDropped" />
+                                    </Border.GestureRecognizers>
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                        <Label Text="{Binding DisplayIndex}" FontSize="20" FontAttributes="Bold" TextColor="#52E3FF" VerticalTextAlignment="Center" />
+                                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                            <Label Text="{Binding Title}" FontAttributes="Bold" />
+                                            <Label Text="{Binding Summary}" Style="{StaticResource TinyLabelStyle}" LineBreakMode="TailTruncation" />
+                                        </VerticalStackLayout>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                    <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="7">
+                        <Button Text="Duplicate" Clicked="OnDuplicateStepClicked" />
+                        <Button Grid.Column="1" Text="Delete" Clicked="OnDeleteStepClicked" />
+                        <Button Grid.Column="2" Text="Move earlier" Clicked="OnMoveStepEarlierClicked" />
+                        <Button Grid.Column="3" Text="Move later" Clicked="OnMoveStepLaterClicked" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Validation and rehearsal" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="{Binding ValidationSummary}" FontAttributes="Bold" />
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding ValidationIssues}" Spacing="5">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="scenes:SceneValidationIssue">
+                                <Label Text="{Binding Message}" TextColor="#FCA5A5" />
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                        <Button Text="Rehearse" Command="{Binding RehearseSceneCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Grid.Column="1" Text="Stop" Command="{Binding StopCommand}" />
+                        <Button Grid.Column="2" Text="BLACKOUT" Command="{Binding BlackoutCommand}" BackgroundColor="#7F1D1D" TextColor="White" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Setlist" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Picker
+                        x:Name="SetlistPicker"
+                        Title="Saved setlists"
+                        ItemsSource="{Binding Setlists}"
+                        ItemDisplayBinding="{Binding DisplayName}"
+                        SelectedIndexChanged="OnSetlistSelected" />
+                    <Entry Placeholder="Setlist name" Text="{Binding SetlistName, Mode=TwoWay}" />
+                    <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="7">
+                        <Button Text="New" Command="{Binding NewSetlistCommand}" />
+                        <Button Grid.Column="1" Text="Save" Command="{Binding SaveSetlistCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Grid.Column="2" Text="Duplicate" Command="{Binding DuplicateSetlistCommand}" />
+                        <Button Grid.Column="3" Text="Delete" Command="{Binding DeleteSetlistCommand}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <Picker
+                            Title="Scene for new cue"
+                            ItemsSource="{Binding Scenes}"
+                            ItemDisplayBinding="{Binding DisplayName}"
+                            SelectedItem="{Binding SelectedCueScene, Mode=TwoWay}" />
+                        <Button Grid.Column="1" Text="Add cue" Clicked="OnAddCueClicked" />
+                    </Grid>
+                    <CollectionView ItemsSource="{Binding CueRows}" SelectionMode="None" HeightRequest="270">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="scenes:SetlistCueRow">
+                                <Border Padding="10" Margin="0,0,0,7" Stroke="#64748B" BackgroundColor="#111827">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnCueTapped" CommandParameter="{Binding .}" />
+                                        <DragGestureRecognizer DragStarting="OnCueDragStarting" />
+                                        <DropGestureRecognizer AllowDrop="True" Drop="OnCueDropped" />
+                                    </Border.GestureRecognizers>
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                        <Label Text="{Binding DisplayIndex}" FontSize="20" FontAttributes="Bold" TextColor="#A78BFA" VerticalTextAlignment="Center" />
+                                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                            <Label Text="{Binding Cue.Label}" FontAttributes="Bold" />
+                                            <Label Text="{Binding SceneName}" Style="{StaticResource TinyLabelStyle}" />
+                                        </VerticalStackLayout>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                    <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="7">
+                        <Button Text="Duplicate" Clicked="OnDuplicateCueClicked" />
+                        <Button Grid.Column="1" Text="Delete" Clicked="OnDeleteCueClicked" />
+                        <Button Grid.Column="2" Text="Move earlier" Clicked="OnMoveCueEarlierClicked" />
+                        <Button Grid.Column="3" Text="Move later" Clicked="OnMoveCueLaterClicked" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <Button Text="Use this setlist in Stage" Command="{Binding ActivateSetlistCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Grid.Column="1" Text="Use Pages in Stage" Command="{Binding UsePagesCommand}" />
+                    </Grid>
+                    <Label Text="{Binding SetlistPositionText}" Style="{StaticResource MutedLabelStyle}" />
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                        <Button Text="Previous cue" Command="{Binding PreviousCueCommand}" />
+                        <Button Grid.Column="1" Text="Trigger current" Command="{Binding TriggerCueCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Grid.Column="2" Text="Next cue" Command="{Binding NextCueCommand}" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" SemanticProperties.LiveSetting="Polite" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

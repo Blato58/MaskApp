@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="MaskApp.App.Features.Animations.AnimationStudioPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:animations="clr-namespace:MaskApp.Core.Features.Animations;assembly=MaskApp.Core"
+    xmlns:controls="clr-namespace:MaskApp.App.Controls"
+    x:DataType="animations:AnimationStudioViewModel"
+    Title="Animation Studio"
+    BackgroundColor="{StaticResource PageBackgroundColor}">
+    <ScrollView>
+        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="16">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="Animation Studio" Style="{StaticResource PageTitleLabelStyle}" />
+                    <Label Text="Build, import, safety-check, prepare, and preview one production animation." Style="{StaticResource MutedLabelStyle}" />
+                </VerticalStackLayout>
+                <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+            </Grid>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Project" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Picker
+                        x:Name="ProjectPicker"
+                        Title="Saved animations"
+                        ItemsSource="{Binding Projects}"
+                        ItemDisplayBinding="{Binding DisplayName}"
+                        SelectedIndexChanged="OnProjectSelected" />
+                    <Entry Placeholder="Animation name" Text="{Binding ProjectName, Mode=TwoWay}" />
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                        <Button Text="New" Command="{Binding NewCommand}" />
+                        <Button Grid.Column="1" Text="Save" Command="{Binding SaveCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Grid.Column="2" Text="Delete" Command="{Binding DeleteProjectCommand}" />
+                    </Grid>
+                    <Label Text="{Binding StoreStatusText}" Style="{StaticResource TinyLabelStyle}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Import from Files" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="Files are bounded before decode. Imports remain previews until you explicitly save." Style="{StaticResource MutedLabelStyle}" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <Button Text="Choose GIF" Clicked="OnImportGifClicked" Style="{StaticResource SecondaryButtonStyle}" />
+                        <Button Grid.Column="1" Text="Choose video" Clicked="OnImportVideoClicked" Style="{StaticResource SecondaryButtonStyle}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                        <Picker Title="Crop or fit" ItemsSource="{Binding ResizeModes}" SelectedItem="{Binding ImportResizeMode, Mode=TwoWay}" />
+                        <Picker Grid.Column="1" Title="Palette" ItemsSource="{Binding PaletteModes}" SelectedItem="{Binding ImportPaletteMode, Mode=TwoWay}" />
+                        <Picker Grid.Row="1" Title="Dither" ItemsSource="{Binding DitherModes}" SelectedItem="{Binding ImportDitherMode, Mode=TwoWay}" />
+                        <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="2">
+                            <Label Text="{Binding ImportSampleMilliseconds, StringFormat='Sample every {0:0} ms'}" Style="{StaticResource TinyLabelStyle}" />
+                            <Slider Minimum="20" Maximum="1000" Value="{Binding ImportSampleMilliseconds, Mode=TwoWay}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Row="2" Spacing="2">
+                            <Label Text="Horizontal position" Style="{StaticResource TinyLabelStyle}" />
+                            <Slider Minimum="-1" Maximum="1" Value="{Binding ImportHorizontalPosition, Mode=TwoWay}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Row="2" Grid.Column="1" Spacing="2">
+                            <Label Text="Vertical position" Style="{StaticResource TinyLabelStyle}" />
+                            <Slider Minimum="-1" Maximum="1" Value="{Binding ImportVerticalPosition, Mode=TwoWay}" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="46x58 selected frame" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Label Text="{Binding SelectedFrameDurationMilliseconds, StringFormat='Frame duration {0:0} ms'}" Style="{StaticResource TinyLabelStyle}" />
+                        </VerticalStackLayout>
+                        <HorizontalStackLayout Grid.Column="1" Spacing="6">
+                            <Label Text="Onion skin" VerticalTextAlignment="Center" Style="{StaticResource TinyLabelStyle}" />
+                            <Switch IsToggled="{Binding OnionSkinEnabled, Mode=TwoWay}" />
+                        </HorizontalStackLayout>
+                    </Grid>
+                    <GraphicsView
+                        x:Name="FrameCanvas"
+                        HeightRequest="420"
+                        StartInteraction="OnCanvasInteraction"
+                        DragInteraction="OnCanvasInteraction"
+                        SemanticProperties.Description="Editable 46 by 58 animation frame canvas" />
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                        <Switch IsToggled="{Binding IsEraseMode, Mode=TwoWay}" />
+                        <Label Grid.Column="1" Text="{Binding DrawModeText}" VerticalTextAlignment="Center" />
+                        <Label Grid.Column="2" Text="{Binding SelectedColor.Name}" Style="{StaticResource TinyLabelStyle}" VerticalTextAlignment="Center" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="7">
+                        <Button BackgroundColor="#FACC15" BorderColor="#FACC15" Clicked="OnColorClicked" CommandParameter="Yellow" HeightRequest="40" SemanticProperties.Description="Yellow drawing color" Text="" WidthRequest="44" />
+                        <Button Grid.Column="1" BackgroundColor="#FFFFFF" BorderColor="#D1D5DB" Clicked="OnColorClicked" CommandParameter="White" HeightRequest="40" SemanticProperties.Description="White drawing color" Text="" WidthRequest="44" />
+                        <Button Grid.Column="2" BackgroundColor="#52E3FF" BorderColor="#52E3FF" Clicked="OnColorClicked" CommandParameter="Cyan" HeightRequest="40" SemanticProperties.Description="Cyan drawing color" Text="" WidthRequest="44" />
+                        <Button Grid.Column="3" BackgroundColor="#F472B6" BorderColor="#F472B6" Clicked="OnColorClicked" CommandParameter="Pink" HeightRequest="40" SemanticProperties.Description="Pink drawing color" Text="" WidthRequest="44" />
+                        <Button Grid.Column="4" BackgroundColor="#22C55E" BorderColor="#22C55E" Clicked="OnColorClicked" CommandParameter="Green" HeightRequest="40" SemanticProperties.Description="Green drawing color" Text="" WidthRequest="44" />
+                        <Button Grid.Column="5" BackgroundColor="#EF4444" BorderColor="#EF4444" Clicked="OnColorClicked" CommandParameter="Red" HeightRequest="40" SemanticProperties.Description="Red drawing color" Text="" WidthRequest="44" />
+                        <Button Grid.Column="6" BackgroundColor="#A855F7" BorderColor="#A855F7" Clicked="OnColorClicked" CommandParameter="Purple" HeightRequest="40" SemanticProperties.Description="Purple drawing color" Text="" WidthRequest="44" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <Button Text="Clear frame" Clicked="OnClearFrameClicked" />
+                        <Button Grid.Column="1" Text="Mirror left to right" Clicked="OnMirrorFrameClicked" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Timeline" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="Long-press and drag frames, or use the Move earlier/later buttons." Style="{StaticResource MutedLabelStyle}" />
+                    <CollectionView HeightRequest="126" ItemsSource="{Binding TimelineFrames}" SelectionMode="None">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="animations:AnimationTimelineFrame">
+                                <Border Padding="8" WidthRequest="82" Stroke="#64748B" BackgroundColor="#111827">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnFrameTapped" CommandParameter="{Binding .}" />
+                                        <DragGestureRecognizer DragStarting="OnFrameDragStarting" />
+                                        <DropGestureRecognizer AllowDrop="True" Drop="OnFrameDropped" />
+                                    </Border.GestureRecognizers>
+                                    <VerticalStackLayout Spacing="4">
+                                        <controls:FacePatternPreviewView HeightRequest="72" WidthRequest="58" Pattern="{Binding Pattern}" SemanticDescription="{Binding Label}" />
+                                        <Label Text="{Binding Label}" FontAttributes="Bold" FontSize="12" HorizontalTextAlignment="Center" />
+                                        <Label Text="{Binding DurationText}" Style="{StaticResource TinyLabelStyle}" HorizontalTextAlignment="Center" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                        <Button Text="Insert blank" Clicked="OnInsertFrameClicked" />
+                        <Button Grid.Column="1" Text="Duplicate" Clicked="OnDuplicateFrameClicked" />
+                        <Button Grid.Column="2" Text="Delete frame" Clicked="OnDeleteFrameClicked" />
+                        <Button Grid.Row="1" Text="Move earlier" Clicked="OnMoveEarlierClicked" />
+                        <Button Grid.Row="1" Grid.Column="1" Text="Move later" Clicked="OnMoveLaterClicked" />
+                        <VerticalStackLayout Grid.Row="1" Grid.Column="2" Spacing="1">
+                            <Label Text="Duration" Style="{StaticResource TinyLabelStyle}" />
+                            <Stepper Minimum="16" Maximum="10000" Increment="10" Value="{Binding SelectedFrameDurationMilliseconds, Mode=TwoWay}" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Timing and safety" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <Picker Title="Loop mode" ItemsSource="{Binding LoopModes}" SelectedItem="{Binding LoopMode, Mode=TwoWay}" />
+                        <Stepper Grid.Column="1" Minimum="1" Maximum="1000" Value="{Binding FiniteLoopCount, Mode=TwoWay}" IsEnabled="{Binding IsFiniteLoop}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="{Binding Bpm, StringFormat='Tempo {0:0.0} BPM'}" Style="{StaticResource TinyLabelStyle}" />
+                            <Slider Minimum="30" Maximum="300" Value="{Binding Bpm, Mode=TwoWay}" />
+                        </VerticalStackLayout>
+                        <Button Grid.Column="1" Text="Tap tempo" Clicked="OnTapTempoClicked" />
+                    </Grid>
+                    <Label Text="{Binding BudgetText}" FontAttributes="Bold" />
+                    <Label Text="{Binding SafetyStatusText}" Style="{StaticResource MutedLabelStyle}" />
+                    <Label
+                        Text="Photosensitivity warning: unsafe playback remains blocked unless you explicitly accept the warning for this exact revision."
+                        IsVisible="{Binding IsSafetyBlocked}"
+                        TextColor="#FCA5A5" />
+                    <Button
+                        Text="Acknowledge exact-revision flash risk"
+                        IsVisible="{Binding IsSafetyBlocked}"
+                        Command="{Binding AcknowledgeSafetyCommand}" />
+                    <Button
+                        Text="Revoke flash-risk override"
+                        IsVisible="{Binding HasSafetyOverride}"
+                        Command="{Binding RevokeSafetyCommand}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Mask preview" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="Prepare uploads unique frames once. Preview uses the same production scheduler, safety gate, and deadline engine as live playback." Style="{StaticResource MutedLabelStyle}" />
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                        <Button Text="Prepare" Command="{Binding PrepareCommand}" />
+                        <Button Grid.Column="1" Text="Preview" Command="{Binding PreviewCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Grid.Column="2" Text="Stop" Command="{Binding StopCommand}" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" SemanticProperties.LiveSetting="Polite" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

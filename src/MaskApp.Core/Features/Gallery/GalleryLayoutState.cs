@@ -26,9 +26,11 @@ public sealed record GalleryLayoutState
 
     public string Status { get; init; } = "Ready.";
 
+    public bool UsedFallback { get; init; }
+
     public GalleryLayoutState Normalize()
     {
-        var pages = Pages.Count == 0 ? new GalleryLayoutState().Pages : Pages;
+        var pages = Pages is null || Pages.Count == 0 ? new GalleryLayoutState().Pages : Pages;
         return this with
         {
             SchemaVersion = CurrentSchemaVersion,

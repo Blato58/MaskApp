@@ -2,6 +2,7 @@ using MaskApp.Core.Features.Animations;
 using MaskApp.Core.Features.BuiltIns;
 using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.QuickActions;
+using MaskApp.Core.Features.Scenes;
 using MaskApp.Core.Features.TextPresets;
 
 namespace MaskApp.Core.Features.Gallery;
@@ -9,17 +10,23 @@ namespace MaskApp.Core.Features.Gallery;
 public sealed class GalleryCatalogBuilder
 {
     private readonly QuickActionCatalog quickActionCatalog;
+    private readonly AnimationProjectCompiler animationCompiler;
+    private readonly SceneValidator sceneValidator;
 
     public GalleryCatalogBuilder(QuickActionCatalog quickActionCatalog)
     {
         this.quickActionCatalog = quickActionCatalog;
+        animationCompiler = new AnimationProjectCompiler();
+        sceneValidator = new SceneValidator();
     }
 
     public IReadOnlyList<GalleryItem> Build(
         TextPresetStoreState textPresetState,
         BuiltInAssetArchive builtInArchive,
         FacePatternStoreState faceState,
-        GalleryOrderState orderState)
+        GalleryOrderState orderState,
+        AnimationProjectStoreState? animationProjectState = null,
+        SceneShowState? sceneShowState = null)
     {
         var items = new List<GalleryItem>();
         var sortIndex = 0;
@@ -38,11 +45,16 @@ public sealed class GalleryCatalogBuilder
         items.AddRange(AppBuiltInAnimationCatalog.CreateBuiltIns()
             .Select(animation => CreateAppBuiltInAnimationItem(animation, normalizedFaceState, sortIndex++)));
 
+        items.AddRange((animationProjectState ?? new AnimationProjectStoreState()).Normalize().Projects
+            .Select(project => CreateCustomAnimationItem(project, normalizedFaceState, sortIndex++)));
+
         items.AddRange(quickActionCatalog.Actions
             .Where(action => action.Kind is QuickActionKind.Text or QuickActionKind.Command or QuickActionKind.BuiltInImage or QuickActionKind.BuiltInAnimation or QuickActionKind.Random)
             .Select(action => CreateQuickActionItem(action, sortIndex++)));
 
-        items.AddRange(CreateFutureItems(sortIndex));
+        var contentCatalog = items.ToDictionary(item => item.Id, StringComparer.Ordinal);
+        items.AddRange((sceneShowState ?? new SceneShowState()).Normalize().Scenes
+            .Select(scene => CreateSceneItem(scene, contentCatalog, sortIndex++)));
 
         return items
             .Select(item => item with { SortIndex = orderState.GetItemSortIndex(item.Id, item.SortIndex) })
@@ -169,13 +181,58 @@ public sealed class GalleryCatalogBuilder
             IconKey = "anim",
             SortIndex = sortIndex,
             LastSendStatus = isPrepared
-                ? "Prepared on last mask · continuous 75 ms PLAY"
+                ? "Prepared on active mask profile · continuous 75 ms PLAY"
                 : "Prepare once, then loop with continuous 75 ms PLAY",
             PreviewBadgeText = $"DIY · {normalized.Frames.Count} frames",
             PreviewSourceText = normalized.Description,
             CanManage = false,
             FacePattern = normalized.PreviewPattern,
             AppAnimation = normalized
+        };
+    }
+
+    private GalleryItem CreateCustomAnimationItem(
+        AnimationProject project,
+        FacePatternStoreState faceState,
+        int sortIndex)
+    {
+        var normalized = project.Normalize();
+        var compilation = animationCompiler.Compile(normalized);
+        var animation = compilation.Animation;
+        var isPrepared = animation is not null &&
+            DiySlotPlaybackCoordinator.IsAnimationPrepared(animation, faceState);
+        return new GalleryItem
+        {
+            Id = $"animation:{normalized.Id}",
+            Type = GalleryItemType.CustomAnimation,
+            Title = normalized.DisplayName,
+            Subtitle = compilation.Succeeded
+                ? $"{normalized.Frames.Count} timeline frames / {compilation.UniqueFrameCount} unique DIY slots"
+                : compilation.Message,
+            GroupName = normalized.Source is AnimationProjectSource.GifImport or AnimationProjectSource.VideoImport
+                ? "Imported animations"
+                : "Custom animations",
+            IsFavorite = normalized.IsFavorite,
+            ColorHex = "#FF3D8B",
+            IconKey = "anim",
+            SortIndex = sortIndex,
+            LastSendStatus = compilation.Succeeded
+                ? isPrepared
+                    ? "Prepared on active mask profile · production timed PLAY"
+                    : "Prepare unique frames once, then preview through the production engine"
+                : compilation.Message,
+            PreviewBadgeText = compilation.Succeeded
+                ? $"DIY · {compilation.UniqueFrameCount}/{PerformanceAnimation.MaxUniqueFrames} slots"
+                : "Slot budget exceeded",
+            PreviewSourceText = normalized.Source.ToString(),
+            PreviewIsAnimated = normalized.Frames.Count > 1,
+            PreviewFrameCount = normalized.Frames.Count,
+            CanSend = compilation.Succeeded,
+            CanManage = true,
+            ManageTarget = "animation-studio",
+            FacePattern = normalized.Frames[0].Pattern,
+            AnimationProject = normalized,
+            PerformanceAnimation = animation
         };
     }
 
@@ -198,21 +255,46 @@ public sealed class GalleryCatalogBuilder
             QuickActionKind = action.Kind
         };
 
-    private static IEnumerable<GalleryItem> CreateFutureItems(int startSortIndex)
+    private GalleryItem CreateSceneItem(
+        PerformanceScene source,
+        IReadOnlyDictionary<string, GalleryItem> catalog,
+        int sortIndex)
     {
-        yield return new GalleryItem
+        var scene = source.Normalize();
+        var validation = sceneValidator.Validate(scene, catalog);
+        var preview = scene.Steps
+            .Where(step => !string.IsNullOrWhiteSpace(step.GalleryItemId))
+            .Select(step => catalog.GetValueOrDefault(step.GalleryItemId))
+            .FirstOrDefault(item => item?.HasAnyPreview == true);
+        var blockingCount = validation.Issues.Count(issue => issue.Severity == SceneValidationSeverity.Blocking);
+        return new GalleryItem
         {
-            Id = "future:custom-animation",
-            Type = GalleryItemType.FutureCustomAnimation,
-            Title = "Import animation",
-            Subtitle = "MaskPack and external animation import remain future/Labs.",
-            GroupName = "Labs",
-            ColorHex = "#475569",
-            IconKey = "anim",
-            SortIndex = startSortIndex,
-            CanSend = false,
-            CanManage = false,
-            LastSendStatus = "Not implemented"
+            Id = $"scene:{scene.Id}",
+            Type = GalleryItemType.Scene,
+            Title = scene.DisplayName,
+            Subtitle = validation.IsValid
+                ? $"{scene.Steps.Count} steps / {validation.ExpandedStepCount} executed / {scene.FailurePolicy}"
+                : $"{blockingCount} blocking validation issue(s)",
+            GroupName = "Scenes",
+            IsFavorite = scene.IsFavorite,
+            ColorHex = scene.ColorHex,
+            IconKey = "lucide:clapperboard",
+            SortIndex = sortIndex,
+            LastSendStatus = validation.IsValid
+                ? "Validate dependencies in Preflight before live use"
+                : string.Join(" ", validation.Issues
+                    .Where(issue => issue.Severity == SceneValidationSeverity.Blocking)
+                    .Select(issue => issue.Message)),
+            PreviewResourceName = preview?.PreviewResourceName ?? string.Empty,
+            PreviewBadgeText = $"SCENE · {validation.ExpandedStepCount} steps",
+            PreviewSourceText = "Bounded typed cue",
+            PreviewIsAnimated = true,
+            PreviewFrameCount = validation.ExpandedStepCount,
+            CanSend = validation.IsValid,
+            CanManage = true,
+            ManageTarget = "scene-studio",
+            FacePattern = preview?.FacePattern,
+            Scene = scene
         };
     }
 

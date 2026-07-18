@@ -8,5 +8,6 @@ public enum GalleryAddOptionKind
     ScanBuiltInAnimation,
     ImportCustomImage,
     ImportCustomAnimation,
+    NewScene,
     ImportMaskPack
 }

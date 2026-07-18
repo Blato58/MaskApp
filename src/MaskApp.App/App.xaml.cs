@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using MaskApp.Core.Features.Connect;
+using MaskApp.Core.Features.AnimationPacks;
 
 namespace MaskApp.App;
 
@@ -18,7 +19,7 @@ public partial class App : Application
         try
         {
             var window = new Window(services.GetRequiredService<AppShell>());
-            window.Created += (_, _) => _ = StartForegroundAutoConnectAsync();
+            window.Created += (_, _) => _ = StartStartupServicesAsync();
             window.Activated += (_, _) => _ = StartForegroundAutoConnectAsync();
             return window;
         }
@@ -26,6 +27,20 @@ public partial class App : Application
         {
             return new Window(StartupErrorPageFactory.Create("Startup failed", ex));
         }
+    }
+
+    private async Task StartStartupServicesAsync()
+    {
+        try
+        {
+            await services.GetRequiredService<MaskPackArchiveService>().RecoverInterruptedImportAsync();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
+                                   or InvalidDataException or InvalidOperationException)
+        {
+        }
+
+        await StartForegroundAutoConnectAsync();
     }
 
     private async Task StartForegroundAutoConnectAsync()

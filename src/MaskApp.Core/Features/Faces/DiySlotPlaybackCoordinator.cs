@@ -10,11 +10,10 @@ public sealed class DiySlotPlaybackCoordinator
     private readonly IFacePatternStore facePatternStore;
     private readonly IFaceUploadTransport faceTransport;
     private readonly IMaskCommandTransport commandTransport;
-    private readonly TimeSpan fastAnimationFrameInterval;
-    private readonly SemaphoreSlim animationSessionGate = new(1, 1);
-    private readonly object animationStateLock = new();
-    private CancellationTokenSource? animationLoopCancellation;
-    private Task animationLoopTask = Task.CompletedTask;
+    private readonly PerformanceAnimationEngine animationEngine;
+    private readonly PerformanceAnimationBuilder animationBuilder;
+    private readonly object stableLookSync = new();
+    private MaskCommand? lastStableLookCommand;
     private long animationStopVersion;
 
     public DiySlotPlaybackCoordinator(
@@ -22,31 +21,40 @@ public sealed class DiySlotPlaybackCoordinator
         IFaceUploadTransport faceTransport,
         IMaskCommandTransport commandTransport,
         TimeSpan? fastAnimationFrameInterval = null)
+        : this(
+            facePatternStore,
+            faceTransport,
+            commandTransport,
+            new PerformanceAnimationEngine(commandTransport),
+            new PerformanceAnimationBuilder(NormalizeAnimationInterval(fastAnimationFrameInterval)))
+    {
+    }
+
+    private static TimeSpan NormalizeAnimationInterval(TimeSpan? interval)
+    {
+        var value = interval ?? FastAnimationFrameInterval;
+        return value < PerformanceAnimation.MinFrameDuration
+            ? PerformanceAnimation.MinFrameDuration
+            : value > PerformanceAnimation.MaxFrameDuration
+                ? PerformanceAnimation.MaxFrameDuration
+                : value;
+    }
+
+    public DiySlotPlaybackCoordinator(
+        IFacePatternStore facePatternStore,
+        IFaceUploadTransport faceTransport,
+        IMaskCommandTransport commandTransport,
+        PerformanceAnimationEngine animationEngine,
+        PerformanceAnimationBuilder animationBuilder)
     {
         this.facePatternStore = facePatternStore;
         this.faceTransport = faceTransport;
         this.commandTransport = commandTransport;
-        this.fastAnimationFrameInterval = fastAnimationFrameInterval ?? FastAnimationFrameInterval;
-        if (this.fastAnimationFrameInterval <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(fastAnimationFrameInterval),
-                "Animation frame interval must be greater than zero.");
-        }
-
-        commandTransport.TransportStateChanged += OnCommandTransportStateChanged;
+        this.animationEngine = animationEngine;
+        this.animationBuilder = animationBuilder;
     }
 
-    public bool IsAnimationPlaying
-    {
-        get
-        {
-            lock (animationStateLock)
-            {
-                return animationLoopCancellation is not null && !animationLoopTask.IsCompleted;
-            }
-        }
-    }
+    public bool IsAnimationPlaying => animationEngine.GetSnapshot().IsActive;
 
     public Task<DiySlotPlaybackResult> PlayFaceAsync(
         FacePattern pattern,
@@ -58,7 +66,7 @@ public sealed class DiySlotPlaybackCoordinator
             [new SlotContent(normalized.PreferredSlot, normalized, $"face:{normalized.Id}", normalized.Id)],
             [normalized.PreferredSlot],
             playAfterPreparation: true,
-            useRapidAnimationPlayback: false,
+            animation: null,
             forceUpload: false,
             cancellationToken);
     }
@@ -68,63 +76,81 @@ public sealed class DiySlotPlaybackCoordinator
         CancellationToken cancellationToken = default)
     {
         var normalized = animation.Normalize();
+        var performanceAnimation = animationBuilder.FromAppBuiltIn(normalized);
         return ExecuteAsync(
             normalized.DisplayName,
-            normalized.Frames
+            performanceAnimation.StoredFrames
                 .Select((frame, index) => new SlotContent(
                     frame.Slot,
                     frame.Pattern,
                     $"animation:{normalized.Id}:frame:{index}",
                     null))
                 .ToArray(),
-            normalized.PlaybackSlots,
+            performanceAnimation.Frames.Select(frame => frame.Slot).ToArray(),
             playAfterPreparation: false,
-            useRapidAnimationPlayback: true,
+            performanceAnimation,
             forceUpload: false,
             cancellationToken);
     }
+
+    public Task<DiySlotPlaybackResult> PrepareAnimationAsync(
+        PerformanceAnimation animation,
+        CancellationToken cancellationToken = default) =>
+        ExecutePerformanceAnimationAsync(animation, playAfterPreparation: false, forceUpload: false, cancellationToken);
 
     public Task<DiySlotPlaybackResult> RefreshAnimationAsync(
         AppBuiltInAnimation animation,
         CancellationToken cancellationToken = default)
     {
         var normalized = animation.Normalize();
+        var performanceAnimation = animationBuilder.FromAppBuiltIn(normalized);
         return ExecuteAsync(
             normalized.DisplayName,
-            normalized.Frames
+            performanceAnimation.StoredFrames
                 .Select((frame, index) => new SlotContent(
                     frame.Slot,
                     frame.Pattern,
                     $"animation:{normalized.Id}:frame:{index}",
                     null))
                 .ToArray(),
-            normalized.PlaybackSlots,
+            performanceAnimation.Frames.Select(frame => frame.Slot).ToArray(),
             playAfterPreparation: false,
-            useRapidAnimationPlayback: true,
+            performanceAnimation,
             forceUpload: true,
             cancellationToken);
     }
+
+    public Task<DiySlotPlaybackResult> RefreshAnimationAsync(
+        PerformanceAnimation animation,
+        CancellationToken cancellationToken = default) =>
+        ExecutePerformanceAnimationAsync(animation, playAfterPreparation: false, forceUpload: true, cancellationToken);
 
     public Task<DiySlotPlaybackResult> PlayAnimationAsync(
         AppBuiltInAnimation animation,
         CancellationToken cancellationToken = default)
     {
         var normalized = animation.Normalize();
+        var performanceAnimation = animationBuilder.FromAppBuiltIn(normalized);
         return ExecuteAsync(
             normalized.DisplayName,
-            normalized.Frames
+            performanceAnimation.StoredFrames
                 .Select((frame, index) => new SlotContent(
                     frame.Slot,
                     frame.Pattern,
                     $"animation:{normalized.Id}:frame:{index}",
                     null))
                 .ToArray(),
-            normalized.PlaybackSlots,
+            performanceAnimation.Frames.Select(frame => frame.Slot).ToArray(),
             playAfterPreparation: true,
-            useRapidAnimationPlayback: true,
+            performanceAnimation,
             forceUpload: false,
             cancellationToken);
     }
+
+    public Task<DiySlotPlaybackResult> PlayAnimationAsync(
+        PerformanceAnimation animation,
+        CancellationToken cancellationToken = default) =>
+        ExecutePerformanceAnimationAsync(animation, playAfterPreparation: true, forceUpload: false, cancellationToken);
 
     public static bool IsFacePrepared(FacePattern pattern, FacePatternStoreState state)
     {
@@ -137,27 +163,32 @@ public sealed class DiySlotPlaybackCoordinator
 
     public static bool IsAnimationPrepared(AppBuiltInAnimation animation, FacePatternStoreState state)
     {
-        var normalizedAnimation = animation.Normalize();
+        var normalizedAnimation = new PerformanceAnimationBuilder().FromAppBuiltIn(animation);
         var normalizedState = state.Normalize();
-        return normalizedAnimation.Frames.All(frame =>
+        return normalizedAnimation.StoredFrames.All(frame =>
             InstallationMatches(
                 normalizedState,
                 frame.Slot,
-                FaceContentFingerprint.Compute(frame.Pattern)));
+                frame.ContentFingerprint));
+    }
+
+    public static bool IsAnimationPrepared(PerformanceAnimation animation, FacePatternStoreState state)
+    {
+        var normalizedAnimation = animation.Normalize();
+        var normalizedState = state.Normalize();
+        return normalizedAnimation.StoredFrames.All(frame =>
+            InstallationMatches(
+                normalizedState,
+                frame.Slot,
+                frame.ContentFingerprint));
     }
 
     public async Task StopAnimationAsync(CancellationToken cancellationToken = default)
     {
-        InvalidateAnimationSession();
-        await animationSessionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
-            await StopAnimationCoreAsync().ConfigureAwait(false);
-        }
-        finally
-        {
-            animationSessionGate.Release();
-        }
+        Interlocked.Increment(ref animationStopVersion);
+        await animationEngine.StopPlaybackAsync(
+            restorePreviousLook: true,
+            cancellationToken).ConfigureAwait(false);
     }
 
     public void RequestStopAnimation()
@@ -168,10 +199,35 @@ public sealed class DiySlotPlaybackCoordinator
     private void InvalidateAnimationSession()
     {
         Interlocked.Increment(ref animationStopVersion);
-        lock (animationStateLock)
+        animationEngine.RequestStopPlayback();
+    }
+
+    private Task<DiySlotPlaybackResult> ExecutePerformanceAnimationAsync(
+        PerformanceAnimation source,
+        bool playAfterPreparation,
+        bool forceUpload,
+        CancellationToken cancellationToken)
+    {
+        var animation = source.Normalize();
+        if (string.IsNullOrWhiteSpace(animation.RevisionHash))
         {
-            animationLoopCancellation?.Cancel();
+            animation = animationBuilder.WithRevision(animation);
         }
+
+        return ExecuteAsync(
+            animation.DisplayName,
+            animation.StoredFrames
+                .Select((frame, index) => new SlotContent(
+                    frame.Slot,
+                    frame.Pattern,
+                    $"animation:{animation.Id}:frame:{index}",
+                    null))
+                .ToArray(),
+            animation.Frames.Select(frame => frame.Slot).ToArray(),
+            playAfterPreparation,
+            animation,
+            forceUpload,
+            cancellationToken);
     }
 
     private async Task<DiySlotPlaybackResult> ExecuteAsync(
@@ -179,11 +235,11 @@ public sealed class DiySlotPlaybackCoordinator
         IReadOnlyList<SlotContent> content,
         IReadOnlyList<int> playbackSlots,
         bool playAfterPreparation,
-        bool useRapidAnimationPlayback,
+        PerformanceAnimation? animation,
         bool forceUpload,
         CancellationToken cancellationToken)
     {
-        await StopAnimationAsync(cancellationToken).ConfigureAwait(false);
+        await StopAnimationForReplacementAsync(cancellationToken).ConfigureAwait(false);
         var playbackVersion = Volatile.Read(ref animationStopVersion);
 
         if (playAfterPreparation && commandTransport.TransportState != MaskCommandTransportState.Ready)
@@ -205,7 +261,7 @@ public sealed class DiySlotPlaybackCoordinator
 
             if (!playAfterPreparation)
             {
-                var preparedPlaybackLabel = useRapidAnimationPlayback ? "continuous rapid PLAY" : "PLAY";
+                var preparedPlaybackLabel = animation is not null ? "continuous timed PLAY" : "PLAY";
                 var message = preparation.UploadedSlotCount == 0
                     ? $"{displayName} is already prepared · {preparedPlaybackLabel} only"
                     : forceUpload
@@ -220,7 +276,7 @@ public sealed class DiySlotPlaybackCoordinator
 
             var playResult = await SendPlaybackAsync(
                 playbackSlots,
-                useRapidAnimationPlayback,
+                animation,
                 playbackVersion,
                 cancellationToken).ConfigureAwait(false);
             if (!playResult.Succeeded)
@@ -231,10 +287,10 @@ public sealed class DiySlotPlaybackCoordinator
                     preparation.ReusedSlotCount);
             }
 
-            var playedMessage = useRapidAnimationPlayback
+            var playedMessage = animation is not null
                 ? preparation.UploadedSlotCount == 0
-                    ? $"Started continuous {fastAnimationFrameInterval.TotalMilliseconds:0} ms playback for {displayName} from prepared DIY slots · no upload; keep this page open"
-                    : $"Uploaded {preparation.UploadedSlotCount} DIY slot(s) once and started continuous {fastAnimationFrameInterval.TotalMilliseconds:0} ms playback for {displayName} · keep this page open; later plays skip upload"
+                    ? $"Started continuous deadline-timed playback for {displayName} from prepared DIY slots · no upload; keep this page open"
+                    : $"Uploaded {preparation.UploadedSlotCount} DIY slot(s) once and started continuous deadline-timed playback for {displayName} · keep this page open; later plays skip upload"
                 : preparation.UploadedSlotCount == 0
                     ? $"Sent PLAY for {displayName} from prepared DIY slots · no upload; confirm on mask"
                     : $"Uploaded {preparation.UploadedSlotCount} DIY slot(s) once and sent PLAY for {displayName} · confirm on mask; later plays use PLAY only";
@@ -252,181 +308,55 @@ public sealed class DiySlotPlaybackCoordinator
 
     private async Task<MaskCommandResult> SendPlaybackAsync(
         IReadOnlyList<int> playbackSlots,
-        bool useRapidAnimationPlayback,
+        PerformanceAnimation? animation,
         long playbackVersion,
         CancellationToken cancellationToken)
     {
-        if (!useRapidAnimationPlayback)
+        if (animation is null)
         {
-            return await commandTransport.SendAsync(
-                FaceUploadProtocol.BuildPlayCommand(playbackSlots),
-                cancellationToken).ConfigureAwait(false);
+            var command = FaceUploadProtocol.BuildPlayCommand(playbackSlots);
+            var staticResult = await commandTransport.SendAsync(command, cancellationToken).ConfigureAwait(false);
+            if (staticResult.Succeeded)
+            {
+                lock (stableLookSync)
+                {
+                    lastStableLookCommand = command;
+                }
+            }
+
+            return staticResult;
         }
 
-        return await StartAnimationLoopAsync(
-            playbackSlots,
-            playbackVersion,
+        if (playbackVersion != Volatile.Read(ref animationStopVersion))
+        {
+            return MaskCommandResult.Failure("Animation playback was stopped before it could start.");
+        }
+
+        MaskCommand? previousLook;
+        lock (stableLookSync)
+        {
+            previousLook = lastStableLookCommand;
+        }
+
+        var request = new AnimationPlaybackRequest
+        {
+            RestorePreviousLookAsync = previousLook is null
+                ? null
+                : token => commandTransport.SendAsync(previousLook, token)
+        };
+        var startResult = await animationEngine.StartAsync(animation, request, cancellationToken)
+            .ConfigureAwait(false);
+        return startResult.Succeeded
+            ? MaskCommandResult.Success(startResult.Message)
+            : MaskCommandResult.Failure(startResult.Message);
+    }
+
+    private async Task StopAnimationForReplacementAsync(CancellationToken cancellationToken)
+    {
+        Interlocked.Increment(ref animationStopVersion);
+        await animationEngine.StopPlaybackAsync(
+            restorePreviousLook: false,
             cancellationToken).ConfigureAwait(false);
-    }
-
-    private async Task<MaskCommandResult> StartAnimationLoopAsync(
-        IReadOnlyList<int> playbackSlots,
-        long playbackVersion,
-        CancellationToken cancellationToken)
-    {
-        if (playbackSlots.Count == 0)
-        {
-            return MaskCommandResult.Failure("Animation has no playback steps.");
-        }
-
-        await animationSessionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
-            await StopAnimationCoreAsync().ConfigureAwait(false);
-            if (playbackVersion != Volatile.Read(ref animationStopVersion))
-            {
-                return MaskCommandResult.Failure("Animation playback was stopped before it could start.");
-            }
-
-            var firstResult = await commandTransport.SendAsync(
-                FaceUploadProtocol.BuildPlayCommand([playbackSlots[0]]),
-                cancellationToken).ConfigureAwait(false);
-            if (!firstResult.Succeeded)
-            {
-                return firstResult;
-            }
-
-            var loopCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            var loopTask = RunAnimationLoopAsync(
-                playbackSlots,
-                1 % playbackSlots.Count,
-                loopCancellation.Token);
-            var started = false;
-            lock (animationStateLock)
-            {
-                if (playbackVersion == Volatile.Read(ref animationStopVersion))
-                {
-                    animationLoopCancellation = loopCancellation;
-                    animationLoopTask = loopTask;
-                    started = true;
-                }
-            }
-
-            if (!started)
-            {
-                loopCancellation.Cancel();
-                await loopTask.ConfigureAwait(false);
-                loopCancellation.Dispose();
-                return MaskCommandResult.Failure("Animation playback was stopped before it could start.");
-            }
-
-            _ = ObserveAnimationLoopCompletionAsync(loopCancellation, loopTask);
-            return firstResult;
-        }
-        finally
-        {
-            animationSessionGate.Release();
-        }
-    }
-
-    private async Task RunAnimationLoopAsync(
-        IReadOnlyList<int> playbackSlots,
-        int nextSlotIndex,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            while (true)
-            {
-                await Task.Delay(fastAnimationFrameInterval, cancellationToken).ConfigureAwait(false);
-                if (commandTransport.TransportState != MaskCommandTransportState.Ready)
-                {
-                    return;
-                }
-
-                var result = await commandTransport.SendAsync(
-                    FaceUploadProtocol.BuildPlayCommand([playbackSlots[nextSlotIndex]]),
-                    cancellationToken).ConfigureAwait(false);
-                if (!result.Succeeded)
-                {
-                    return;
-                }
-
-                nextSlotIndex = (nextSlotIndex + 1) % playbackSlots.Count;
-            }
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-        }
-        catch (Exception)
-        {
-            // A background transport failure ends this session; it must not fault a later foreground send.
-        }
-    }
-
-    private async Task ObserveAnimationLoopCompletionAsync(
-        CancellationTokenSource loopCancellation,
-        Task loopTask)
-    {
-        await loopTask.ConfigureAwait(false);
-
-        var ownsCompletedSession = false;
-        lock (animationStateLock)
-        {
-            if (ReferenceEquals(animationLoopCancellation, loopCancellation) &&
-                ReferenceEquals(animationLoopTask, loopTask))
-            {
-                animationLoopCancellation = null;
-                animationLoopTask = Task.CompletedTask;
-                ownsCompletedSession = true;
-            }
-        }
-
-        if (ownsCompletedSession)
-        {
-            loopCancellation.Dispose();
-        }
-    }
-
-    private async Task StopAnimationCoreAsync()
-    {
-        CancellationTokenSource? loopCancellation;
-        Task loopTask;
-        lock (animationStateLock)
-        {
-            loopCancellation = animationLoopCancellation;
-            loopTask = animationLoopTask;
-            animationLoopCancellation = null;
-            animationLoopTask = Task.CompletedTask;
-            loopCancellation?.Cancel();
-        }
-
-        if (loopCancellation is null)
-        {
-            return;
-        }
-
-        try
-        {
-            await loopTask.ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (loopCancellation.IsCancellationRequested)
-        {
-        }
-        finally
-        {
-            loopCancellation.Dispose();
-        }
-    }
-
-    private void OnCommandTransportStateChanged(
-        object? sender,
-        MaskCommandTransportStateChangedEventArgs eventArgs)
-    {
-        if (eventArgs.State != MaskCommandTransportState.Ready)
-        {
-            RequestStopAnimation();
-        }
     }
 
     private async Task<PreparationResult> PrepareLockedAsync(

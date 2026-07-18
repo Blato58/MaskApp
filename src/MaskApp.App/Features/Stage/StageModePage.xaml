@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="MaskApp.App.Features.Stage.StageModePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:stage="clr-namespace:MaskApp.Core.Features.Stage;assembly=MaskApp.Core"
+    x:Name="RootPage"
+    x:DataType="stage:StageModeViewModel"
+    Title="Stage"
+    Shell.NavBarIsVisible="False"
+    Shell.TabBarIsVisible="False"
+    BackgroundColor="#000000">
+    <Grid RowDefinitions="Auto,*,Auto" Padding="12,10,12,12" RowSpacing="10">
+        <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <VerticalStackLayout Spacing="1">
+                    <Label Text="{Binding LockStatusText}" FontSize="12" FontAttributes="Bold" TextColor="#52E3FF" />
+                    <Label Text="{Binding PageTitle}" FontSize="30" FontAttributes="Bold" LineBreakMode="TailTruncation" MaxLines="1" />
+                    <Label Text="{Binding PagePositionText}" FontSize="13" TextColor="#D1D1D6" />
+                </VerticalStackLayout>
+                <Button
+                    Grid.Column="1"
+                    Text="Hold 2s to exit"
+                    Pressed="OnUnlockPressed"
+                    Released="OnUnlockReleased"
+                    BackgroundColor="#111113"
+                    BorderColor="#8E8E93"
+                    TextColor="#FFFFFF"
+                    SemanticProperties.Description="Hold for two seconds and release to unlock and exit Stage Mode"
+                    MinimumWidthRequest="126" />
+            </Grid>
+
+            <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                <Button Text="‹" Command="{Binding PreviousPageCommand}" SemanticProperties.Description="Previous prepared Page" />
+                <Button
+                    Grid.Column="1"
+                    Text="{Binding LayoutButtonText}"
+                    Command="{Binding CycleLayoutCommand}"
+                    SemanticProperties.Description="Change Stage tile layout" />
+                <Button Grid.Column="2" Text="›" Command="{Binding NextPageCommand}" SemanticProperties.Description="Next prepared Page" />
+            </Grid>
+
+            <Border Grid.Row="2" Padding="10,8" BackgroundColor="#111113" Stroke="{Binding ReadinessColorHex}" StrokeThickness="2">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10" />
+                </Border.StrokeShape>
+                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10">
+                    <Label Text="{Binding ReadinessText}" TextColor="{Binding ReadinessColorHex}" FontAttributes="Bold" />
+                    <Label Grid.Column="1" Text="{Binding ConnectionStatusText}" HorizontalTextAlignment="End" FontAttributes="Bold" FontSize="12" />
+                    <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding ReadinessSummary}" FontSize="12" TextColor="#D1D1D6" MaxLines="2" />
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <Grid.GestureRecognizers>
+                <SwipeGestureRecognizer Direction="Left" Swiped="OnPageSwiped" />
+                <SwipeGestureRecognizer Direction="Right" Swiped="OnPageSwiped" />
+            </Grid.GestureRecognizers>
+
+            <CollectionView
+                x:Name="StageTilesView"
+                Margin="0"
+                ItemsSource="{Binding Tiles}"
+                SelectionMode="None">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="24" Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
+                        <Label Text="No Stage tiles" FontSize="24" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                        <Label Text="Hold to exit, add shortcuts on Pages, run Preflight, then return." TextColor="#D1D1D6" HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="stage:StageTile">
+                        <Grid
+                            Margin="5"
+                            MinimumHeightRequest="{Binding BindingContext.TileMinimumHeight, Source={x:Reference RootPage}}">
+                            <Border Padding="12" BackgroundColor="#111113" Stroke="{Binding ColorHex}" StrokeThickness="2">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="18" />
+                                </Border.StrokeShape>
+                                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="6">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <Label Text="{Binding Subtitle}" TextColor="{Binding ColorHex}" FontSize="12" FontAttributes="Bold" />
+                                        <Label Grid.Column="1" Text="{Binding ReadinessBadgeText}" FontSize="11" TextColor="{Binding ReadinessColorHex}" FontAttributes="Bold" />
+                                    </Grid>
+                                    <Label
+                                        Grid.Row="1"
+                                        Text="{Binding Label}"
+                                        FontSize="24"
+                                        FontAttributes="Bold"
+                                        HorizontalTextAlignment="Center"
+                                        VerticalTextAlignment="Center"
+                                        MaxLines="3" />
+                                    <Label Grid.Row="2" Text="{Binding ReadinessText}" FontSize="11" TextColor="#D1D1D6" HorizontalTextAlignment="Center" MaxLines="2" />
+                                </Grid>
+                            </Border>
+                            <Button
+                                Text=""
+                                Clicked="OnStageTileClicked"
+                                CommandParameter="{Binding .}"
+                                IsVisible="{Binding IsHoldAction, Converter={StaticResource InvertedBoolConverter}}"
+                                BackgroundColor="Transparent"
+                                BorderColor="Transparent"
+                                BorderWidth="0"
+                                SemanticProperties.Description="{Binding Label}"
+                                SemanticProperties.Hint="{Binding ActionHint}" />
+                            <Button
+                                Text="HOLD"
+                                Pressed="OnHoldTilePressed"
+                                Released="OnHoldTileReleased"
+                                CommandParameter="{Binding .}"
+                                IsVisible="{Binding IsHoldAction}"
+                                BackgroundColor="Transparent"
+                                BorderColor="Transparent"
+                                BorderWidth="0"
+                                TextColor="#FFFFFF"
+                                FontSize="12"
+                                VerticalOptions="End"
+                                SemanticProperties.Description="{Binding Label}"
+                                SemanticProperties.Hint="{Binding ActionHint}" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Border
+                IsVisible="{Binding HasConnectionOverlay}"
+                BackgroundColor="#F0000000"
+                Stroke="#FF453A"
+                StrokeThickness="3"
+                Padding="22"
+                ZIndex="10">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="18" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="12" HorizontalOptions="Center" VerticalOptions="Center">
+                    <Label Text="{Binding ConnectionStatusText}" TextColor="#FF453A" FontSize="28" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                    <Label Text="{Binding ConnectionMessage}" FontSize="17" HorizontalTextAlignment="Center" />
+                    <Label Text="The Stage session is preserved. Reconnect never replays output automatically." TextColor="#D1D1D6" HorizontalTextAlignment="Center" />
+                    <Button
+                        Text="Recover without replay"
+                        Command="{Binding RecoverCommand}"
+                        IsEnabled="{Binding CanRecover}"
+                        BackgroundColor="#163A63"
+                        BorderColor="#52E3FF"
+                        SemanticProperties.Description="Refresh readiness after reconnect without replaying any mask output" />
+                    <Button Text="Refresh readiness" Command="{Binding RefreshReadinessCommand}" />
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="2" RowDefinitions="Auto,Auto" RowSpacing="8">
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Button
+                    Text="STOP"
+                    Command="{Binding StopCommand}"
+                    BackgroundColor="#332A00"
+                    BorderColor="#FFD60A"
+                    TextColor="#FFD60A"
+                    FontSize="23"
+                    MinimumHeightRequest="70"
+                    SemanticProperties.Description="Stop active and queued visual work while retaining the last stable look when available" />
+                <Button
+                    Grid.Column="1"
+                    Text="BLACKOUT"
+                    Command="{Binding BlackoutCommand}"
+                    BackgroundColor="#3A0000"
+                    BorderColor="#FF453A"
+                    TextColor="#FFFFFF"
+                    FontSize="23"
+                    MinimumHeightRequest="70"
+                    SemanticProperties.Description="Emergency blackout. Cancel visual work and force mask brightness to minimum" />
+            </Grid>
+            <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="10">
+                <VerticalStackLayout Spacing="1">
+                    <Label Text="{Binding CurrentCueText}" FontAttributes="Bold" FontSize="14" MaxLines="1" />
+                    <Label Text="{Binding NextCueText}" FontSize="12" TextColor="#D1D1D6" MaxLines="1" />
+                </VerticalStackLayout>
+                <Label Grid.Column="1" Text="{Binding StatusText}" FontSize="12" TextColor="#D1D1D6" HorizontalTextAlignment="End" MaxLines="3" />
+            </Grid>
+        </Grid>
+    </Grid>
+</ContentPage>

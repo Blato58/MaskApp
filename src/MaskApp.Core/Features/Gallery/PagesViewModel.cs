@@ -6,6 +6,7 @@ using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.QuickActions;
+using MaskApp.Core.Features.Scenes;
 using MaskApp.Core.Features.Text;
 using MaskApp.Core.Features.TextPresets;
 
@@ -34,6 +35,10 @@ public sealed class PagesViewModel : INotifyPropertyChanged
     private readonly ITextUploadTransport textTransport;
     private readonly IFaceUploadTransport faceTransport;
     private readonly DiySlotPlaybackCoordinator diySlotPlayback;
+    private readonly IAnimationProjectStore animationProjectStore;
+    private readonly ISceneShowStore sceneShowStore;
+    private readonly SceneExecutionEngine? sceneEngine;
+    private readonly SceneReadinessEvaluator sceneReadinessEvaluator;
     private GalleryLayoutState layoutState = new();
     private FacePatternStoreState faceState = new();
     private IReadOnlyList<GalleryItem> allItems = [];
@@ -53,6 +58,7 @@ public sealed class PagesViewModel : INotifyPropertyChanged
     private bool reducePreviewMotion = true;
     private bool isDeletePageConfirmationVisible;
     private bool isObservingTransportState;
+    private GalleryActionResult lastActionResult = GalleryActionResult.Success("No Stage action sent yet.");
 
     public PagesViewModel(
         QuickActionCatalog quickActionCatalog,
@@ -65,7 +71,11 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         IMaskCommandTransport commandTransport,
         ITextUploadTransport textTransport,
         IFaceUploadTransport faceTransport,
-        DiySlotPlaybackCoordinator diySlotPlayback)
+        DiySlotPlaybackCoordinator diySlotPlayback,
+        IAnimationProjectStore? animationProjectStore = null,
+        ISceneShowStore? sceneShowStore = null,
+        SceneExecutionEngine? sceneEngine = null,
+        SceneReadinessEvaluator? sceneReadinessEvaluator = null)
     {
         catalogBuilder = new GalleryCatalogBuilder(quickActionCatalog);
         this.textPresetStore = textPresetStore;
@@ -78,6 +88,10 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         this.textTransport = textTransport;
         this.faceTransport = faceTransport;
         this.diySlotPlayback = diySlotPlayback;
+        this.animationProjectStore = animationProjectStore ?? new InMemoryAnimationProjectStore();
+        this.sceneShowStore = sceneShowStore ?? new InMemorySceneShowStore();
+        this.sceneEngine = sceneEngine;
+        this.sceneReadinessEvaluator = sceneReadinessEvaluator ?? new SceneReadinessEvaluator();
 
         AddPageCommand = new AsyncRelayCommand(AddPageAsync);
         RemovePageCommand = new AsyncRelayCommand(OpenDeleteConfirmationAsync, () => Pages.Count > 1);
@@ -119,6 +133,8 @@ public sealed class PagesViewModel : INotifyPropertyChanged
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    public event EventHandler<GalleryActionCompletedEventArgs>? ActionCompleted;
 
     public AsyncRelayCommand AddPageCommand { get; }
 
@@ -207,6 +223,12 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         private set => SetField(ref statusText, value);
     }
 
+    public GalleryActionResult LastActionResult
+    {
+        get => lastActionResult;
+        private set => SetField(ref lastActionResult, value);
+    }
+
     public bool IsSending
     {
         get => isSending;
@@ -285,7 +307,9 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         var textState = await textPresetStore.LoadAsync(cancellationToken);
         var archive = await builtInArchiveStore.LoadAsync(cancellationToken);
         faceState = (await facePatternStore.LoadAsync(cancellationToken)).Normalize();
-        allItems = catalogBuilder.Build(textState, archive, faceState, layoutState.Order);
+        var animationState = await animationProjectStore.LoadAsync(cancellationToken);
+        var sceneState = await sceneShowStore.LoadAsync(cancellationToken);
+        allItems = catalogBuilder.Build(textState, archive, faceState, layoutState.Order, animationState, sceneState);
         SelectedPage = layoutState.Pages.FirstOrDefault(page => page.PageId == SelectedPage.PageId)
             ?? layoutState.Pages.First();
         RebuildCards();
@@ -404,6 +428,40 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         await SendCoreAsync(null, item, cancellationToken);
     }
 
+    public async Task<GalleryActionResult> SendStageShortcutAsync(
+        string slotId,
+        CancellationToken cancellationToken = default)
+    {
+        var layout = SelectedPage.Items.FirstOrDefault(item =>
+            string.Equals(item.SlotId, slotId, StringComparison.Ordinal));
+        var item = layout is null
+            ? null
+            : allItems.FirstOrDefault(candidate =>
+                string.Equals(candidate.Id, layout.GalleryItemId, StringComparison.Ordinal));
+        if (layout is null || item is null)
+        {
+            return GalleryActionResult.Failure("This Stage tile is no longer present on the selected Page.");
+        }
+
+        try
+        {
+            await SendCoreAsync(layout, item, cancellationToken);
+            return LastActionResult;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            var failure = GalleryActionResult.Failure($"Stage action failed: {exception.Message}");
+            LastActionResult = failure;
+            StatusText = failure.Message;
+            ActionCompleted?.Invoke(this, new GalleryActionCompletedEventArgs(item, layout, failure));
+            return failure;
+        }
+    }
+
     private async Task SendShortcutAsync(
         GalleryPageItemLayout layout,
         GalleryItem item,
@@ -419,7 +477,10 @@ public sealed class PagesViewModel : INotifyPropertyChanged
     {
         if (!item.CanSend)
         {
-            StatusText = "Not implemented yet";
+            var unavailable = GalleryActionResult.Failure("Not implemented yet");
+            LastActionResult = unavailable;
+            StatusText = unavailable.Message;
+            ActionCompleted?.Invoke(this, new GalleryActionCompletedEventArgs(item, layout, unavailable));
             return;
         }
 
@@ -428,7 +489,7 @@ public sealed class PagesViewModel : INotifyPropertyChanged
             BeginOperation();
             StatusText = "Sending...";
             await diySlotPlayback.StopAnimationAsync(cancellationToken);
-            StatusText = item.Type switch
+            var result = item.Type switch
             {
                 GalleryItemType.TextPreset when layout is not null && item.TextPreset is not null =>
                     await SendTextShortcutAsync(layout, item, cancellationToken),
@@ -442,10 +503,19 @@ public sealed class PagesViewModel : INotifyPropertyChanged
                     await SendFaceAsync(item.FacePattern, cancellationToken),
                 GalleryItemType.AppBuiltInAnimation when item.AppAnimation is not null =>
                     await SendAppAnimationShortcutAsync(item.AppAnimation, cancellationToken),
+                GalleryItemType.CustomAnimation when item.PerformanceAnimation is not null =>
+                    await SendPerformanceAnimationShortcutAsync(item.PerformanceAnimation, cancellationToken),
+                GalleryItemType.Scene when item.Scene is not null && sceneEngine is not null =>
+                    ToGalleryActionResult(await sceneEngine.ExecuteAsync(item.Scene, cancellationToken)),
                 GalleryItemType.QuickAction when item.QuickActionId.HasValue =>
-                    (await quickActionDispatcher.TriggerAsync(item.QuickActionId.Value, cancellationToken: cancellationToken)).Message,
-                _ => "Not implemented yet"
+                    ToGalleryActionResult(await quickActionDispatcher.TriggerAsync(
+                        item.QuickActionId.Value,
+                        cancellationToken: cancellationToken)),
+                _ => GalleryActionResult.Failure("Not implemented yet")
             };
+            LastActionResult = result;
+            StatusText = result.Message;
+            ActionCompleted?.Invoke(this, new GalleryActionCompletedEventArgs(item, layout, result));
         }
         finally
         {
@@ -479,7 +549,7 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         StatusText = "Page name saved";
     }
 
-    private async Task<string> SendTextShortcutAsync(
+    private async Task<GalleryActionResult> SendTextShortcutAsync(
         GalleryPageItemLayout layout,
         GalleryItem item,
         CancellationToken cancellationToken)
@@ -491,15 +561,15 @@ public sealed class PagesViewModel : INotifyPropertyChanged
 
         if (faceTransport.IsReady && ResolveFastSlot(layout, item) is not null)
         {
-            return (await PrepareFastSlotCoreAsync(layout, item, cancellationToken)).Message;
+            return ToGalleryActionResult(await PrepareFastSlotCoreAsync(layout, item, cancellationToken));
         }
 
         return item.TextPreset is null
-            ? "Text not ready"
+            ? GalleryActionResult.Failure("Text not ready")
             : await SendTextPresetAsync(item.TextPreset, cancellationToken);
     }
 
-    private async Task<string> SendFaceShortcutAsync(
+    private async Task<GalleryActionResult> SendFaceShortcutAsync(
         GalleryPageItemLayout layout,
         GalleryItem item,
         CancellationToken cancellationToken)
@@ -509,27 +579,38 @@ public sealed class PagesViewModel : INotifyPropertyChanged
             return await PlayFastSlotAsync(layout.FastMaskSlot!.Value, cancellationToken);
         }
 
-        return (await PrepareFastSlotCoreAsync(layout, item, cancellationToken)).Message;
+        return ToGalleryActionResult(await PrepareFastSlotCoreAsync(layout, item, cancellationToken));
     }
 
-    private async Task<string> SendAppAnimationShortcutAsync(
+    private async Task<GalleryActionResult> SendAppAnimationShortcutAsync(
         AppBuiltInAnimation animation,
         CancellationToken cancellationToken)
     {
         var result = await diySlotPlayback.PlayAnimationAsync(animation, cancellationToken);
         await InitializeAsync(cancellationToken);
-        return result.Message;
+        return new GalleryActionResult(result.Succeeded, result.Message);
     }
 
-    private async Task<string> PlayFastSlotAsync(int slot, CancellationToken cancellationToken)
+    private async Task<GalleryActionResult> SendPerformanceAnimationShortcutAsync(
+        PerformanceAnimation animation,
+        CancellationToken cancellationToken)
+    {
+        var result = await diySlotPlayback.PlayAnimationAsync(animation, cancellationToken);
+        await InitializeAsync(cancellationToken);
+        return new GalleryActionResult(result.Succeeded, result.Message);
+    }
+
+    private async Task<GalleryActionResult> PlayFastSlotAsync(int slot, CancellationToken cancellationToken)
     {
         if (commandTransport.TransportState != MaskCommandTransportState.Ready)
         {
-            return "Connect to use the fast slot";
+            return GalleryActionResult.Failure("Connect to use the fast slot");
         }
 
         var result = await commandTransport.SendAsync(FaceUploadProtocol.BuildPlayCommand([slot]), cancellationToken);
-        return result.Succeeded ? $"Fast slot {slot} sent · confirm on mask" : result.Message;
+        return result.Succeeded
+            ? GalleryActionResult.Success($"Fast slot {slot} sent · confirm on mask")
+            : GalleryActionResult.Failure(result.Message);
     }
 
     private async Task PrepareShortcutAsync(
@@ -552,12 +633,16 @@ public sealed class PagesViewModel : INotifyPropertyChanged
     private async Task PreparePageAsync(CancellationToken cancellationToken)
     {
         var pending = Shortcuts
-            .Where(shortcut => shortcut.IsFastSlotCapable && !shortcut.IsFastSlotPrepared)
+            .Where(shortcut => shortcut.Item.Type != GalleryItemType.Scene
+                && shortcut.IsFastSlotCapable
+                && !shortcut.IsFastSlotPrepared)
             .Select(shortcut => (shortcut.Layout, shortcut.Item))
             .ToArray();
         if (pending.Length == 0)
         {
-            StatusText = "This page is ready";
+            StatusText = Shortcuts.Any(shortcut => shortcut.Item.Type == GalleryItemType.Scene && !shortcut.IsFastSlotPrepared)
+                ? "Run Preflight to prepare every persistent dependency in the Scene."
+                : "This page is ready";
             return;
         }
 
@@ -612,6 +697,15 @@ public sealed class PagesViewModel : INotifyPropertyChanged
             var result = DiySlotPlaybackCoordinator.IsAnimationPrepared(item.AppAnimation, faceState)
                 ? await diySlotPlayback.RefreshAnimationAsync(item.AppAnimation, cancellationToken)
                 : await diySlotPlayback.PrepareAnimationAsync(item.AppAnimation, cancellationToken);
+            await InitializeAsync(cancellationToken);
+            return (result.Succeeded, result.Message);
+        }
+
+        if (item.PerformanceAnimation is not null)
+        {
+            var result = DiySlotPlaybackCoordinator.IsAnimationPrepared(item.PerformanceAnimation, faceState)
+                ? await diySlotPlayback.RefreshAnimationAsync(item.PerformanceAnimation, cancellationToken)
+                : await diySlotPlayback.PrepareAnimationAsync(item.PerformanceAnimation, cancellationToken);
             await InitializeAsync(cancellationToken);
             return (result.Succeeded, result.Message);
         }
@@ -765,8 +859,9 @@ public sealed class PagesViewModel : INotifyPropertyChanged
             .OfType<int>()
             .ToHashSet();
         var animationSlots = allItems
-            .Where(candidate => candidate.AppAnimation is not null)
-            .SelectMany(candidate => candidate.AppAnimation!.ReservedSlots)
+            .SelectMany(candidate => candidate.AppAnimation?.ReservedSlots
+                ?? candidate.PerformanceAnimation?.StoredFrames.Select(frame => frame.Slot)
+                ?? [])
             .ToHashSet();
 
         for (var slot = FacePattern.MaxSlot; slot >= FacePattern.MinSlot; slot--)
@@ -783,13 +878,19 @@ public sealed class PagesViewModel : INotifyPropertyChanged
     private bool IsReservedFaceSlot(int slot) =>
         allItems.Any(candidate =>
             candidate.FacePattern?.Normalize().PreferredSlot == slot ||
-            candidate.AppAnimation?.ReservedSlots.Contains(slot) == true);
+            candidate.AppAnimation?.ReservedSlots.Contains(slot) == true ||
+            candidate.PerformanceAnimation?.StoredFrames.Any(frame => frame.Slot == slot) == true);
 
     private bool IsFastSlotPrepared(GalleryPageItemLayout layout, GalleryItem item)
     {
         if (item.AppAnimation is not null)
         {
             return DiySlotPlaybackCoordinator.IsAnimationPrepared(item.AppAnimation, faceState);
+        }
+
+        if (item.PerformanceAnimation is not null)
+        {
+            return DiySlotPlaybackCoordinator.IsAnimationPrepared(item.PerformanceAnimation, faceState);
         }
 
         if (layout.FastMaskSlot is not int slot ||
@@ -985,8 +1086,11 @@ public sealed class PagesViewModel : INotifyPropertyChanged
 
     private GalleryPageShortcutCard CreateShortcutCard(GalleryPageItemLayout layout, GalleryItem item)
     {
-        var isFastSlotCapable = PageFastSlotSnapshotFactory.Supports(item) || item.AppAnimation is not null;
-        var isFastSlotPrepared = isFastSlotCapable && IsFastSlotPrepared(layout, item);
+        var isFastSlotCapable = PageFastSlotSnapshotFactory.Supports(item) ||
+            item.AppAnimation is not null || item.PerformanceAnimation is not null || item.Scene is not null;
+        var isFastSlotPrepared = item.Scene is not null
+            ? IsScenePrepared(item.Scene)
+            : isFastSlotCapable && IsFastSlotPrepared(layout, item);
         return new GalleryPageShortcutCard(
             layout,
             item,
@@ -996,9 +1100,10 @@ public sealed class PagesViewModel : INotifyPropertyChanged
             new AsyncRelayCommand(
                 cancellationToken => PrepareShortcutAsync(layout, item, cancellationToken),
                 () => !IsSending &&
+                    item.Type != GalleryItemType.Scene &&
                     isFastSlotCapable &&
                     faceTransport.IsReady &&
-                    (item.AppAnimation is not null || ResolveFastSlot(layout, item) is not null)),
+                    (item.AppAnimation is not null || item.PerformanceAnimation is not null || ResolveFastSlot(layout, item) is not null)),
             new AsyncRelayCommand(cancellationToken => RemoveItemAsync(layout.SlotId, cancellationToken)),
             new AsyncRelayCommand(cancellationToken => MoveItemAsync(layout.SlotId, -1, cancellationToken)),
             new AsyncRelayCommand(cancellationToken => MoveItemAsync(layout.SlotId, 1, cancellationToken)),
@@ -1026,6 +1131,13 @@ public sealed class PagesViewModel : INotifyPropertyChanged
                 commandTransport.TransportState == MaskCommandTransportState.Ready,
             GalleryItemType.AppBuiltInAnimation =>
                 faceTransport.IsReady && commandTransport.TransportState == MaskCommandTransportState.Ready,
+            GalleryItemType.CustomAnimation when item.PerformanceAnimation is not null && IsFastSlotPrepared(layout, item) =>
+                commandTransport.TransportState == MaskCommandTransportState.Ready,
+            GalleryItemType.CustomAnimation =>
+                faceTransport.IsReady && commandTransport.TransportState == MaskCommandTransportState.Ready,
+            GalleryItemType.Scene => sceneEngine is not null
+                && item.Scene is not null
+                && commandTransport.TransportState == MaskCommandTransportState.Ready,
             GalleryItemType.QuickAction => item.QuickActionKind switch
             {
                 QuickActionKind.Text or QuickActionKind.Random => textTransport.IsReady,
@@ -1037,32 +1149,57 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         };
     }
 
-    private async Task<string> SendTextPresetAsync(TextPreset preset, CancellationToken cancellationToken)
+    private async Task<GalleryActionResult> SendTextPresetAsync(
+        TextPreset preset,
+        CancellationToken cancellationToken)
     {
         if (!textTransport.IsReady)
         {
-            return "Text not ready";
+            return GalleryActionResult.Failure("Text not ready");
         }
 
-        return (await textPresetDispatcher.SendAsync(preset, cancellationToken)).Message;
+        var result = await textPresetDispatcher.SendAsync(preset, cancellationToken);
+        return new GalleryActionResult(result.Succeeded, result.Message);
     }
 
-    private async Task<string> SendBuiltInAsync(BuiltInAssetRecord record, CancellationToken cancellationToken)
+    private async Task<GalleryActionResult> SendBuiltInAsync(
+        BuiltInAssetRecord record,
+        CancellationToken cancellationToken)
     {
         if (commandTransport.TransportState != MaskCommandTransportState.Ready)
         {
-            return "Connect to send";
+            return GalleryActionResult.Failure("Connect to send");
         }
 
         var result = await commandTransport.SendAsync(BuiltInAssetCommandFactory.CreateCommand(record), cancellationToken);
-        return result.Succeeded ? "Sent, confirm on mask" : result.Message;
+        return result.Succeeded
+            ? GalleryActionResult.Success("Sent, confirm on mask")
+            : GalleryActionResult.Failure(result.Message);
     }
 
-    private async Task<string> SendFaceAsync(FacePattern pattern, CancellationToken cancellationToken)
+    private async Task<GalleryActionResult> SendFaceAsync(
+        FacePattern pattern,
+        CancellationToken cancellationToken)
     {
         var result = await diySlotPlayback.PlayFaceAsync(pattern, cancellationToken);
         await InitializeAsync(cancellationToken);
-        return result.Message;
+        return new GalleryActionResult(result.Succeeded, result.Message);
+    }
+
+    private static GalleryActionResult ToGalleryActionResult(
+        (bool Succeeded, string Message) result) =>
+        new(result.Succeeded, result.Message);
+
+    private static GalleryActionResult ToGalleryActionResult(QuickActionResult result) =>
+        new(result.Succeeded, result.Message);
+
+    private static GalleryActionResult ToGalleryActionResult(SceneExecutionResult result) =>
+        new(result.Succeeded, result.Message);
+
+    private bool IsScenePrepared(PerformanceScene scene)
+    {
+        var catalog = allItems.ToDictionary(item => item.Id, StringComparer.Ordinal);
+        return sceneReadinessEvaluator.Evaluate(scene, catalog, faceState).IsReady;
     }
 
     private void OnCommandTransportStateChanged(object? sender, MaskCommandTransportStateChangedEventArgs e) =>

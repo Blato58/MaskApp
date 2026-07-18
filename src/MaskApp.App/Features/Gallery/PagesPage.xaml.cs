@@ -43,4 +43,10 @@ public partial class PagesPage : ContentPage
         var pageId = Uri.EscapeDataString(viewModel.SelectedPage.PageId);
         await Shell.Current.GoToAsync($"page-add-item?pageId={pageId}");
     }
+
+    private async void OnPreflightClicked(object? sender, EventArgs e) =>
+        await Shell.Current.GoToAsync("preflight");
+
+    private async void OnStageClicked(object? sender, EventArgs e) =>
+        await Shell.Current.GoToAsync("stage");
 }

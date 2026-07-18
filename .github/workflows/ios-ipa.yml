@@ -40,6 +40,9 @@ on:
     tags:
       - "ios-v*"
       - "v*"
+  pull_request:
+    branches:
+      - master
 
 permissions:
   contents: write
@@ -54,9 +57,58 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate:
+    name: Validate app before distribution
+    runs-on: macos-26
+    permissions:
+      contents: read
+    env:
+      PROJECT_PATH: ${{ github.event_name == 'workflow_dispatch' && inputs.project_path || 'src/MaskApp.App/MaskApp.App.csproj' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Install MAUI workloads
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          dotnet workload install maui-ios android --version "$DOTNET_WORKLOAD_VERSION"
+          dotnet workload --info
+
+      - name: Restore solution
+        shell: bash
+        run: dotnet restore MaskApp.slnx
+
+      - name: Run Core tests
+        shell: bash
+        run: dotnet test tests/MaskApp.Core.Tests/MaskApp.Core.Tests.csproj -c Release --no-restore
+
+      - name: Build unsigned iOS app
+        shell: bash
+        run: >-
+          dotnet build "$PROJECT_PATH"
+          -f net10.0-ios
+          -c Release
+          -p:RuntimeIdentifier=iossimulator-arm64
+          -p:CodesignKey=
+          -p:CodesignProvision=
+
+      - name: Build Android app
+        shell: bash
+        run: dotnet build "$PROJECT_PATH" -f net10.0-android -c Release
+
   build-ios-ipa:
     name: Build signed iOS IPA
     runs-on: macos-26
+    needs: validate
+    if: github.event_name != 'pull_request'
 
     steps:
       - name: Checkout

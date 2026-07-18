@@ -7,8 +7,7 @@ public enum GalleryItemType
     BuiltInStaticImage,
     BuiltInAnimation,
     AppBuiltInAnimation,
+    CustomAnimation,
     CustomStaticFace,
-    FutureCustomImage,
-    FutureCustomAnimation,
-    FutureImport
+    Scene
 }

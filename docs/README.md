@@ -16,8 +16,8 @@ were removed to keep coding-agent context small.
 - `setup.md` records local setup and build prerequisites.
 - `ios-ci-distribution.md` explains GitHub Actions IPA builds, signing secrets,
   Releases, Pages, and Feather/AltStore-style updates.
-- `maskpack-format.md` describes the manifest format implemented by the
-  MaskPack parser/validator.
+- `maskpack-format.md` defines the offline MaskPack v2 archive, typed payloads,
+  safety limits, conflict/transaction behavior, and schema-v1 migration.
 - `icon-sources.md` records source and licensing notes for vendored shortcut
   icons.
 - `builtin-preview-sources.md` records stock preview provenance, exact ID/frame
