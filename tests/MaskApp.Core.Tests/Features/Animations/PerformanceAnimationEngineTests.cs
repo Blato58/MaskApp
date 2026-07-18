@@ -299,6 +299,45 @@ public sealed class PerformanceAnimationEngineTests
     }
 
     [Fact]
+    public async Task TransportBackpressure_DoesNotOverlapFrameWrites_AndDropsExpiredFrames()
+    {
+        var clock = new ManualAnimationClock();
+        var secondSendStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseSecondSend = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var transport = new RecordingCommandTransport
+        {
+            BeforeSendCompletesAsync = async (count, cancellationToken) =>
+            {
+                if (count != 2)
+                {
+                    return;
+                }
+
+                secondSendStarted.TrySetResult(true);
+                await releaseSecondSend.Task.WaitAsync(cancellationToken);
+            }
+        };
+        var engine = new PerformanceAnimationEngine(transport, clock: clock);
+        var started = await engine.StartAsync(CreateSafeAnimation(
+            AnimationLoopMode.Continuous,
+            firstDuration: TimeSpan.FromMilliseconds(100),
+            secondDuration: TimeSpan.FromMilliseconds(100)));
+
+        clock.AdvanceBy(TimeSpan.FromMilliseconds(100));
+        await secondSendStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        clock.AdvanceBy(TimeSpan.FromSeconds(1));
+        await Task.Yield();
+
+        Assert.Equal(2, transport.Commands.Count);
+
+        releaseSecondSend.TrySetResult(true);
+        await WaitUntilAsync(() => engine.GetSnapshot().FramesDropped > 0);
+        await started.Handle!.StopAsync(restorePreviousLook: false);
+
+        Assert.True(engine.GetSnapshot().FramesDropped > 0);
+    }
+
+    [Fact]
     public async Task Disconnect_EndsSession_AndReconnectDoesNotReplay()
     {
         var clock = new ManualAnimationClock();

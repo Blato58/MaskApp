@@ -25,9 +25,9 @@ public static class AppBuiltInAnimationCatalog
             Create(
                 id: HolyPriestBuiltInCatalog.BlackWhiteAnimationId,
                 displayName: "Holy Priest · Black / White Flash",
-                description: "A slower black-and-white inversion tuned for reliable prepared DIY playback.",
+                description: "A deliberately paced black-and-white inversion for prepared DIY playback.",
                 colorHex: "#FFFFFF",
-                frameDuration: TimeSpan.FromMilliseconds(150),
+                frameDuration: TimeSpan.FromMilliseconds(300),
                 frames: SelectFrames(frameBank, HolyPriestBuiltInCatalog.OriginalSlot, HolyPriestBuiltInCatalog.InvertedSlot),
                 playbackSlots: [HolyPriestBuiltInCatalog.OriginalSlot, HolyPriestBuiltInCatalog.InvertedSlot, HolyPriestBuiltInCatalog.OriginalSlot, HolyPriestBuiltInCatalog.InvertedSlot, HolyPriestBuiltInCatalog.OriginalSlot, HolyPriestBuiltInCatalog.InvertedSlot, HolyPriestBuiltInCatalog.OriginalSlot, HolyPriestBuiltInCatalog.InvertedSlot]),
             Create(
@@ -35,7 +35,7 @@ public static class AppBuiltInAnimationCatalog
                 displayName: "Holy Priest · Blue → Red → Black",
                 description: "Blue and red versions of the original mask drop into blackout, then finish on the original white mask.",
                 colorHex: "#0A84FF",
-                frameDuration: TimeSpan.FromMilliseconds(180),
+                frameDuration: TimeSpan.FromMilliseconds(300),
                 frames: SelectFrames(frameBank, HolyPriestBuiltInCatalog.BlueSlot, HolyPriestBuiltInCatalog.RedSlot, HolyPriestBuiltInCatalog.BlackoutSlot, HolyPriestBuiltInCatalog.OriginalSlot),
                 playbackSlots: [HolyPriestBuiltInCatalog.BlueSlot, HolyPriestBuiltInCatalog.RedSlot, HolyPriestBuiltInCatalog.BlackoutSlot, HolyPriestBuiltInCatalog.BlueSlot, HolyPriestBuiltInCatalog.RedSlot, HolyPriestBuiltInCatalog.BlackoutSlot, HolyPriestBuiltInCatalog.OriginalSlot, HolyPriestBuiltInCatalog.BlackoutSlot]),
             Create(
@@ -43,7 +43,7 @@ public static class AppBuiltInAnimationCatalog
                 displayName: "Holy Priest · Five Mask Cycle",
                 description: "All five original-mask colorways move through a smooth circular procession.",
                 colorHex: "#FFD60A",
-                frameDuration: TimeSpan.FromMilliseconds(220),
+                frameDuration: TimeSpan.FromMilliseconds(400),
                 frames: SelectFrames(frameBank, HolyPriestBuiltInCatalog.OriginalSlot, HolyPriestBuiltInCatalog.InvertedSlot, HolyPriestBuiltInCatalog.RedSlot, HolyPriestBuiltInCatalog.BlueSlot, HolyPriestBuiltInCatalog.GoldSlot),
                 playbackSlots: [HolyPriestBuiltInCatalog.OriginalSlot, HolyPriestBuiltInCatalog.RedSlot, HolyPriestBuiltInCatalog.GoldSlot, HolyPriestBuiltInCatalog.BlueSlot, HolyPriestBuiltInCatalog.InvertedSlot, HolyPriestBuiltInCatalog.BlueSlot, HolyPriestBuiltInCatalog.GoldSlot, HolyPriestBuiltInCatalog.RedSlot]),
             Create(
@@ -51,7 +51,7 @@ public static class AppBuiltInAnimationCatalog
                 displayName: "Holy Priest · Color Pulse",
                 description: "Red, blue, and gold masks pulse against a dedicated black frame.",
                 colorHex: "#FF3B30",
-                frameDuration: TimeSpan.FromMilliseconds(200),
+                frameDuration: TimeSpan.FromMilliseconds(350),
                 frames: SelectFrames(frameBank, HolyPriestBuiltInCatalog.RedSlot, HolyPriestBuiltInCatalog.BlueSlot, HolyPriestBuiltInCatalog.GoldSlot, HolyPriestBuiltInCatalog.BlackoutSlot),
                 playbackSlots: [HolyPriestBuiltInCatalog.RedSlot, HolyPriestBuiltInCatalog.BlackoutSlot, HolyPriestBuiltInCatalog.BlueSlot, HolyPriestBuiltInCatalog.BlackoutSlot, HolyPriestBuiltInCatalog.GoldSlot, HolyPriestBuiltInCatalog.BlackoutSlot, HolyPriestBuiltInCatalog.BlueSlot, HolyPriestBuiltInCatalog.BlackoutSlot])
         ];

@@ -28,7 +28,11 @@ public sealed class AppBuiltInAnimationCatalogTests
                 "Holy Priest · Color Pulse"
             ],
             animations.Select(animation => animation.DisplayName));
-        Assert.Equal([150, 180, 220, 200], animations.Select(animation => animation.FrameDurationMilliseconds));
+        Assert.Equal([300, 300, 400, 350], animations.Select(animation => animation.FrameDurationMilliseconds));
+        Assert.All(animations, animation =>
+            Assert.True(
+                animation.FrameDurationMilliseconds > 200,
+                $"{animation.DisplayName} must stay above the physically unreliable 200 ms cadence."));
         Assert.Equal([15, 16, 17, 18, 19, 20], AppBuiltInAnimationCatalog.ReservedSlots);
 
         Assert.All(animations, animation =>
@@ -153,7 +157,7 @@ public sealed class AppBuiltInAnimationCatalogTests
     {
         var animation = AppBuiltInAnimationCatalog.CreateBuiltIns()[1];
 
-        Assert.Equal(180, animation.FrameDurationMilliseconds);
+        Assert.Equal(300, animation.FrameDurationMilliseconds);
         Assert.Equal([18, 17, 20, 18, 17, 20, 15, 20], animation.PlaybackSlots);
     }
 
@@ -164,7 +168,7 @@ public sealed class AppBuiltInAnimationCatalogTests
         var normal = animation.Frames[0].Pattern;
         var inverted = animation.Frames[1].Pattern;
 
-        Assert.Equal(150, animation.FrameDurationMilliseconds);
+        Assert.Equal(300, animation.FrameDurationMilliseconds);
         Assert.Equal("#000000", normal.GetPixel(23, 10).Color.Hex);
         Assert.Equal("#FFFFFF", inverted.GetPixel(23, 10).Color.Hex);
 

@@ -140,7 +140,7 @@ public sealed class FestivalPreflightAnalyzerTests
     public void Analyze_UnsafeAnimation_IsBlockedUntilExactRevisionIsAcknowledged()
     {
         var animation = AppBuiltInAnimationCatalog.CreateBuiltIns()[0];
-        Assert.Equal(150, animation.FrameDurationMilliseconds);
+        Assert.Equal(300, animation.FrameDurationMilliseconds);
         var performanceAnimation = new PerformanceAnimationBuilder().FromAppBuiltIn(animation);
         var safetyAssessment = new FlashSafetyAnalyzer().Analyze(performanceAnimation);
         Assert.False(safetyAssessment.IsSafeByDefault);

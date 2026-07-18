@@ -22,6 +22,7 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
     private static readonly CBUUID NotificationCharacteristicUuid = CBUUID.FromString(MaskBleProtocol.NotificationCharacteristicUuid);
 
     private readonly Dictionary<string, CBPeripheral> peripheralsById = [];
+    private readonly object writeAvailabilitySync = new();
     private CBCentralManager? centralManager;
     private CBPeripheral? connectedPeripheral;
     private CBCharacteristic? generalWriteCharacteristic;
@@ -30,6 +31,7 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
     private MaskPeripheralDelegate? connectedPeripheralDelegate;
     private TaskCompletionSource<TextUploadAcknowledgement>? pendingTextAcknowledgement;
     private TaskCompletionSource<FaceUploadAcknowledgement>? pendingFaceAcknowledgement;
+    private TaskCompletionSource<bool>? pendingWriteAvailability;
     private TextUploadTransportState textUploadState = TextUploadTransportState.Disconnected;
     private FaceUploadTransportState faceUploadState = FaceUploadTransportState.Disconnected;
     private event EventHandler<TextUploadTransportStateChangedEventArgs>? TextUploadStateChanged;
@@ -152,19 +154,33 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         return Task.CompletedTask;
     }
 
-    public Task<MaskCommandResult> SendAsync(MaskCommand command, CancellationToken cancellationToken = default)
+    public async Task<MaskCommandResult> SendAsync(MaskCommand command, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (connectedPeripheral is null || generalWriteCharacteristic is null || TransportState != MaskCommandTransportState.Ready)
+        var peripheral = connectedPeripheral;
+        if (peripheral is null || generalWriteCharacteristic is null || TransportState != MaskCommandTransportState.Ready)
         {
-            return Task.FromResult(MaskCommandResult.Failure("Mask controls are not ready."));
+            return MaskCommandResult.Failure("Mask controls are not ready.");
         }
 
         try
         {
+            await WaitForWriteAvailabilityAsync(peripheral, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!ReferenceEquals(connectedPeripheral, peripheral) ||
+                generalWriteCharacteristic is null ||
+                TransportState != MaskCommandTransportState.Ready)
+            {
+                return MaskCommandResult.Failure("Mask controls changed before the command could be sent.");
+            }
+
             WriteEncryptedCommand(command);
-            return Task.FromResult(MaskCommandResult.Success($"Sent {command.DisplayName}."));
+            return MaskCommandResult.Success($"Sent {command.DisplayName}.");
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -172,7 +188,7 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
             logger.LogDebug(ex, "Failed to write mask command {CommandKind}.", command.Kind);
 #endif
             SetTransportState(MaskCommandTransportState.Failed, ex.Message);
-            return Task.FromResult(MaskCommandResult.Failure(ex.Message));
+            return MaskCommandResult.Failure(ex.Message);
         }
     }
 
@@ -534,6 +550,63 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
 #endif
         using var payload = NSData.FromArray(encryptedPayload);
         connectedPeripheral.WriteValue(payload, generalWriteCharacteristic, CBCharacteristicWriteType.WithoutResponse);
+    }
+
+    private async Task WaitForWriteAvailabilityAsync(
+        CBPeripheral peripheral,
+        CancellationToken cancellationToken)
+    {
+        while (!peripheral.CanSendWriteWithoutResponse)
+        {
+            TaskCompletionSource<bool> availabilitySource;
+            lock (writeAvailabilitySync)
+            {
+                if (peripheral.CanSendWriteWithoutResponse)
+                {
+                    return;
+                }
+
+                availabilitySource = pendingWriteAvailability ??=
+                    new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+
+#if DEBUG
+            logger.LogDebug("Waiting for iOS CoreBluetooth command-write availability.");
+#endif
+            try
+            {
+                await availabilitySource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                lock (writeAvailabilitySync)
+                {
+                    if (ReferenceEquals(pendingWriteAvailability, availabilitySource))
+                    {
+                        pendingWriteAvailability = null;
+                    }
+                }
+
+                throw;
+            }
+        }
+    }
+
+    private void HandleWriteWithoutResponseReady(CBPeripheral peripheral)
+    {
+        if (!ReferenceEquals(peripheral, connectedPeripheral))
+        {
+            return;
+        }
+
+        TaskCompletionSource<bool>? availabilitySource;
+        lock (writeAvailabilitySync)
+        {
+            availabilitySource = pendingWriteAvailability;
+            pendingWriteAvailability = null;
+        }
+
+        availabilitySource?.TrySetResult(true);
     }
 
     private void WriteTextFrame(TextUploadFrame frame)
@@ -1043,6 +1116,11 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
                     error.LocalizedDescription);
             }
 #endif
+        }
+
+        public override void IsReadyToSendWriteWithoutResponse(CBPeripheral peripheral)
+        {
+            owner.HandleWriteWithoutResponseReady(peripheral);
         }
 #pragma warning restore CS8765
     }

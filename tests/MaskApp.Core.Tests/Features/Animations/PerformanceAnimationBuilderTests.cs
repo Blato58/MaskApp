@@ -37,7 +37,7 @@ public sealed class PerformanceAnimationBuilderTests
 
         var result = new PerformanceAnimationBuilder(TimeSpan.FromMilliseconds(75)).FromAppBuiltIn(source);
 
-        Assert.All(result.Frames, frame => Assert.Equal(TimeSpan.FromMilliseconds(150), frame.Duration));
+        Assert.All(result.Frames, frame => Assert.Equal(TimeSpan.FromMilliseconds(300), frame.Duration));
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public sealed class PerformanceAnimationBuilderTests
 
         var faster = builder.WithBpm(original, 240);
 
-        Assert.All(faster.Frames, frame => Assert.Equal(TimeSpan.FromMilliseconds(75), frame.Duration));
+        Assert.All(faster.Frames, frame => Assert.Equal(TimeSpan.FromMilliseconds(150), frame.Duration));
         Assert.Equal(
             original.StoredFrames.Select(frame => (frame.Slot, frame.ContentFingerprint)),
             faster.StoredFrames.Select(frame => (frame.Slot, frame.ContentFingerprint)));
