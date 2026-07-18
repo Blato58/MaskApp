@@ -1,3 +1,5 @@
+using MaskApp.Core.Features.HolyPriest;
+
 namespace MaskApp.Core.Features.Gallery;
 
 public static class BuiltInGalleryPages
@@ -30,18 +32,15 @@ public static class BuiltInGalleryPages
             SortIndex = sortIndex,
             Items =
             [
-                CreateItem("holy-priest-anim-flash", "app-animation:holy-priest-cross-pulse", "Black / White Flash", "anim", "#FFFFFF", 0),
-                CreateItem("holy-priest-anim-red-mass", "app-animation:holy-priest-red-mass", "Red Mass", "anim", "#FF3B30", 1),
-                CreateItem("holy-priest-anim-antihero", "app-animation:holy-priest-antihero-scan", "Antihero Scan", "anim", "#52E3FF", 2),
-                CreateItem("holy-priest-anim-atlantis", "app-animation:holy-priest-atlantis-signal", "Atlantis Signal", "anim", "#0A84FF", 3),
-                CreateItem("holy-priest-anim-no-balance", "app-animation:holy-priest-no-balance", "No Balance", "anim", "#BF5AF2", 4),
-                CreateItem("holy-priest-anim-inversion", "app-animation:holy-priest-ritual-inversion", "Ritual Inversion", "anim", "#FF9F0A", 5),
-                CreateItem("holy-priest-face-cross", "face:built-in-face-holy-priest-cross", "Iconic Cross", "face", "#FFFFFF", 6),
-                CreateItem("holy-priest-face-antihero", "face:built-in-face-holy-priest-antihero", "Masked Antihero", "face", "#52E3FF", 7),
-                CreateItem("holy-priest-face-bass", "face:built-in-face-holy-priest-bass-powah", "Bass Pistons", "face", "#FF3B30", 8),
-                CreateItem("holy-priest-face-atlantis", "face:built-in-face-holy-priest-atlantis", "Atlantis Sonar", "face", "#0A84FF", 9),
-                CreateItem("holy-priest-face-balance", "face:built-in-face-holy-priest-no-balance", "No Balance Face", "face", "#BF5AF2", 10),
-                CreateItem("holy-priest-face-retro", "face:built-in-face-holy-priest-retro-future", "90s → Future", "face", "#FF2D55", 11)
+                CreateItem("holy-priest-face-original", $"face:{HolyPriestBuiltInCatalog.OriginalFaceId}", "Original", "face", "#FFFFFF", 0),
+                CreateItem("holy-priest-face-inverted", $"face:{HolyPriestBuiltInCatalog.InvertedFaceId}", "Inverted", "face", "#FFFFFF", 1),
+                CreateItem("holy-priest-face-red", $"face:{HolyPriestBuiltInCatalog.RedFaceId}", "Red", "face", "#FF0000", 2),
+                CreateItem("holy-priest-face-blue", $"face:{HolyPriestBuiltInCatalog.BlueFaceId}", "Blue", "face", "#0000FF", 3),
+                CreateItem("holy-priest-face-gold", $"face:{HolyPriestBuiltInCatalog.GoldFaceId}", "Gold", "face", "#FFFF00", 4),
+                CreateItem("holy-priest-anim-flash", $"app-animation:{HolyPriestBuiltInCatalog.BlackWhiteAnimationId}", "Black / White Flash", "anim", "#FFFFFF", 5),
+                CreateItem("holy-priest-anim-color-drop", $"app-animation:{HolyPriestBuiltInCatalog.BlueRedBlackAnimationId}", "Blue → Red → Black", "anim", "#0A84FF", 6),
+                CreateItem("holy-priest-anim-five-mask", $"app-animation:{HolyPriestBuiltInCatalog.FiveMaskAnimationId}", "Five Mask Cycle", "anim", "#FFD60A", 7),
+                CreateItem("holy-priest-anim-color-pulse", $"app-animation:{HolyPriestBuiltInCatalog.ColorPulseAnimationId}", "Color Pulse", "anim", "#FF3B30", 8)
             ]
         };
 

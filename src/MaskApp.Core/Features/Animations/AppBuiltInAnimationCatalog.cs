@@ -1,18 +1,20 @@
 using MaskApp.Core.Features.Faces;
+using MaskApp.Core.Features.HolyPriest;
 
 namespace MaskApp.Core.Features.Animations;
 
 public static class AppBuiltInAnimationCatalog
 {
-    private const int CrossSlot = 15;
-    private const int InvertedSlot = 16;
-    private const int AntiheroSlot = 17;
-    private const int BassSlot = 18;
-    private const int AtlantisSlot = 19;
-    private const int NoBalanceSlot = 20;
-
     public static IReadOnlyList<int> ReservedSlots { get; } =
-        Array.AsReadOnly(new[] { CrossSlot, InvertedSlot, AntiheroSlot, BassSlot, AtlantisSlot, NoBalanceSlot });
+        Array.AsReadOnly(new[]
+        {
+            HolyPriestBuiltInCatalog.OriginalSlot,
+            HolyPriestBuiltInCatalog.InvertedSlot,
+            HolyPriestBuiltInCatalog.RedSlot,
+            HolyPriestBuiltInCatalog.BlueSlot,
+            HolyPriestBuiltInCatalog.GoldSlot,
+            HolyPriestBuiltInCatalog.BlackoutSlot
+        });
 
     public static IReadOnlyList<AppBuiltInAnimation> CreateBuiltIns()
     {
@@ -21,65 +23,49 @@ public static class AppBuiltInAnimationCatalog
         return
         [
             Create(
-                id: "holy-priest-cross-pulse",
+                id: HolyPriestBuiltInCatalog.BlackWhiteAnimationId,
                 displayName: "Holy Priest · Black / White Flash",
                 description: "A slower black-and-white inversion tuned for reliable prepared DIY playback.",
                 colorHex: "#FFFFFF",
                 frameDuration: TimeSpan.FromMilliseconds(150),
-                frames: SelectFrames(frameBank, CrossSlot, InvertedSlot),
-                playbackSlots: [CrossSlot, InvertedSlot, CrossSlot, InvertedSlot, CrossSlot, InvertedSlot, CrossSlot, InvertedSlot]),
+                frames: SelectFrames(frameBank, HolyPriestBuiltInCatalog.OriginalSlot, HolyPriestBuiltInCatalog.InvertedSlot),
+                playbackSlots: [HolyPriestBuiltInCatalog.OriginalSlot, HolyPriestBuiltInCatalog.InvertedSlot, HolyPriestBuiltInCatalog.OriginalSlot, HolyPriestBuiltInCatalog.InvertedSlot, HolyPriestBuiltInCatalog.OriginalSlot, HolyPriestBuiltInCatalog.InvertedSlot, HolyPriestBuiltInCatalog.OriginalSlot, HolyPriestBuiltInCatalog.InvertedSlot]),
             Create(
-                id: "holy-priest-red-mass",
-                displayName: "Holy Priest · Red Mass",
-                description: "Red bass pistons break through the monochrome mask before a blue afterglow.",
-                colorHex: "#FF3B30",
-                frameDuration: TimeSpan.FromMilliseconds(180),
-                frames: SelectFrames(frameBank, BassSlot, CrossSlot, InvertedSlot, AtlantisSlot),
-                playbackSlots: [BassSlot, CrossSlot, BassSlot, InvertedSlot, BassSlot, AtlantisSlot, BassSlot, CrossSlot, BassSlot]),
-            Create(
-                id: "holy-priest-antihero-scan",
-                displayName: "Holy Priest · Antihero Scan",
-                description: "A cold visor scan cuts between the original mask and its inverted silhouette.",
-                colorHex: "#52E3FF",
-                frameDuration: TimeSpan.FromMilliseconds(200),
-                frames: SelectFrames(frameBank, AntiheroSlot, CrossSlot, InvertedSlot),
-                playbackSlots: [AntiheroSlot, CrossSlot, AntiheroSlot, InvertedSlot, AntiheroSlot, CrossSlot, AntiheroSlot, InvertedSlot]),
-            Create(
-                id: "holy-priest-atlantis-signal",
-                displayName: "Holy Priest · Atlantis Signal",
-                description: "A deep-blue sonar beacon surfaces through cyan antihero and monochrome echoes.",
+                id: HolyPriestBuiltInCatalog.BlueRedBlackAnimationId,
+                displayName: "Holy Priest · Blue → Red → Black",
+                description: "Blue and red versions of the original mask drop into blackout, then finish on the original white mask.",
                 colorHex: "#0A84FF",
-                frameDuration: TimeSpan.FromMilliseconds(240),
-                frames: SelectFrames(frameBank, AtlantisSlot, AntiheroSlot, CrossSlot),
-                playbackSlots: [AtlantisSlot, AtlantisSlot, AntiheroSlot, AtlantisSlot, CrossSlot, AtlantisSlot, AntiheroSlot, AtlantisSlot]),
+                frameDuration: TimeSpan.FromMilliseconds(180),
+                frames: SelectFrames(frameBank, HolyPriestBuiltInCatalog.BlueSlot, HolyPriestBuiltInCatalog.RedSlot, HolyPriestBuiltInCatalog.BlackoutSlot, HolyPriestBuiltInCatalog.OriginalSlot),
+                playbackSlots: [HolyPriestBuiltInCatalog.BlueSlot, HolyPriestBuiltInCatalog.RedSlot, HolyPriestBuiltInCatalog.BlackoutSlot, HolyPriestBuiltInCatalog.BlueSlot, HolyPriestBuiltInCatalog.RedSlot, HolyPriestBuiltInCatalog.BlackoutSlot, HolyPriestBuiltInCatalog.OriginalSlot, HolyPriestBuiltInCatalog.BlackoutSlot]),
             Create(
-                id: "holy-priest-no-balance",
-                displayName: "Holy Priest · No Balance",
-                description: "An off-axis gyroscope snaps between violet torque and a submerged blue signal.",
-                colorHex: "#BF5AF2",
-                frameDuration: TimeSpan.FromMilliseconds(210),
-                frames: SelectFrames(frameBank, NoBalanceSlot, AntiheroSlot, AtlantisSlot),
-                playbackSlots: [NoBalanceSlot, AntiheroSlot, NoBalanceSlot, AtlantisSlot, NoBalanceSlot, AntiheroSlot, AtlantisSlot, AntiheroSlot]),
+                id: HolyPriestBuiltInCatalog.FiveMaskAnimationId,
+                displayName: "Holy Priest · Five Mask Cycle",
+                description: "All five original-mask colorways move through a smooth circular procession.",
+                colorHex: "#FFD60A",
+                frameDuration: TimeSpan.FromMilliseconds(220),
+                frames: SelectFrames(frameBank, HolyPriestBuiltInCatalog.OriginalSlot, HolyPriestBuiltInCatalog.InvertedSlot, HolyPriestBuiltInCatalog.RedSlot, HolyPriestBuiltInCatalog.BlueSlot, HolyPriestBuiltInCatalog.GoldSlot),
+                playbackSlots: [HolyPriestBuiltInCatalog.OriginalSlot, HolyPriestBuiltInCatalog.RedSlot, HolyPriestBuiltInCatalog.GoldSlot, HolyPriestBuiltInCatalog.BlueSlot, HolyPriestBuiltInCatalog.InvertedSlot, HolyPriestBuiltInCatalog.BlueSlot, HolyPriestBuiltInCatalog.GoldSlot, HolyPriestBuiltInCatalog.RedSlot]),
             Create(
-                id: "holy-priest-ritual-inversion",
-                displayName: "Holy Priest · Ritual Inversion",
-                description: "Inverted monochrome, unstable geometry, and a red impact rotate in a tight ritual loop.",
-                colorHex: "#FF9F0A",
-                frameDuration: TimeSpan.FromMilliseconds(170),
-                frames: SelectFrames(frameBank, InvertedSlot, NoBalanceSlot, BassSlot),
-                playbackSlots: [InvertedSlot, NoBalanceSlot, InvertedSlot, BassSlot, InvertedSlot, NoBalanceSlot, BassSlot, NoBalanceSlot])
+                id: HolyPriestBuiltInCatalog.ColorPulseAnimationId,
+                displayName: "Holy Priest · Color Pulse",
+                description: "Red, blue, and gold masks pulse against a dedicated black frame.",
+                colorHex: "#FF3B30",
+                frameDuration: TimeSpan.FromMilliseconds(200),
+                frames: SelectFrames(frameBank, HolyPriestBuiltInCatalog.RedSlot, HolyPriestBuiltInCatalog.BlueSlot, HolyPriestBuiltInCatalog.GoldSlot, HolyPriestBuiltInCatalog.BlackoutSlot),
+                playbackSlots: [HolyPriestBuiltInCatalog.RedSlot, HolyPriestBuiltInCatalog.BlackoutSlot, HolyPriestBuiltInCatalog.BlueSlot, HolyPriestBuiltInCatalog.BlackoutSlot, HolyPriestBuiltInCatalog.GoldSlot, HolyPriestBuiltInCatalog.BlackoutSlot, HolyPriestBuiltInCatalog.BlueSlot, HolyPriestBuiltInCatalog.BlackoutSlot])
         ];
     }
 
     private static IReadOnlyDictionary<int, AppBuiltInAnimationFrame> CreateFrameBank() =>
         new Dictionary<int, AppBuiltInAnimationFrame>
         {
-            [CrossSlot] = CreateFrame("cross", "holy-priest-cross", CrossSlot),
-            [InvertedSlot] = CreateFrame("inverted", "holy-priest-inverted", InvertedSlot),
-            [AntiheroSlot] = CreateFrame("antihero", "holy-priest-antihero", AntiheroSlot),
-            [BassSlot] = CreateFrame("bass", "holy-priest-bass-powah", BassSlot),
-            [AtlantisSlot] = CreateFrame("atlantis", "holy-priest-atlantis", AtlantisSlot),
-            [NoBalanceSlot] = CreateFrame("no-balance", "holy-priest-no-balance", NoBalanceSlot)
+            [HolyPriestBuiltInCatalog.OriginalSlot] = CreateFrame("original", "holy-priest-cross", HolyPriestBuiltInCatalog.OriginalSlot),
+            [HolyPriestBuiltInCatalog.InvertedSlot] = CreateFrame("inverted", "holy-priest-inverted", HolyPriestBuiltInCatalog.InvertedSlot),
+            [HolyPriestBuiltInCatalog.RedSlot] = CreateFrame("red", "holy-priest-red", HolyPriestBuiltInCatalog.RedSlot),
+            [HolyPriestBuiltInCatalog.BlueSlot] = CreateFrame("blue", "holy-priest-blue", HolyPriestBuiltInCatalog.BlueSlot),
+            [HolyPriestBuiltInCatalog.GoldSlot] = CreateFrame("gold", "holy-priest-gold", HolyPriestBuiltInCatalog.GoldSlot),
+            [HolyPriestBuiltInCatalog.BlackoutSlot] = CreateFrame("blackout", "holy-priest-blackout", HolyPriestBuiltInCatalog.BlackoutSlot)
         };
 
     private static IReadOnlyList<AppBuiltInAnimationFrame> SelectFrames(

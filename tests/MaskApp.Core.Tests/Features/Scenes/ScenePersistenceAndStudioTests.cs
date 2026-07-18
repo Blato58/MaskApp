@@ -10,6 +10,43 @@ namespace MaskApp.Core.Tests.Features.Scenes;
 public sealed class ScenePersistenceAndStudioTests
 {
     [Fact]
+    public void Normalize_MigratesLegacyHolyPriestGalleryReferences()
+    {
+        var state = new SceneShowState
+        {
+            Scenes =
+            [
+                new PerformanceScene
+                {
+                    Id = "legacy-scene",
+                    DisplayName = "Legacy Scene",
+                    Steps =
+                    [
+                        new PerformanceSceneStep
+                        {
+                            Id = "animation",
+                            Kind = SceneStepKind.Animation,
+                            GalleryItemId = "app-animation:holy-priest-ritual-inversion"
+                        },
+                        new PerformanceSceneStep
+                        {
+                            Id = "face",
+                            Kind = SceneStepKind.Face,
+                            GalleryItemId = "face:built-in-face-holy-priest-retro-future"
+                        }
+                    ]
+                }
+            ]
+        };
+
+        var normalized = state.Normalize();
+        var steps = Assert.Single(normalized.Scenes).Steps;
+
+        Assert.Equal("app-animation:holy-priest-five-mask-cycle", steps[0].GalleryItemId);
+        Assert.Equal("face:built-in-face-holy-priest-original", steps[1].GalleryItemId);
+    }
+
+    [Fact]
     public async Task JsonStore_RoundTripsVersionedScenesSetlistsAndPosition()
     {
         var path = TempPath();

@@ -14,7 +14,7 @@ public sealed class DiySlotPlaybackCoordinatorTests
         var faceTransport = new RecordingFaceTransport();
         var commandTransport = new RecordingCommandTransport();
         var coordinator = new DiySlotPlaybackCoordinator(store, faceTransport, commandTransport);
-        var face = FacePatternFactory.CreateBuiltIns().Single(item => item.DisplayName == "Holy Priest · Cross");
+        var face = FacePatternFactory.CreateBuiltIns().Single(item => item.DisplayName == "Holy Priest · Original");
 
         var first = await coordinator.PlayFaceAsync(face);
         var second = await coordinator.PlayFaceAsync(face);
@@ -307,7 +307,7 @@ public sealed class DiySlotPlaybackCoordinatorTests
             commandTransport,
             fastAnimationFrameInterval: TimeSpan.FromMilliseconds(1));
         var animation = AppBuiltInAnimationCatalog.CreateBuiltIns()[0];
-        var face = FacePatternFactory.CreateBuiltIns().Single(item => item.DisplayName == "Holy Priest · Cross");
+        var face = FacePatternFactory.CreateBuiltIns().Single(item => item.DisplayName == "Holy Priest · Original");
 
         var animationResult = await coordinator.PlayAnimationAsync(animation);
         await WaitUntilAsync(() => commandTransport.Commands.Count >= 2);

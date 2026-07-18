@@ -121,7 +121,7 @@ and visualizer nibble packing.
 | `ANIM` | 1 byte built-in animation id | Plays a stock animation. The Android app's UI catalog lists 45 decimal command IDs: `0`, `1`, `2`, `3`, and `5..45`. ID `4` is present in generated resource IDs but `AnimFragment` skips it before sending. MaskApp previews the referenced frames at the original 100 ms cadence. | Implemented, firmware-static, needs real-mask test |
 | `CHEC` | none | Requests the number of DIY images stored on the mask; response is sent on the notification characteristic. Available evidence exposes a count, not a complete slot inventory. | Protocol-documented |
 | `DELE` | 1 byte count, then up to 10 DIY ids | Deletes uploaded DIY image slots. Response behavior needs physical confirmation. | Protocol-documented |
-| `PLAY` | 1 byte count, then up to 10 DIY ids | Plays uploaded DIY image slots in order. Pages uses one slot for prepared faces/text. While MaskApp is active, app-built animations continuously repeat individual one-slot commands at their catalog-defined cadence. When the app receives its stop/lock lifecycle event, playback pauses its phone timer and makes a best-effort single-write multi-slot `PLAY` handoff so the mask can continue at its fixed, slower firmware cadence. Returning sends an immediate one-slot reclaim before configured app timing resumes. The Holy Priest set currently uses 150-240 ms per frame; the black/white flash uses 150 ms. | Implemented; lock/background handoff and foreground reclaim need follow-up real-mask tests |
+| `PLAY` | 1 byte count, then up to 10 DIY ids | Plays uploaded DIY image slots in order. Pages uses one slot for prepared faces/text. While MaskApp is active, app-built animations continuously repeat individual one-slot commands at their catalog-defined cadence. When the app receives its stop/lock lifecycle event, playback pauses its phone timer and makes a best-effort single-write multi-slot `PLAY` handoff so the mask can continue at its fixed, slower firmware cadence. Returning sends an immediate one-slot reclaim before configured app timing resumes. The Holy Priest set currently uses 150-220 ms per frame; the black/white flash uses 150 ms. | Implemented; lock/background handoff and foreground reclaim need follow-up real-mask tests |
 
 The original Android DIY flow caps storage at 20 numbered slots (`1..20`). Pages
 exposes preparation and refresh as explicit actions rather than implying that
@@ -130,14 +130,17 @@ storage, or editing content can require a refresh. MaskApp keeps a durable
 per-slot content fingerprint for its own DIY writes, so an in-app overwrite or
 failed refresh invalidates older Pages shortcuts even if the source face is
 later renamed, moved to another preferred slot, or deleted from the Library.
-The current app-built animation catalog reserves slots `15..20` for a shared
-six-frame Holy Priest bank. Six animations reuse those prepared cross,
-inversion, antihero, bass, sonar, and off-balance frames at independently
-configured 150-240 ms cadences. A built-in Holy Priest Page exposes the full
-face and animation collection and is available in Stage whenever Stage is using
-Pages rather than an active setlist. Stage animation tiles are tap-to-start so
-the app-wide session can continue after leaving Stage and can attempt the
-mask-owned lifecycle handoff when the phone locks;
+The current Holy Priest catalog reserves slots `15..20` for a compact shared
+bank. Five static versions of the original cross mask have dedicated fast-load
+slots: original, inverted, red, blue, and gold use `15..19`. Four animations
+reuse those exact frames, while slot `20` is an animation-only blackout frame.
+Preparing the complete Page therefore requires at most six unique uploads; all
+nine Page actions can then use prepared-slot playback. Animation timing is
+configured independently at 150-220 ms, including the requested blue → red →
+black sequence. The Page is available in Stage whenever Stage is using Pages
+rather than an active setlist. Stage animation tiles are tap-to-start so the
+app-wide session can continue after leaving Stage and can attempt the mask-owned
+lifecycle handoff when the phone locks;
 explicit Stop, Blackout, or another visual replaces it.
 Automatic Pages slot allocation skips those numbers;
 Face Studio's automatic custom-face allocation skips them too. An explicit
@@ -290,7 +293,7 @@ default firmware-timed multi-slot cadence was physically observed to be too
 slow, and `SPEED` did not change it. A 75 ms app-timed sequence initially worked
 for a short test but later failed to produce a reliable black/white flash. The
 Holy Priest catalog therefore uses explicit per-animation delays, starting at
-150 ms for black/white and ranging up to 240 ms for slower motifs. Sustained
+150 ms for black/white and ranging up to 220 ms for the five-mask cycle. Sustained
 looping, the slower firmware-owned background cadence, lock-screen handoff,
 battery impact, GIF-ish playback, persistence, overwrite behavior, and ACK
 behavior remain unproven product capability. Force-stopping the app or losing
@@ -353,7 +356,7 @@ encrypted 16-byte blocks and plaintext fallback.
 | Text upload | `DATS`, upload frames, `DATCP`, `MODE`, `SPEED` | Implemented MVP | Needs real-mask test |
 | Text colors/effects | `M`, `FC`, `BC` | Protocol-documented | Needs real-mask test |
 | DIY/custom image upload | `DATS`/payload/`DATCP`, `CHEC`, `PLAY`, `DELE` | Implemented Face Studio upload plus Library/Pages prepare-once and PLAY-only replay | Static 46x58 orientation and visual output confirmed; slot lifecycle and ACK behavior need real-mask tests |
-| App-built custom animation | Static DIY frames, continuously repeated one-slot `PLAY` commands, and a multi-slot background handoff | Implemented Experimental catalog with per-frame fingerprints, configurable per-animation foreground timing, app-wide playback ownership, and a best-effort mask-owned lock/background fallback; Holy Priest currently uses 150-240 ms | Firmware sequence is slower and `SPEED` is ineffective; foreground cadence, background handoff, battery impact, persistence, and visuals need real-mask tests |
+| App-built custom animation | Static DIY frames, continuously repeated one-slot `PLAY` commands, and a multi-slot background handoff | Implemented Experimental catalog with per-frame fingerprints, configurable per-animation foreground timing, app-wide playback ownership, and a best-effort mask-owned lock/background fallback; Holy Priest currently uses 150-220 ms | Firmware sequence is slower and `SPEED` is ineffective; foreground cadence, background handoff, battery impact, persistence, and visuals need real-mask tests |
 | Static text fast slot | Text rasterized into a 46x58 DIY image, then `PLAY` | Implemented in Pages; native text modes intentionally not preserved | Needs real-mask test |
 | Audio visualizer | audio characteristic encrypted packets | Documented only | Needs real-mask test |
 | RAVE command fallbacks | `LIGHT`, `IMAG`, `ANIM` | Implemented as test/fallback controls | Needs real-mask test |

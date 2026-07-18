@@ -1,3 +1,5 @@
+using MaskApp.Core.Features.HolyPriest;
+
 namespace MaskApp.Core.Features.Faces;
 
 public sealed record FacePatternStoreState
@@ -5,7 +7,8 @@ public sealed record FacePatternStoreState
     public const int LegacySchemaVersion = 1;
     public const int PreviousSchemaVersion = 2;
     public const int CurrentSchemaVersion = 3;
-    public const int CurrentSeedVersion = 8;
+    public const int CurrentSeedVersion = 9;
+    private const int HolyPriestDedicatedSlotSeedVersion = 9;
 
     public static FacePatternStoreState Seeded => new()
     {
@@ -33,18 +36,27 @@ public sealed record FacePatternStoreState
             .ToDictionary(pattern => pattern.Id, StringComparer.Ordinal);
         var result = builtIns.Values.ToDictionary(pattern => pattern.Id, StringComparer.Ordinal);
 
-        foreach (var pattern in Patterns.Select(pattern => pattern.Normalize()))
+        foreach (var persistedPattern in Patterns
+                     .Select(pattern => pattern.Normalize())
+                     .OrderBy(pattern => string.Equals(
+                         pattern.Id,
+                         HolyPriestBuiltInCatalog.MigratePersistedFaceId(pattern.Id),
+                         StringComparison.Ordinal)))
         {
+            var migratedId = HolyPriestBuiltInCatalog.MigratePersistedFaceId(persistedPattern.Id);
+            var pattern = persistedPattern with { Id = migratedId };
             if (pattern.IsBuiltIn)
             {
                 if (builtIns.TryGetValue(pattern.Id, out var builtIn))
                 {
+                    var migrateHolyPriestSlot = SeedVersion < HolyPriestDedicatedSlotSeedVersion &&
+                        HolyPriestBuiltInCatalog.IsFaceId(pattern.Id);
                     result[pattern.Id] = builtIn with
                     {
                         IsFavorite = pattern.IsFavorite,
-                        PreferredSlot = pattern.PreferredSlot,
-                        LastUploadedAt = pattern.LastUploadedAt,
-                        LastUploadStatus = pattern.LastUploadStatus
+                        PreferredSlot = migrateHolyPriestSlot ? builtIn.PreferredSlot : pattern.PreferredSlot,
+                        LastUploadedAt = migrateHolyPriestSlot ? null : pattern.LastUploadedAt,
+                        LastUploadStatus = migrateHolyPriestSlot ? string.Empty : pattern.LastUploadStatus
                     };
                 }
 

@@ -30,8 +30,8 @@ public sealed class GalleryViewModelTests
         var items = Flatten(viewModel);
         Assert.Contains(items, item => item.Item.Id == $"text:{preset.Id.Value}" && item.IsFavorite);
         Assert.Contains(items, item => item.Item.Id == "built-in:StaticImage:7");
-        Assert.Contains(items, item => item.Item.Id == "app-animation:holy-priest-cross-pulse");
-        Assert.Contains(items, item => item.Item.Title == "Holy Priest · Cross");
+        Assert.Contains(items, item => item.Item.Id == "app-animation:holy-priest-black-white-flash");
+        Assert.Contains(items, item => item.Item.Title == "Holy Priest · Original");
         Assert.Contains(items, item => item.Item.Id == $"quick:{QuickActionId.Lol}");
         Assert.Contains(viewModel.Rows, row => row.IsGroupHeader);
         Assert.Contains(viewModel.Rows, row => row.IsItemRow);
@@ -295,7 +295,7 @@ public sealed class GalleryViewModelTests
 
         await viewModel.InitializeAsync();
         var animation = Flatten(viewModel)
-            .Single(card => card.Item.Id == "app-animation:holy-priest-cross-pulse")
+            .Single(card => card.Item.Id == "app-animation:holy-priest-black-white-flash")
             .Item;
 
         await viewModel.SendAsync(animation);

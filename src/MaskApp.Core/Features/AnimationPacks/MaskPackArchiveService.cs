@@ -5,6 +5,7 @@ using MaskApp.Core.Features.Animations;
 using MaskApp.Core.Features.BuiltIns;
 using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.Gallery;
+using MaskApp.Core.Features.HolyPriest;
 using MaskApp.Core.Features.QuickActions;
 using MaskApp.Core.Features.Scenes;
 using MaskApp.Core.Features.TextPresets;
@@ -680,24 +681,37 @@ public sealed class MaskPackArchiveService
             };
         }
 
+        foreach (var animation in AppBuiltInAnimationCatalog.CreateBuiltIns())
+        {
+            var id = $"app-animation:{animation.Id}";
+            result[id] = new GalleryItem
+            {
+                Id = id,
+                Type = GalleryItemType.AppBuiltInAnimation,
+                Title = animation.DisplayName,
+                AppAnimation = animation
+            };
+        }
+
         foreach (var reference in package.Scenes.SelectMany(item => item.Value.Steps).Select(step => step.GalleryItemId))
         {
-            if (result.ContainsKey(reference))
+            var migratedReference = HolyPriestBuiltInCatalog.MigrateGalleryItemId(reference);
+            if (result.ContainsKey(migratedReference))
             {
                 continue;
             }
 
-            if (reference.StartsWith("built-in:StaticImage:", StringComparison.Ordinal))
+            if (migratedReference.StartsWith("built-in:StaticImage:", StringComparison.Ordinal))
             {
-                result[reference] = new GalleryItem { Id = reference, Type = GalleryItemType.BuiltInStaticImage, Title = reference };
+                result[migratedReference] = new GalleryItem { Id = migratedReference, Type = GalleryItemType.BuiltInStaticImage, Title = migratedReference };
             }
-            else if (reference.StartsWith("built-in:Animation:", StringComparison.Ordinal))
+            else if (migratedReference.StartsWith("built-in:Animation:", StringComparison.Ordinal))
             {
-                result[reference] = new GalleryItem { Id = reference, Type = GalleryItemType.BuiltInAnimation, Title = reference };
+                result[migratedReference] = new GalleryItem { Id = migratedReference, Type = GalleryItemType.BuiltInAnimation, Title = migratedReference };
             }
-            else if (reference.StartsWith("app-animation:", StringComparison.Ordinal))
+            else if (migratedReference.StartsWith("app-animation:", StringComparison.Ordinal))
             {
-                result[reference] = new GalleryItem { Id = reference, Type = GalleryItemType.AppBuiltInAnimation, Title = reference };
+                result[migratedReference] = new GalleryItem { Id = migratedReference, Type = GalleryItemType.AppBuiltInAnimation, Title = migratedReference };
             }
         }
 
@@ -1341,6 +1355,7 @@ public sealed class MaskPackArchiveService
 
     private static bool IsKnownExternalGalleryId(string id)
     {
+        id = HolyPriestBuiltInCatalog.MigrateGalleryItemId(id);
         var parts = id.Split(':');
         if (parts.Length == 3 && parts[0] == "built-in"
             && Enum.TryParse<BuiltInAssetType>(parts[1], out var type)
@@ -1352,6 +1367,11 @@ public sealed class MaskPackArchiveService
         if (parts.Length == 2 && parts[0] == "app-animation")
         {
             return AppBuiltInAnimationCatalog.CreateBuiltIns().Any(animation => animation.Id == parts[1]);
+        }
+
+        if (parts.Length == 2 && parts[0] == "face")
+        {
+            return FacePatternFactory.CreateBuiltIns().Any(face => face.Id == parts[1]);
         }
 
         return parts.Length == 2 && parts[0] == "quick"

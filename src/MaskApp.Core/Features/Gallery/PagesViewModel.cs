@@ -652,6 +652,11 @@ public sealed class PagesViewModel : INotifyPropertyChanged
             BeginOperation();
             foreach (var (layout, item) in pending)
             {
+                if (IsFastSlotPrepared(layout, item))
+                {
+                    continue;
+                }
+
                 StatusText = $"Preparing {prepared + 1} of {pending.Length}: {item.Title}";
                 var result = await PrepareReusableSlotCoreAsync(layout, item, cancellationToken);
                 if (!result.Succeeded)

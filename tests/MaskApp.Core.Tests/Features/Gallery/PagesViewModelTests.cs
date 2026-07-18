@@ -117,13 +117,29 @@ public sealed class PagesViewModelTests
 
         Assert.True(pageIndex >= 0);
         Assert.Equal("Holy Priest", show.PageTitle);
-        Assert.Equal(12, show.Tiles.Count);
+        Assert.Equal(9, show.Tiles.Count);
         var animations = show.Tiles
             .Where(tile => tile.ItemType == GalleryItemType.AppBuiltInAnimation)
             .ToArray();
-        Assert.Equal(6, animations.Length);
+        Assert.Equal(4, animations.Length);
         Assert.All(animations, tile => Assert.False(tile.IsHoldAction));
-        Assert.Equal(6, show.Tiles.Count(tile => tile.ItemType == GalleryItemType.CustomStaticFace));
+        Assert.Equal(5, show.Tiles.Count(tile => tile.ItemType == GalleryItemType.CustomStaticFace));
+    }
+
+    [Fact]
+    public async Task PrepareHolyPriestPage_UploadsSixUniqueSlotsForEveryFaceAndAnimation()
+    {
+        var faceTransport = new RecordingFaceTransport();
+        var viewModel = CreateViewModel(faceTransport: faceTransport);
+
+        await viewModel.InitializeAsync();
+        var page = viewModel.Pages.Single(item => item.PageId == BuiltInGalleryPages.HolyPriestPageId);
+        await page.SelectCommand.ExecuteAsync();
+        await viewModel.PreparePageCommand.ExecuteAsync();
+
+        Assert.Equal(6, faceTransport.UploadCount);
+        Assert.All(viewModel.Shortcuts, shortcut => Assert.True(shortcut.IsFastSlotPrepared));
+        Assert.Equal("Prepared 6 fast slots", viewModel.StatusText);
     }
 
     [Fact]
@@ -267,7 +283,7 @@ public sealed class PagesViewModelTests
         var viewModel = CreateViewModel(commandTransport: commandTransport, faceTransport: faceTransport);
         await viewModel.InitializeAsync();
         var animation = viewModel.AvailableItems
-            .Single(item => item.Item.Id == "app-animation:holy-priest-cross-pulse")
+            .Single(item => item.Item.Id == "app-animation:holy-priest-black-white-flash")
             .Item;
         await viewModel.AddItemAsync(animation);
 
@@ -298,7 +314,7 @@ public sealed class PagesViewModelTests
         var viewModel = CreateViewModel(commandTransport: commandTransport, faceTransport: faceTransport);
         await viewModel.InitializeAsync();
         var animation = viewModel.AvailableItems
-            .Single(item => item.Item.Id == "app-animation:holy-priest-cross-pulse")
+            .Single(item => item.Item.Id == "app-animation:holy-priest-black-white-flash")
             .Item;
         await viewModel.AddItemAsync(animation);
 

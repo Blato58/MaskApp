@@ -10,6 +10,98 @@ namespace MaskApp.Core.Tests.Features.AnimationPacks;
 public sealed class MaskPackArchiveRoundTripTests
 {
     [Fact]
+    public async Task Import_MigratesLegacyHolyPriestPageAndSceneReferences()
+    {
+        var pageEntry = new MaskPackContentEntry
+        {
+            Id = "legacy-page",
+            Type = MaskPackContentType.Page,
+            Name = "Legacy Page",
+            Path = "pages/legacy-page.json",
+            Sha256 = new string('1', 64)
+        };
+        var sceneEntry = new MaskPackContentEntry
+        {
+            Id = "legacy-scene",
+            Type = MaskPackContentType.Scene,
+            Name = "Legacy Scene",
+            Path = "scenes/legacy-scene.json",
+            Sha256 = new string('2', 64)
+        };
+        var package = new MaskPackDecodedPackage
+        {
+            Manifest = new MaskPackManifest
+            {
+                SchemaVersion = MaskPackManifest.CurrentSchemaVersion,
+                PackName = "Legacy Holy Priest",
+                Author = "Test",
+                Contents = [pageEntry, sceneEntry]
+            },
+            Pages =
+            [
+                new MaskPackDecodedItem<GalleryPageLayout>(
+                    pageEntry,
+                    new GalleryPageLayout
+                    {
+                        PageId = pageEntry.Id,
+                        Title = pageEntry.Name,
+                        Items =
+                        [
+                            PageItem("face", "face:built-in-face-holy-priest-retro-future", "Legacy face", 0),
+                            PageItem("animation", "app-animation:holy-priest-red-mass", "Legacy animation", 1)
+                        ]
+                    })
+            ],
+            Scenes =
+            [
+                new MaskPackDecodedItem<PerformanceScene>(
+                    sceneEntry,
+                    new PerformanceScene
+                    {
+                        Id = sceneEntry.Id,
+                        DisplayName = sceneEntry.Name,
+                        Steps =
+                        [
+                            new PerformanceSceneStep
+                            {
+                                Id = "face",
+                                Kind = SceneStepKind.Face,
+                                GalleryItemId = "face:built-in-face-holy-priest-retro-future"
+                            },
+                            new PerformanceSceneStep
+                            {
+                                Id = "animation",
+                                Kind = SceneStepKind.Animation,
+                                GalleryItemId = "app-animation:holy-priest-red-mass"
+                            }
+                        ]
+                    })
+            ]
+        };
+        var gallery = new InMemoryGalleryLayoutStore();
+        var scenes = new InMemorySceneShowStore();
+        var service = CreateService(
+            new InMemoryTextPresetStore(),
+            new InMemoryFacePatternStore(),
+            new InMemoryAnimationProjectStore(),
+            gallery,
+            scenes);
+
+        var result = await service.ImportAsync(new MaskPackImportRequest
+        {
+            Inspection = new MaskPackInspection { Package = package }
+        });
+
+        Assert.True(result.Succeeded, result.Message);
+        var importedPage = Assert.Single((await gallery.LoadAsync()).Pages, item => item.PageId == pageEntry.Id);
+        Assert.Contains(importedPage.Items, item => item.GalleryItemId == "face:built-in-face-holy-priest-original");
+        Assert.Contains(importedPage.Items, item => item.GalleryItemId == "app-animation:holy-priest-blue-red-black");
+        var importedScene = Assert.Single((await scenes.LoadAsync()).Scenes, item => item.Id == sceneEntry.Id);
+        Assert.Equal("face:built-in-face-holy-priest-original", importedScene.Steps[0].GalleryItemId);
+        Assert.Equal("app-animation:holy-priest-blue-red-black", importedScene.Steps[1].GalleryItemId);
+    }
+
+    [Fact]
     public async Task Export_MaximumRepeatedAnimation_RemainsInspectableUnderZipBombGuard()
     {
         var pattern = CreateFace("frame", "Frame", 0, new FaceColor(1, 2, 3));

@@ -1,3 +1,5 @@
+using MaskApp.Core.Features.HolyPriest;
+
 namespace MaskApp.Core.Features.Scenes;
 
 public enum SceneStepKind
@@ -39,7 +41,7 @@ public sealed record PerformanceSceneStep
     public PerformanceSceneStep Normalize(int index)
     {
         var id = string.IsNullOrWhiteSpace(Id) ? $"step-{index + 1}" : Id.Trim();
-        var galleryItemId = GalleryItemId?.Trim() ?? string.Empty;
+        var galleryItemId = HolyPriestBuiltInCatalog.MigrateGalleryItemId(GalleryItemId);
         var repeatFrom = RepeatFromStepId?.Trim() ?? string.Empty;
         switch (Kind)
         {

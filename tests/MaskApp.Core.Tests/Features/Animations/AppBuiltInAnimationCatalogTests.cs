@@ -1,5 +1,6 @@
 using MaskApp.Core.Features.Animations;
 using MaskApp.Core.Features.Faces;
+using MaskApp.Core.Features.HolyPriest;
 
 namespace MaskApp.Core.Tests.Features.Animations;
 
@@ -10,18 +11,24 @@ public sealed class AppBuiltInAnimationCatalogTests
     {
         var animations = AppBuiltInAnimationCatalog.CreateBuiltIns();
 
-        Assert.Equal(6, animations.Count);
+        Assert.Equal(4, animations.Count);
+        Assert.Equal(
+            [
+                HolyPriestBuiltInCatalog.BlackWhiteAnimationId,
+                HolyPriestBuiltInCatalog.BlueRedBlackAnimationId,
+                HolyPriestBuiltInCatalog.FiveMaskAnimationId,
+                HolyPriestBuiltInCatalog.ColorPulseAnimationId
+            ],
+            animations.Select(animation => animation.Id));
         Assert.Equal(
             [
                 "Holy Priest · Black / White Flash",
-                "Holy Priest · Red Mass",
-                "Holy Priest · Antihero Scan",
-                "Holy Priest · Atlantis Signal",
-                "Holy Priest · No Balance",
-                "Holy Priest · Ritual Inversion"
+                "Holy Priest · Blue → Red → Black",
+                "Holy Priest · Five Mask Cycle",
+                "Holy Priest · Color Pulse"
             ],
             animations.Select(animation => animation.DisplayName));
-        Assert.Equal([150, 180, 200, 240, 210, 170], animations.Select(animation => animation.FrameDurationMilliseconds));
+        Assert.Equal([150, 180, 220, 200], animations.Select(animation => animation.FrameDurationMilliseconds));
         Assert.Equal([15, 16, 17, 18, 19, 20], AppBuiltInAnimationCatalog.ReservedSlots);
 
         Assert.All(animations, animation =>
@@ -73,39 +80,81 @@ public sealed class AppBuiltInAnimationCatalogTests
     }
 
     [Fact]
-    public void FaceCollection_IncludesSixDistinctHolyPriestLooks()
+    public void FaceCollection_IncludesFiveOriginalMaskColorwaysWithDedicatedSlots()
     {
         var faces = FacePatternFactory.CreateBuiltIns()
             .Where(face => face.Id.StartsWith("built-in-face-holy-priest-", StringComparison.Ordinal))
             .ToArray();
 
-        Assert.Equal(6, faces.Length);
+        Assert.Equal(5, faces.Length);
         Assert.Equal(
             [
-                "Holy Priest · Cross",
-                "Holy Priest · Masked Antihero",
-                "Holy Priest · Bass Pistons",
-                "Holy Priest · Atlantis Sonar",
-                "Holy Priest · No Balance",
-                "Holy Priest · 90s → Future"
+                "Holy Priest · Original",
+                "Holy Priest · Inverted",
+                "Holy Priest · Red",
+                "Holy Priest · Blue",
+                "Holy Priest · Gold"
             ],
             faces.Select(face => face.DisplayName));
+        Assert.Equal([15, 16, 17, 18, 19], faces.Select(face => face.PreferredSlot));
         Assert.Equal(
             faces.Length,
             faces.Select(FaceContentFingerprint.Compute).Distinct(StringComparer.Ordinal).Count());
 
-        var cross = faces[0];
-        Assert.Equal(
+        string[][] expectedColors =
+        [
             ["#000000", "#FFFFFF"],
-            cross.Pixels
+            ["#000000", "#FFFFFF"],
+            ["#000000", "#FF0000"],
+            ["#000000", "#0000FF"],
+            ["#000000", "#FFFF00"]
+        ];
+        for (var index = 0; index < faces.Length; index++)
+        {
+            var colors = faces[index].Pixels
                 .Where(pixel => pixel.IsLit)
                 .Select(pixel => pixel.Color.Hex)
                 .Distinct(StringComparer.Ordinal)
-                .Order(StringComparer.Ordinal));
-        Assert.All(faces.Skip(1), face =>
-            Assert.True(
-                face.Pixels.Where(pixel => pixel.IsLit).Select(pixel => pixel.Color).Distinct().Count() >= 4,
-                $"{face.DisplayName} should use at least four color layers."));
+                .Order(StringComparer.Ordinal)
+                .ToArray();
+            Assert.Equal(expectedColors[index], colors);
+        }
+    }
+
+    [Fact]
+    public void FrameBank_ReusesEveryStaticFaceSlot_AndKeepsBlackoutAnimationOnly()
+    {
+        var facesBySlot = FacePatternFactory.CreateBuiltIns()
+            .Where(face => face.Id.StartsWith("built-in-face-holy-priest-", StringComparison.Ordinal))
+            .ToDictionary(face => face.PreferredSlot);
+        var framesBySlot = AppBuiltInAnimationCatalog.CreateBuiltIns()
+            .SelectMany(animation => animation.Frames)
+            .GroupBy(frame => frame.Slot)
+            .ToDictionary(group => group.Key, group => group.First().Pattern);
+
+        Assert.Equal([15, 16, 17, 18, 19], facesBySlot.Keys.Order().ToArray());
+        foreach (var (slot, face) in facesBySlot)
+        {
+            Assert.Equal(
+                FaceContentFingerprint.Compute(face),
+                FaceContentFingerprint.Compute(framesBySlot[slot]));
+        }
+
+        Assert.False(facesBySlot.ContainsKey(20));
+        Assert.All(framesBySlot[20].Pixels, pixel =>
+        {
+            Assert.True(pixel.IsLit);
+            Assert.Equal("#000000", pixel.Color.Hex);
+        });
+    }
+
+    [Fact]
+    public void BlueRedBlack_PreservesRequestedSequenceAndOwnCadence()
+    {
+        var animation = AppBuiltInAnimationCatalog.CreateBuiltIns()[1];
+
+        Assert.Equal(180, animation.FrameDurationMilliseconds);
+        Assert.Equal([18, 17, 20, 18, 17, 20, 15, 20], animation.PlaybackSlots);
     }
 
     [Fact]

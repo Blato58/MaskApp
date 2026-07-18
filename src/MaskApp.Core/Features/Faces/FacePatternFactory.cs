@@ -1,3 +1,5 @@
+using MaskApp.Core.Features.HolyPriest;
+
 namespace MaskApp.Core.Features.Faces;
 
 public static class FacePatternFactory
@@ -37,12 +39,11 @@ public static class FacePatternFactory
             CreateCharacter("three-eyed-monster", "Three-Eyed Monster", now),
             CreateCharacter("cyclops", "Happy Cyclops", now),
             CreateCharacter("sleepy", "Sleepy Face", now),
-            CreateCharacter("holy-priest-cross", "Holy Priest · Cross", now),
-            CreateCharacter("holy-priest-antihero", "Holy Priest · Masked Antihero", now),
-            CreateCharacter("holy-priest-bass-powah", "Holy Priest · Bass Pistons", now),
-            CreateCharacter("holy-priest-atlantis", "Holy Priest · Atlantis Sonar", now),
-            CreateCharacter("holy-priest-no-balance", "Holy Priest · No Balance", now),
-            CreateCharacter("holy-priest-retro-future", "Holy Priest · 90s → Future", now),
+            CreateCharacterWithId(HolyPriestBuiltInCatalog.OriginalFaceId, "Holy Priest · Original", "holy-priest-cross", HolyPriestBuiltInCatalog.OriginalSlot, now),
+            CreateCharacterWithId(HolyPriestBuiltInCatalog.InvertedFaceId, "Holy Priest · Inverted", "holy-priest-inverted", HolyPriestBuiltInCatalog.InvertedSlot, now),
+            CreateCharacterWithId(HolyPriestBuiltInCatalog.RedFaceId, "Holy Priest · Red", "holy-priest-red", HolyPriestBuiltInCatalog.RedSlot, now),
+            CreateCharacterWithId(HolyPriestBuiltInCatalog.BlueFaceId, "Holy Priest · Blue", "holy-priest-blue", HolyPriestBuiltInCatalog.BlueSlot, now),
+            CreateCharacterWithId(HolyPriestBuiltInCatalog.GoldFaceId, "Holy Priest · Gold", "holy-priest-gold", HolyPriestBuiltInCatalog.GoldSlot, now),
             CreateCharacter("mask-calibration", "Mask Calibration · Color Anchors", now)
         ];
     }
@@ -73,12 +74,20 @@ public static class FacePatternFactory
             timestamp);
 
     private static FacePattern CreateCharacter(string artworkId, string name, DateTimeOffset timestamp) =>
+        CreateCharacterWithId($"built-in-face-{artworkId}", name, artworkId, 7, timestamp);
+
+    private static FacePattern CreateCharacterWithId(
+        string id,
+        string name,
+        string artworkId,
+        int slot,
+        DateTimeOffset timestamp) =>
         Create(
-            $"built-in-face-{artworkId}",
+            id,
             name,
             artworkId,
             FaceEmotion.Custom,
-            7,
+            slot,
             timestamp);
 
     internal static FacePattern CreateBuiltInArtwork(
