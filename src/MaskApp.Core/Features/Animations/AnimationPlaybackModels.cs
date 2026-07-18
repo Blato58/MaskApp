@@ -8,6 +8,7 @@ public enum AnimationPlaybackState
     Starting,
     Playing,
     Paused,
+    Backgrounded,
     Completed,
     Stopped,
     Disconnected,
@@ -48,7 +49,8 @@ public sealed record AnimationPlaybackSnapshot
 
     public bool IsActive => State is AnimationPlaybackState.Starting
         or AnimationPlaybackState.Playing
-        or AnimationPlaybackState.Paused;
+        or AnimationPlaybackState.Paused
+        or AnimationPlaybackState.Backgrounded;
 }
 
 public sealed class AnimationPlaybackSnapshotChangedEventArgs(AnimationPlaybackSnapshot snapshot) : EventArgs

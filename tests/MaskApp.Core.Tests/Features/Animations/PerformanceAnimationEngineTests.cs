@@ -65,6 +65,212 @@ public sealed class PerformanceAnimationEngineTests
     }
 
     [Fact]
+    public async Task BackgroundHandoff_TransfersContinuousLoopToMask_ThenResumesExactTiming()
+    {
+        var clock = new ManualAnimationClock();
+        var transport = new RecordingCommandTransport();
+        var engine = new PerformanceAnimationEngine(transport, clock: clock);
+        var started = await engine.StartAsync(CreateSafeAnimation(AnimationLoopMode.Continuous));
+
+        var handedOff = await engine.HandOffToMaskForBackgroundAsync();
+
+        Assert.True(handedOff.Succeeded);
+        Assert.Contains("mask-owned", handedOff.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(AnimationPlaybackState.Backgrounded, engine.GetSnapshot().State);
+        Assert.Equal(2, transport.Commands.Count);
+        var firmwareCommand = transport.Commands.Last().Plaintext.ToArray();
+        Assert.Equal(2, firmwareCommand[5]);
+        Assert.Equal(new byte[] { 1, 2 }, firmwareCommand[6..8]);
+
+        clock.AdvanceBy(TimeSpan.FromSeconds(1));
+        await Task.Yield();
+        Assert.Equal(2, transport.Commands.Count);
+
+        var resumed = await engine.ResumeFromBackgroundAsync();
+        Assert.True(resumed.Succeeded);
+        Assert.Contains("Reclaimed", resumed.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(AnimationPlaybackState.Playing, engine.GetSnapshot().State);
+        Assert.Equal(3, transport.Commands.Count);
+        Assert.Equal(1, transport.Slots[^1]);
+        clock.AdvanceBy(TimeSpan.FromMilliseconds(99));
+        await Task.Yield();
+        Assert.Equal(3, transport.Commands.Count);
+        clock.AdvanceBy(TimeSpan.FromMilliseconds(1));
+        await WaitUntilAsync(() => transport.Commands.Count == 4);
+        Assert.Equal(2, transport.Slots[^1]);
+
+        await started.Handle!.StopAsync(restorePreviousLook: false);
+    }
+
+    [Fact]
+    public async Task BackgroundHandoff_SamplesLongLoopToPlayCommandLimit()
+    {
+        var clock = new ManualAnimationClock();
+        var transport = new RecordingCommandTransport();
+        var engine = new PerformanceAnimationEngine(transport, clock: clock);
+        var source = CreateSafeAnimation(AnimationLoopMode.Continuous);
+        var animation = new PerformanceAnimationBuilder().WithRevision(source with
+        {
+            Frames = Enumerable.Range(0, 20)
+                .Select(index => new PerformanceAnimationFrame
+                {
+                    Slot = index % 2 == 0 ? 1 : 2,
+                    Duration = TimeSpan.FromMilliseconds(100)
+                })
+                .ToArray()
+        });
+        var started = await engine.StartAsync(animation);
+
+        var handedOff = await engine.HandOffToMaskForBackgroundAsync();
+
+        Assert.True(handedOff.Succeeded);
+        Assert.Contains("first 10", handedOff.Message, StringComparison.OrdinalIgnoreCase);
+        var firmwareCommand = transport.Commands.Last().Plaintext.ToArray();
+        Assert.Equal(10, firmwareCommand[5]);
+        Assert.Equal(16, firmwareCommand.Length);
+        Assert.Equal(
+            new byte[] { 1, 2, 1, 2, 1, 2, 1, 2, 1, 2 },
+            firmwareCommand[6..16]);
+        await started.Handle!.StopAsync(restorePreviousLook: false);
+    }
+
+    [Fact]
+    public async Task StaleBackgroundHandoff_DoesNotOverrideANewerForegroundResume()
+    {
+        var clock = new ManualAnimationClock();
+        var firstSendStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseFirstSend = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var transport = new RecordingCommandTransport
+        {
+            BeforeSendCompletesAsync = async (count, cancellationToken) =>
+            {
+                if (count != 1)
+                {
+                    return;
+                }
+
+                firstSendStarted.TrySetResult(true);
+                await releaseFirstSend.Task.WaitAsync(cancellationToken);
+            }
+        };
+        var engine = new PerformanceAnimationEngine(transport, clock: clock);
+        var startTask = engine.StartAsync(CreateSafeAnimation(AnimationLoopMode.Continuous));
+        await firstSendStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        var handoffTask = engine.HandOffToMaskForBackgroundAsync();
+        var resumeTask = engine.ResumeFromBackgroundAsync();
+        releaseFirstSend.TrySetResult(true);
+
+        var started = await startTask;
+        var handoff = await handoffTask;
+        var resumed = await resumeTask;
+
+        Assert.True(started.Succeeded);
+        Assert.True(handoff.Succeeded);
+        Assert.True(resumed.Succeeded);
+        Assert.Contains("stale", handoff.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Single(transport.Commands);
+        Assert.Equal(AnimationPlaybackState.Playing, engine.GetSnapshot().State);
+        await started.Handle!.StopAsync(restorePreviousLook: false);
+    }
+
+    [Fact]
+    public async Task BackgroundHandoffWaitingForFrameSend_SkipsWhenAppResumes()
+    {
+        var clock = new ManualAnimationClock();
+        var secondSendStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseSecondSend = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var transport = new RecordingCommandTransport
+        {
+            BeforeSendCompletesAsync = async (count, cancellationToken) =>
+            {
+                if (count != 2)
+                {
+                    return;
+                }
+
+                secondSendStarted.TrySetResult(true);
+                await releaseSecondSend.Task.WaitAsync(cancellationToken);
+            }
+        };
+        var engine = new PerformanceAnimationEngine(transport, clock: clock);
+        var started = await engine.StartAsync(CreateSafeAnimation(AnimationLoopMode.Continuous));
+        clock.AdvanceBy(TimeSpan.FromMilliseconds(100));
+        await secondSendStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        var handoffTask = engine.HandOffToMaskForBackgroundAsync();
+        var resumeTask = engine.ResumeFromBackgroundAsync();
+        releaseSecondSend.TrySetResult(true);
+
+        var handoff = await handoffTask;
+        var resumed = await resumeTask;
+
+        Assert.True(handoff.Succeeded);
+        Assert.True(resumed.Succeeded);
+        Assert.Contains("stale", handoff.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(2, transport.Commands.Count);
+        Assert.All(transport.Commands, command => Assert.Equal(1, command.Plaintext.Span[5]));
+        Assert.Equal(AnimationPlaybackState.Playing, engine.GetSnapshot().State);
+        await started.Handle!.StopAsync(restorePreviousLook: false);
+    }
+
+    [Fact]
+    public async Task AnimationStartedAfterWindowStops_IsImmediatelyHandedToMask()
+    {
+        var clock = new ManualAnimationClock();
+        var transport = new RecordingCommandTransport();
+        var engine = new PerformanceAnimationEngine(transport, clock: clock);
+        await engine.HandOffToMaskForBackgroundAsync();
+
+        var started = await engine.StartAsync(CreateSafeAnimation(AnimationLoopMode.Continuous));
+
+        Assert.True(started.Succeeded);
+        Assert.Equal(AnimationPlaybackState.Backgrounded, engine.GetSnapshot().State);
+        Assert.Equal(2, transport.Commands.Count);
+        Assert.Equal(2, transport.Commands.Last().Plaintext.Span[5]);
+        await engine.ResumeFromBackgroundAsync();
+        await started.Handle!.StopAsync(restorePreviousLook: false);
+    }
+
+    [Fact]
+    public async Task BackgroundingFinitePlayback_PausesWithoutStartingAnEndlessFirmwareLoop()
+    {
+        var clock = new ManualAnimationClock();
+        var transport = new RecordingCommandTransport();
+        var engine = new PerformanceAnimationEngine(transport, clock: clock);
+        var started = await engine.StartAsync(CreateSafeAnimation(AnimationLoopMode.Finite));
+
+        var handedOff = await engine.HandOffToMaskForBackgroundAsync();
+
+        Assert.True(handedOff.Succeeded);
+        Assert.Contains("paused", handedOff.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(AnimationPlaybackState.Backgrounded, engine.GetSnapshot().State);
+        Assert.Single(transport.Commands);
+
+        await engine.ResumeFromBackgroundAsync();
+        await started.Handle!.StopAsync(restorePreviousLook: false);
+    }
+
+    [Fact]
+    public async Task StoppingBackgroundPlayback_ReclaimsTheFirmwareLoopWithOneSlot()
+    {
+        var clock = new ManualAnimationClock();
+        var transport = new RecordingCommandTransport();
+        var engine = new PerformanceAnimationEngine(transport, clock: clock);
+        var started = await engine.StartAsync(CreateSafeAnimation(AnimationLoopMode.Continuous));
+        await engine.HandOffToMaskForBackgroundAsync();
+
+        var stopped = await started.Handle!.StopAsync(restorePreviousLook: false);
+
+        Assert.True(stopped.Succeeded);
+        Assert.Equal(3, transport.Commands.Count);
+        var reclaimCommand = transport.Commands.Last().Plaintext.ToArray();
+        Assert.Equal(1, reclaimCommand[5]);
+        Assert.Equal(1, reclaimCommand[6]);
+        Assert.Equal(AnimationPlaybackState.Stopped, engine.GetSnapshot().State);
+    }
+
+    [Fact]
     public async Task LateTransport_DropsExpiredFrames_InsteadOfCatchUpBurst()
     {
         var clock = new ManualAnimationClock();
@@ -162,6 +368,24 @@ public sealed class PerformanceAnimationEngineTests
         Assert.Equal(1, emergency.BlackoutCount);
         Assert.Equal(0, restores);
         Assert.Single(transport.Commands);
+        Assert.Equal(AnimationPlaybackState.BlackedOut, engine.GetSnapshot().State);
+    }
+
+    [Fact]
+    public async Task Blackout_DoesNotWaitForANormalReclaimAfterBackgroundHandoff()
+    {
+        var clock = new ManualAnimationClock();
+        var transport = new RecordingCommandTransport();
+        var emergency = new RecordingEmergencyControl();
+        var engine = new PerformanceAnimationEngine(transport, emergency, clock);
+        await engine.StartAsync(CreateSafeAnimation(AnimationLoopMode.Continuous));
+        await engine.HandOffToMaskForBackgroundAsync();
+
+        var result = await engine.BlackoutAsync();
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(1, emergency.BlackoutCount);
+        Assert.Equal(2, transport.Commands.Count);
         Assert.Equal(AnimationPlaybackState.BlackedOut, engine.GetSnapshot().State);
     }
 
@@ -337,14 +561,22 @@ public sealed class PerformanceAnimationEngineTests
 
         public Action<int>? AfterSend { get; init; }
 
-        public Task<MaskCommandResult> SendAsync(
+        public Func<int, CancellationToken, Task>? BeforeSendCompletesAsync { get; init; }
+
+        public async Task<MaskCommandResult> SendAsync(
             MaskCommand command,
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             Commands.Enqueue(command);
-            AfterSend?.Invoke(Interlocked.Increment(ref sendCount));
-            return Task.FromResult(MaskCommandResult.Success("Sent."));
+            var count = Interlocked.Increment(ref sendCount);
+            AfterSend?.Invoke(count);
+            if (BeforeSendCompletesAsync is not null)
+            {
+                await BeforeSendCompletesAsync(count, cancellationToken);
+            }
+
+            return MaskCommandResult.Success("Sent.");
         }
 
         public void SetState(MaskCommandTransportState state, string message)

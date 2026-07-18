@@ -67,6 +67,6 @@ public sealed class PagesStageShowSource : IStageShowSource
             shortcut.ColorHex,
             shortcut.Item.Type,
             !shortcut.IsFastSlotCapable || shortcut.IsFastSlotPrepared,
-            shortcut.Item.Type is GalleryItemType.AppBuiltInAnimation or GalleryItemType.CustomAnimation,
+            false,
             shortcut.FastSlotStatusText);
 }

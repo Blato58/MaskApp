@@ -303,6 +303,15 @@ public sealed class StageModeViewModel : INotifyPropertyChanged, IDisposable
     public async Task DeactivateAsync(CancellationToken cancellationToken = default)
     {
         displayControl.SetKeepAwake(false);
+        if (activeHoldTileId is not null
+            && Tiles.FirstOrDefault(tile => string.Equals(
+                tile.TileId,
+                activeHoldTileId,
+                StringComparison.Ordinal)) is { } holdTile)
+        {
+            await EndHoldAsync(holdTile, cancellationToken);
+        }
+
         if (isActive)
         {
             connection.ConnectionStateChanged -= OnConnectionStateChanged;
@@ -311,7 +320,6 @@ public sealed class StageModeViewModel : INotifyPropertyChanged, IDisposable
         }
 
         sceneExecutionControl?.RequestCancel();
-        await playbackCoordinator.StopAnimationAsync(cancellationToken);
     }
 
     public async Task TriggerAsync(StageTile tile, CancellationToken cancellationToken = default)

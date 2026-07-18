@@ -121,7 +121,7 @@ and visualizer nibble packing.
 | `ANIM` | 1 byte built-in animation id | Plays a stock animation. The Android app's UI catalog lists 45 decimal command IDs: `0`, `1`, `2`, `3`, and `5..45`. ID `4` is present in generated resource IDs but `AnimFragment` skips it before sending. MaskApp previews the referenced frames at the original 100 ms cadence. | Implemented, firmware-static, needs real-mask test |
 | `CHEC` | none | Requests the number of DIY images stored on the mask; response is sent on the notification characteristic. Available evidence exposes a count, not a complete slot inventory. | Protocol-documented |
 | `DELE` | 1 byte count, then up to 10 DIY ids | Deletes uploaded DIY image slots. Response behavior needs physical confirmation. | Protocol-documented |
-| `PLAY` | 1 byte count, then up to 10 DIY ids | Plays uploaded DIY image slots in order. Pages uses one slot for prepared faces/text. Real-mask testing found the firmware-timed multi-slot cadence too slow and confirmed that `SPEED` does not change it, so app-built animations continuously repeat individual one-slot commands at their catalog-defined cadence while Gallery, Pages, or Stage remains open. The Holy Priest set currently uses 150-240 ms per frame; the black/white flash uses 150 ms. | Implemented; continuous app-timed cadence needs follow-up real-mask test |
+| `PLAY` | 1 byte count, then up to 10 DIY ids | Plays uploaded DIY image slots in order. Pages uses one slot for prepared faces/text. While MaskApp is active, app-built animations continuously repeat individual one-slot commands at their catalog-defined cadence. When the app receives its stop/lock lifecycle event, playback pauses its phone timer and makes a best-effort single-write multi-slot `PLAY` handoff so the mask can continue at its fixed, slower firmware cadence. Returning sends an immediate one-slot reclaim before configured app timing resumes. The Holy Priest set currently uses 150-240 ms per frame; the black/white flash uses 150 ms. | Implemented; lock/background handoff and foreground reclaim need follow-up real-mask tests |
 
 The original Android DIY flow caps storage at 20 numbered slots (`1..20`). Pages
 exposes preparation and refresh as explicit actions rather than implying that
@@ -135,7 +135,10 @@ six-frame Holy Priest bank. Six animations reuse those prepared cross,
 inversion, antihero, bass, sonar, and off-balance frames at independently
 configured 150-240 ms cadences. A built-in Holy Priest Page exposes the full
 face and animation collection and is available in Stage whenever Stage is using
-Pages rather than an active setlist.
+Pages rather than an active setlist. Stage animation tiles are tap-to-start so
+the app-wide session can continue after leaving Stage and can attempt the
+mask-owned lifecycle handoff when the phone locks;
+explicit Stop, Blackout, or another visual replaces it.
 Automatic Pages slot allocation skips those numbers;
 Face Studio's automatic custom-face allocation skips them too. An explicit
 user-selected face slot can still overwrite them, which invalidates the affected
@@ -199,14 +202,19 @@ encrypted-block upload handler in the bundled TR1906 images. Static DIY face
 upload is implemented in MaskApp. A full 46x58 calibration face
 was displayed on the user's physical mask on 2026-07-17, confirming canvas
 orientation and static visual output. App-built custom animations reuse this
-same static-frame upload path across several numbered DIY slots. Playback sends
-each requested slot as an individual one-slot `PLAY` command at the animation's
-configured interval and repeats the configured sequence until the user sends
-other content, leaves Gallery/Pages/Stage, or the mask disconnects. The phone
-advances the frames because
-the firmware's `SPEED` command does not affect DIY playback on the tested mask.
-The continuous cadence, battery impact, persistence, overwrite behavior, and ACK
-behavior still need physical confirmation.
+same static-frame upload path across several numbered DIY slots. While the app
+is active, playback sends each requested slot as an individual one-slot `PLAY`
+command at the animation's configured interval. Navigation between app pages no
+longer stops that app-wide session. When the MAUI window stops for lock or
+background, the engine pauses its timer and attempts one multi-slot `PLAY`
+command; after that write the mask owns the loop at its fixed firmware cadence.
+Returning to the app sends one single-slot command to reclaim the current app
+frame before resuming the configured timing. iOS declares `bluetooth-central`
+and requests a short, finite background execution window to finish this handoff;
+it does not keep the subsecond phone timer running indefinitely. `SPEED` does not
+affect DIY playback on the tested mask. The lifecycle handoff, sustained cadence,
+battery impact, persistence, overwrite behavior, and ACK behavior still need
+physical confirmation.
 
 Static DIY face upload has Java evidence from `UCropActivity` and
 `BitmapUtils.getBitmapData`: the original Android crop path uses a 46x58 crop
@@ -262,12 +270,15 @@ Expected procedure:
    each slot or which physical mask was prepared.
    App-built animations use the same rule per frame: each slot is uploaded only
    when its stored content fingerprint is missing or changed. Playback keeps a
-   list containing two to ten slot steps, but sends every entry as an individual
-   one-slot `PLAY` command at the animation's app-timed cadence. Repeated slot ids create
-   the pulse or color cycle without storing duplicate frames, and the app repeats
-   the list continuously. The phone must remain connected with Gallery, Pages, or Stage
-   active; another send, navigation away, disconnect, or command failure stops
-   the loop before later content is sent.
+   list of slot steps and sends every entry as an individual one-slot `PLAY`
+   command at the animation's app-timed cadence. Repeated slot ids create the
+   pulse or color cycle without storing duplicate frames, and the app repeats
+   the list continuously. Before suspension, continuous playback is handed to
+    the mask in one protocol-limited sequence of at most ten steps. Longer custom
+    sequences use their first ten steps for this background fallback. Finite
+   animations pause instead of being converted into an unintended endless loop.
+   Another send, explicit Stop/Blackout, disconnect, or command failure ends the
+   app-owned session; reconnect still does not replay content automatically.
    The visible Refresh action deliberately re-uploads every animation frame so
    it can recover after switching masks, clearing mask storage, or an out-of-band
    slot overwrite that the app cannot detect.
@@ -280,8 +291,11 @@ slow, and `SPEED` did not change it. A 75 ms app-timed sequence initially worked
 for a short test but later failed to produce a reliable black/white flash. The
 Holy Priest catalog therefore uses explicit per-animation delays, starting at
 150 ms for black/white and ranging up to 240 ms for slower motifs. Sustained
-looping, battery impact, GIF-ish playback, persistence, overwrite behavior, and
-ACK behavior remain unproven product capability.
+looping, the slower firmware-owned background cadence, lock-screen handoff,
+battery impact, GIF-ish playback, persistence, overwrite behavior, and ACK
+behavior remain unproven product capability. Force-stopping the app or losing
+the BLE link before the handoff write completes cannot be guaranteed by either
+mobile OS.
 
 ## Audio Visualization Protocol
 
@@ -339,7 +353,7 @@ encrypted 16-byte blocks and plaintext fallback.
 | Text upload | `DATS`, upload frames, `DATCP`, `MODE`, `SPEED` | Implemented MVP | Needs real-mask test |
 | Text colors/effects | `M`, `FC`, `BC` | Protocol-documented | Needs real-mask test |
 | DIY/custom image upload | `DATS`/payload/`DATCP`, `CHEC`, `PLAY`, `DELE` | Implemented Face Studio upload plus Library/Pages prepare-once and PLAY-only replay | Static 46x58 orientation and visual output confirmed; slot lifecycle and ACK behavior need real-mask tests |
-| App-built custom animation | Static DIY frames plus continuously repeated one-slot `PLAY` commands | Implemented Experimental catalog with per-frame fingerprints and configurable per-animation timing; Holy Priest currently uses 150-240 ms and unchanged shared frames are not re-uploaded | Firmware sequence and `SPEED` were ineffective for fast playback; each configured cadence, sustained battery impact, persistence, and visuals need real-mask tests |
+| App-built custom animation | Static DIY frames, continuously repeated one-slot `PLAY` commands, and a multi-slot background handoff | Implemented Experimental catalog with per-frame fingerprints, configurable per-animation foreground timing, app-wide playback ownership, and a best-effort mask-owned lock/background fallback; Holy Priest currently uses 150-240 ms | Firmware sequence is slower and `SPEED` is ineffective; foreground cadence, background handoff, battery impact, persistence, and visuals need real-mask tests |
 | Static text fast slot | Text rasterized into a 46x58 DIY image, then `PLAY` | Implemented in Pages; native text modes intentionally not preserved | Needs real-mask test |
 | Audio visualizer | audio characteristic encrypted packets | Documented only | Needs real-mask test |
 | RAVE command fallbacks | `LIGHT`, `IMAG`, `ANIM` | Implemented as test/fallback controls | Needs real-mask test |
@@ -358,12 +372,14 @@ Use this order:
 4. Keep long uploads out of the event-time path.
 5. Treat built-in IDs as test/fallback content until useful IDs are written down
    from real-mask scanning.
-6. Prepared Pages/Stage shortcuts use one DIY slot `PLAY`; app-built animations use a
-   continuously repeated per-animation-timed series of one-slot `PLAY` commands because
-   `SPEED` does not affect DIY playback on the tested mask. Stop that loop before
-   another send, on disconnect, and when leaving Gallery/Pages/Stage. Keep refresh
-   visible and do not treat app-local preparation metadata as a device inventory
-   until slot IDs, persistence, and revised playback timing are physically verified.
+6. Prepared Pages/Stage shortcuts use one DIY slot `PLAY`; app-built animations
+   use a continuously repeated per-animation-timed series of one-slot `PLAY`
+   commands because `SPEED` does not affect DIY playback on the tested mask.
+   On lock/background, pause that phone-timed loop and make one best-effort
+   multi-slot handoff to the mask during the lifecycle transition. Keep explicit Stop/Blackout and
+   disconnect cancellation, keep refresh visible, and do not treat app-local
+   preparation metadata as a device inventory until slot IDs, persistence,
+   foreground timing, and background handoff are physically verified.
 7. Keep audio visualizer, Drop Detector, Voice Mouth, Bass Face, GIF-ish
    playback, and real-time effects in Labs until deterministic real-mask tests
    pass.

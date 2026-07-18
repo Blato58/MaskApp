@@ -5,8 +5,11 @@ namespace MaskApp.Core.Features.Animations;
 
 public sealed class PerformanceAnimationEngine : IDisposable
 {
+    private const int MaxFirmwarePlaybackSteps = 10;
+
     private readonly object sync = new();
     private readonly SemaphoreSlim transitionGate = new(1, 1);
+    private readonly SemaphoreSlim frameSendGate = new(1, 1);
     private readonly IMaskCommandTransport commandTransport;
     private readonly IMaskEmergencyControl? emergencyControl;
     private readonly IAnimationClock clock;
@@ -15,6 +18,8 @@ public sealed class PerformanceAnimationEngine : IDisposable
     private PlaybackSession? currentSession;
     private AnimationPlaybackSnapshot snapshot = new();
     private long nextSessionId;
+    private long applicationLifecycleVersion;
+    private bool applicationIsBackgrounded;
     private bool disposed;
 
     public PerformanceAnimationEngine(
@@ -96,7 +101,7 @@ public sealed class PerformanceAnimationEngine : IDisposable
             MaskCommandResult firstResult;
             try
             {
-                firstResult = await SendFrameAsync(normalized.Frames[0], session.Cancellation.Token)
+                firstResult = await SendFrameCoreAsync(normalized.Frames[0], session.Cancellation.Token)
                     .ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (session.Cancellation.IsCancellationRequested)
@@ -120,9 +125,27 @@ public sealed class PerformanceAnimationEngine : IDisposable
             session.StartTimestamp = clock.GetTimestamp();
             session.Task = RunSessionAsync(session);
             UpdateSessionSnapshot(session, AnimationPlaybackState.Playing);
+            bool shouldHandOffImmediately;
+            long lifecycleVersion;
+            lock (sync)
+            {
+                shouldHandOffImmediately = applicationIsBackgrounded;
+                lifecycleVersion = applicationLifecycleVersion;
+            }
+
+            var immediateBackgroundHandoff = shouldHandOffImmediately
+                ? await HandOffCurrentSessionCoreAsync(CancellationToken.None, lifecycleVersion).ConfigureAwait(false)
+                : null;
+
             var handle = new AnimationPlaybackHandle(this, session.Id);
+            var backgroundBehavior = normalized.LoopMode == AnimationLoopMode.Continuous
+                ? "Lock/background attempts a one-command handoff to the mask's fixed firmware cadence; returning reclaims playback and resumes configured app timing."
+                : "Finite playback pauses while the app is backgrounded and resumes when it returns.";
+            var handoffStatus = immediateBackgroundHandoff is null
+                ? string.Empty
+                : $" {immediateBackgroundHandoff.Message}";
             return AnimationPlaybackStartResult.Success(
-                $"Started {normalized.DisplayName} with monotonic frame timing. {safetyDecision.Message}",
+                $"Started {normalized.DisplayName} with monotonic frame timing. {backgroundBehavior}{handoffStatus} {safetyDecision.Message}",
                 handle);
         }
         finally
@@ -147,9 +170,256 @@ public sealed class PerformanceAnimationEngine : IDisposable
         }
     }
 
+    public async Task<MaskCommandResult> HandOffToMaskForBackgroundAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        long lifecycleVersion;
+        lock (sync)
+        {
+            applicationIsBackgrounded = true;
+            lifecycleVersion = ++applicationLifecycleVersion;
+        }
+
+        await transitionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            lock (sync)
+            {
+                if (!applicationIsBackgrounded || lifecycleVersion != applicationLifecycleVersion)
+                {
+                    return MaskCommandResult.Success(
+                        "Skipped a stale background handoff because the app lifecycle changed.");
+                }
+            }
+
+            return await HandOffCurrentSessionCoreAsync(cancellationToken, lifecycleVersion).ConfigureAwait(false);
+        }
+        finally
+        {
+            transitionGate.Release();
+        }
+    }
+
+    private async Task<MaskCommandResult> HandOffCurrentSessionCoreAsync(
+        CancellationToken cancellationToken,
+        long lifecycleVersion)
+    {
+        PlaybackSession? session;
+        bool sendFirmwareLoop;
+        lock (sync)
+        {
+            session = currentSession;
+            if (session is null)
+            {
+                return MaskCommandResult.Success("No active app-timed animation needs a background handoff.");
+            }
+
+            if (session.IsBackgrounded && session.MaskOwnsPlayback)
+            {
+                return MaskCommandResult.Success("Animation is already handed off for background playback.");
+            }
+
+            sendFirmwareLoop = session.Animation.LoopMode == AnimationLoopMode.Continuous
+                && (!session.IsPaused || session.PausedForBackground);
+            session.IsBackgrounded = true;
+            session.MaskOwnsPlayback = false;
+            if (!session.IsPaused)
+            {
+                session.IsPaused = true;
+                session.PausedForBackground = true;
+                session.PauseStartedTimestamp = clock.GetTimestamp();
+            }
+
+            snapshot = CreateSnapshot(session, AnimationPlaybackState.Backgrounded);
+            SignalStateChangedLocked(session);
+        }
+
+        PublishSnapshot();
+        if (!sendFirmwareLoop)
+        {
+            return MaskCommandResult.Success(
+                "Animation is paused for background and will resume without replay when the app returns.");
+        }
+
+        var backgroundSlots = CreateFirmwarePlaybackSlots(session.Animation);
+        using var handoffCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            session.Cancellation.Token);
+        await frameSendGate.WaitAsync(handoffCancellation.Token).ConfigureAwait(false);
+        try
+        {
+            lock (sync)
+            {
+                if (!ReferenceEquals(currentSession, session)
+                    || !session.IsBackgrounded
+                    || session.Cancellation.IsCancellationRequested)
+                {
+                    return MaskCommandResult.Failure(
+                        "Animation ended before its background handoff could be sent.");
+                }
+
+                if (!applicationIsBackgrounded || lifecycleVersion != applicationLifecycleVersion)
+                {
+                    return MaskCommandResult.Success(
+                        "Skipped a stale background handoff because the app lifecycle changed.");
+                }
+            }
+
+            var result = await commandTransport.SendAsync(
+                FaceUploadProtocol.BuildPlayCommand(backgroundSlots),
+                handoffCancellation.Token).ConfigureAwait(false);
+            if (!result.Succeeded)
+            {
+                UpdateBackgroundPlaybackError(session, $"Background handoff failed: {result.Message}");
+                return result;
+            }
+
+            lock (sync)
+            {
+                if (ReferenceEquals(currentSession, session)
+                    && session.IsBackgrounded
+                    && !session.Cancellation.IsCancellationRequested)
+                {
+                    session.MaskOwnsPlayback = true;
+                }
+            }
+        }
+        finally
+        {
+            frameSendGate.Release();
+        }
+
+        var samplingNote = session.Animation.Frames.Count > MaxFirmwarePlaybackSteps
+            ? " The first 10 playback steps are used because PLAY carries at most 10 steps."
+            : string.Empty;
+        return MaskCommandResult.Success(
+            $"Sent the mask-owned playback handoff for lock/background. " +
+            $"The mask's fixed cadence may be slower than the configured app timing.{samplingNote}");
+    }
+
+    public async Task<MaskCommandResult> ResumeFromBackgroundAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        long lifecycleVersion;
+        lock (sync)
+        {
+            applicationIsBackgrounded = false;
+            lifecycleVersion = ++applicationLifecycleVersion;
+        }
+
+        await transitionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            PlaybackSession? session;
+            bool reclaimFirmwarePlayback;
+            lock (sync)
+            {
+                if (applicationIsBackgrounded || lifecycleVersion != applicationLifecycleVersion)
+                {
+                    return MaskCommandResult.Success(
+                        "Skipped a stale foreground resume because the app lifecycle changed.");
+                }
+
+                session = currentSession;
+                if (session is null)
+                {
+                    return MaskCommandResult.Success("No background animation session needs to resume.");
+                }
+
+                if (!session.IsBackgrounded)
+                {
+                    return MaskCommandResult.Success("Animation is already using app-timed playback.");
+                }
+
+                reclaimFirmwarePlayback = session.MaskOwnsPlayback && session.PausedForBackground;
+            }
+
+            if (reclaimFirmwarePlayback)
+            {
+                using var reclaimCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                    cancellationToken,
+                    session.Cancellation.Token);
+                await frameSendGate.WaitAsync(reclaimCancellation.Token).ConfigureAwait(false);
+                try
+                {
+                    int currentFrameSlot;
+                    lock (sync)
+                    {
+                        if (!ReferenceEquals(currentSession, session)
+                            || session.Cancellation.IsCancellationRequested)
+                        {
+                            return MaskCommandResult.Failure(
+                                "Animation ended before foreground playback could be reclaimed.");
+                        }
+
+                        currentFrameSlot = session.CurrentFrameSlot;
+                    }
+
+                    var reclaimResult = await commandTransport.SendAsync(
+                        FaceUploadProtocol.BuildPlayCommand([currentFrameSlot]),
+                        reclaimCancellation.Token).ConfigureAwait(false);
+                    if (!reclaimResult.Succeeded)
+                    {
+                        UpdateBackgroundPlaybackError(
+                            session,
+                            $"Foreground reclaim failed: {reclaimResult.Message}");
+                        return reclaimResult;
+                    }
+                }
+                finally
+                {
+                    frameSendGate.Release();
+                }
+            }
+
+            bool resumed;
+            lock (sync)
+            {
+                if (!ReferenceEquals(currentSession, session)
+                    || session.Cancellation.IsCancellationRequested)
+                {
+                    return MaskCommandResult.Failure(
+                        "Animation ended before foreground playback could resume.");
+                }
+
+                session.IsBackgrounded = false;
+                session.MaskOwnsPlayback = false;
+                resumed = session.PausedForBackground;
+                if (resumed)
+                {
+                    var now = clock.GetTimestamp();
+                    session.PendingDeadlineShift += clock.GetElapsedTime(session.PauseStartedTimestamp, now);
+                    session.PausedForBackground = false;
+                    session.IsPaused = false;
+                    snapshot = CreateSnapshot(session, AnimationPlaybackState.Playing);
+                    SignalStateChangedLocked(session);
+                }
+                else
+                {
+                    snapshot = CreateSnapshot(session, AnimationPlaybackState.Paused);
+                }
+            }
+
+            PublishSnapshot();
+            return resumed
+                ? MaskCommandResult.Success(
+                    reclaimFirmwarePlayback
+                        ? "Reclaimed mask playback and resumed configured app timing."
+                        : "Resumed configured app-timed animation playback.")
+                : MaskCommandResult.Success("Animation remains paused because it was paused before backgrounding.");
+        }
+        finally
+        {
+            transitionGate.Release();
+        }
+    }
+
     public async Task<MaskCommandResult> StopAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
+        RequestStopPlayback();
         await transitionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -167,25 +437,25 @@ public sealed class PerformanceAnimationEngine : IDisposable
     public async Task<MaskCommandResult> BlackoutAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
+        PlaybackSession? requestedSession;
+        lock (sync)
+        {
+            requestedSession = currentSession;
+            if (requestedSession is not null)
+            {
+                requestedSession.RequestedTerminalState = AnimationPlaybackState.BlackedOut;
+                requestedSession.Cancellation.Cancel();
+                SignalStateChangedLocked(requestedSession);
+            }
+        }
+
         await transitionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            PlaybackSession? session;
-            lock (sync)
+            if (requestedSession is not null)
             {
-                session = currentSession;
-                if (session is not null)
-                {
-                    session.RequestedTerminalState = AnimationPlaybackState.BlackedOut;
-                    session.Cancellation.Cancel();
-                    SignalStateChangedLocked(session);
-                }
-            }
-
-            if (session is not null)
-            {
-                await AwaitSessionAsync(session).ConfigureAwait(false);
-                CompleteSession(session, AnimationPlaybackState.BlackedOut, string.Empty);
+                await AwaitSessionAsync(requestedSession).ConfigureAwait(false);
+                CompleteSession(requestedSession, AnimationPlaybackState.BlackedOut, string.Empty);
             }
 
             return emergencyControl is null
@@ -328,7 +598,10 @@ public sealed class PerformanceAnimationEngine : IDisposable
     private bool ResumeLocked(long sessionId)
     {
         var session = currentSession;
-        if (session?.Id != sessionId || !session.IsPaused || session.Cancellation.IsCancellationRequested)
+        if (session?.Id != sessionId
+            || !session.IsPaused
+            || session.IsBackgrounded
+            || session.Cancellation.IsCancellationRequested)
         {
             return false;
         }
@@ -402,7 +675,13 @@ public sealed class PerformanceAnimationEngine : IDisposable
                 }
 
                 var frame = animation.Frames[nextFrameIndex];
-                var result = await SendFrameAsync(frame, session.Cancellation.Token).ConfigureAwait(false);
+                var result = await TrySendFrameAsync(session, frame, session.Cancellation.Token)
+                    .ConfigureAwait(false);
+                if (result is null)
+                {
+                    continue;
+                }
+
                 if (!result.Succeeded)
                 {
                     session.LastError = result.Message;
@@ -484,10 +763,77 @@ public sealed class PerformanceAnimationEngine : IDisposable
         }
     }
 
-    private Task<MaskCommandResult> SendFrameAsync(
+    private Task<MaskCommandResult> SendFrameCoreAsync(
         PerformanceAnimationFrame frame,
         CancellationToken cancellationToken) =>
         commandTransport.SendAsync(FaceUploadProtocol.BuildPlayCommand([frame.Slot]), cancellationToken);
+
+    private async Task<MaskCommandResult?> TrySendFrameAsync(
+        PlaybackSession session,
+        PerformanceAnimationFrame frame,
+        CancellationToken cancellationToken)
+    {
+        await frameSendGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            lock (sync)
+            {
+                if (!ReferenceEquals(currentSession, session)
+                    || session.IsPaused
+                    || session.Cancellation.IsCancellationRequested)
+                {
+                    return null;
+                }
+            }
+
+            var result = await SendFrameCoreAsync(frame, cancellationToken).ConfigureAwait(false);
+            if (result.Succeeded)
+            {
+                lock (sync)
+                {
+                    if (ReferenceEquals(currentSession, session))
+                    {
+                        session.CurrentFrameSlot = frame.Slot;
+                    }
+                }
+            }
+
+            return result;
+        }
+        finally
+        {
+            frameSendGate.Release();
+        }
+    }
+
+    private static IReadOnlyList<int> CreateFirmwarePlaybackSlots(PerformanceAnimation animation)
+    {
+        if (animation.Frames.Count <= MaxFirmwarePlaybackSteps)
+        {
+            return animation.Frames.Select(frame => frame.Slot).ToArray();
+        }
+
+        return animation.Frames
+            .Take(MaxFirmwarePlaybackSteps)
+            .Select(frame => frame.Slot)
+            .ToArray();
+    }
+
+    private void UpdateBackgroundPlaybackError(PlaybackSession session, string message)
+    {
+        lock (sync)
+        {
+            if (!ReferenceEquals(currentSession, session))
+            {
+                return;
+            }
+
+            session.LastError = message;
+            snapshot = CreateSnapshot(session, AnimationPlaybackState.Backgrounded);
+        }
+
+        PublishSnapshot();
+    }
 
     private async Task StopCurrentSessionCoreAsync(bool restorePreviousLook)
     {
@@ -511,7 +857,33 @@ public sealed class PerformanceAnimationEngine : IDisposable
             await RestorePreviousLookOnceAsync(session, CancellationToken.None).ConfigureAwait(false);
         }
 
+        if (!restorePreviousLook || !session.RestoreSucceeded)
+        {
+            await ReclaimMaskOwnedPlaybackIfNeededAsync(session).ConfigureAwait(false);
+        }
+
         CompleteSession(session, AnimationPlaybackState.Stopped, session.LastError);
+    }
+
+    private async Task ReclaimMaskOwnedPlaybackIfNeededAsync(PlaybackSession session)
+    {
+        int slot;
+        lock (sync)
+        {
+            if (!session.IsBackgrounded
+                || !session.PausedForBackground
+                || session.Animation.LoopMode != AnimationLoopMode.Continuous)
+            {
+                return;
+            }
+
+            slot = session.CurrentFrameSlot;
+            session.MaskOwnsPlayback = false;
+        }
+
+        await commandTransport.SendAsync(
+            FaceUploadProtocol.BuildPlayCommand([slot]),
+            CancellationToken.None).ConfigureAwait(false);
     }
 
     private static async Task AwaitSessionAsync(PlaybackSession session)
@@ -536,6 +908,7 @@ public sealed class PerformanceAnimationEngine : IDisposable
         }
 
         var result = await restore(cancellationToken).ConfigureAwait(false);
+        session.RestoreSucceeded = result.Succeeded;
         if (!result.Succeeded)
         {
             session.LastError = $"Previous look could not be restored: {result.Message}";
@@ -653,6 +1026,7 @@ public sealed class PerformanceAnimationEngine : IDisposable
             Request = request;
             Cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             StartedAt = DateTimeOffset.UtcNow;
+            CurrentFrameSlot = animation.Frames[0].Slot;
         }
 
         public long Id { get; }
@@ -677,6 +1051,14 @@ public sealed class PerformanceAnimationEngine : IDisposable
 
         public bool IsPaused { get; set; }
 
+        public bool IsBackgrounded { get; set; }
+
+        public bool PausedForBackground { get; set; }
+
+        public bool MaskOwnsPlayback { get; set; }
+
+        public int CurrentFrameSlot { get; set; }
+
         public long FramesSent { get; set; }
 
         public long FramesDropped { get; set; }
@@ -690,6 +1072,8 @@ public sealed class PerformanceAnimationEngine : IDisposable
         public string LastError { get; set; } = string.Empty;
 
         public int RestoreAttempted;
+
+        public bool RestoreSucceeded { get; set; }
 
         public static TaskCompletionSource<bool> CreateSignal() =>
             new(TaskCreationOptions.RunContinuationsAsynchronously);

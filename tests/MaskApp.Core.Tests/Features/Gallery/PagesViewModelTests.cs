@@ -118,7 +118,11 @@ public sealed class PagesViewModelTests
         Assert.True(pageIndex >= 0);
         Assert.Equal("Holy Priest", show.PageTitle);
         Assert.Equal(12, show.Tiles.Count);
-        Assert.Equal(6, show.Tiles.Count(tile => tile.ItemType == GalleryItemType.AppBuiltInAnimation));
+        var animations = show.Tiles
+            .Where(tile => tile.ItemType == GalleryItemType.AppBuiltInAnimation)
+            .ToArray();
+        Assert.Equal(6, animations.Length);
+        Assert.All(animations, tile => Assert.False(tile.IsHoldAction));
         Assert.Equal(6, show.Tiles.Count(tile => tile.ItemType == GalleryItemType.CustomStaticFace));
     }
 

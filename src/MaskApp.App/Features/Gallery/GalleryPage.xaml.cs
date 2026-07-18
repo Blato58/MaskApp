@@ -28,7 +28,6 @@ public partial class GalleryPage : ContentPage
 
     protected override void OnDisappearing()
     {
-        viewModel.StopMaskAnimation();
         viewModel.StopPreviewAnimations();
         base.OnDisappearing();
     }

@@ -289,8 +289,8 @@ public sealed class DiySlotPlaybackCoordinator
 
             var playedMessage = animation is not null
                 ? preparation.UploadedSlotCount == 0
-                    ? $"Started continuous deadline-timed playback for {displayName} from prepared DIY slots · no upload; keep this page open"
-                    : $"Uploaded {preparation.UploadedSlotCount} DIY slot(s) once and started continuous deadline-timed playback for {displayName} · keep this page open; later plays skip upload"
+                    ? $"Started continuous configured-timing playback for {displayName} from prepared DIY slots · no upload; lock/background attempts the mask-owned fallback"
+                    : $"Uploaded {preparation.UploadedSlotCount} DIY slot(s) once and started continuous configured-timing playback for {displayName} · lock/background attempts the mask-owned fallback; later plays skip upload"
                 : preparation.UploadedSlotCount == 0
                     ? $"Sent PLAY for {displayName} from prepared DIY slots · no upload; confirm on mask"
                     : $"Uploaded {preparation.UploadedSlotCount} DIY slot(s) once and sent PLAY for {displayName} · confirm on mask; later plays use PLAY only";

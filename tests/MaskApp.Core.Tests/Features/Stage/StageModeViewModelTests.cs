@@ -102,6 +102,23 @@ public sealed class StageModeViewModelTests
     }
 
     [Fact]
+    public async Task Deactivate_ReleasesActiveHoldBeforeLeavingStage()
+    {
+        var fixture = CreateFixture();
+        await fixture.ViewModel.ActivateAsync();
+        var stable = fixture.ViewModel.Tiles[0];
+        var hold = fixture.ViewModel.Tiles[1];
+        await fixture.ViewModel.TriggerAsync(stable);
+        await fixture.ViewModel.BeginHoldAsync(hold);
+
+        await fixture.ViewModel.DeactivateAsync();
+
+        Assert.False(fixture.ViewModel.IsHoldActive);
+        Assert.False(fixture.Display.IsKeepAwake);
+        Assert.Equal([stable.TileId, hold.TileId, stable.TileId], fixture.Source.TriggeredTileIds);
+    }
+
+    [Fact]
     public async Task DisconnectPreservesSession_ReconnectRequiresExplicitRecovery_AndNeverReplays()
     {
         var fixture = CreateFixture();
