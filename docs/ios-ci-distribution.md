@@ -79,6 +79,11 @@ Every push to `master` runs `.github/workflows/ios-ipa.yml`, builds the signed
 IPA, creates or updates a GitHub Release, and updates the GitHub Pages install
 site with the release-backed IPA URL.
 
+Core tests and the Android build still gate push, tag, and manual distribution
+runs. The separate unsigned iOS simulator build runs only for pull requests;
+distribution runs use the signed `ios-arm64` publish as their iOS compilation
+gate instead of compiling the app twice on separate macOS runners.
+
 For `master` branch pushes, the release tag is generated as
 `ios-v<ApplicationDisplayVersion>-<GitHub run number>`.
 
