@@ -168,7 +168,7 @@
                         <Label Text="Recent connection activity" Style="{StaticResource SectionTitleLabelStyle}" />
                         <VerticalStackLayout BindableLayout.ItemsSource="{Binding ReconnectHistory}" Spacing="4">
                             <BindableLayout.ItemTemplate>
-                                <DataTemplate>
+                                <DataTemplate x:DataType="x:String">
                                     <Label Text="{Binding .}" Style="{StaticResource TinyLabelStyle}" MaxLines="2" />
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>
@@ -205,7 +205,7 @@
                         <Label Text="Recent redacted errors" Style="{StaticResource SectionTitleLabelStyle}" />
                         <VerticalStackLayout BindableLayout.ItemsSource="{Binding RecentRedactedErrors}" Spacing="4">
                             <BindableLayout.ItemTemplate>
-                                <DataTemplate>
+                                <DataTemplate x:DataType="x:String">
                                     <Label Text="{Binding .}" Style="{StaticResource TinyLabelStyle}" MaxLines="3" />
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>
