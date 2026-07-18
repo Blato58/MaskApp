@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="MaskApp.App.Features.AnimationPacks.MaskPackPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:packs="clr-namespace:MaskApp.Core.Features.AnimationPacks;assembly=MaskApp.Core"
+    x:DataType="packs:MaskPackViewModel"
+    Title="MaskPack"
+    BackgroundColor="{StaticResource PageBackgroundColor}">
+    <ScrollView>
+        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="16">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="MaskPack" Style="{StaticResource PageTitleLabelStyle}" />
+                    <Label Text="Move an offline show package through Files, AirDrop, or the share sheet." Style="{StaticResource MutedLabelStyle}" />
+                </VerticalStackLayout>
+                <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+            </Grid>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Import" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="The archive is bounded, hash-checked, and semantically validated before local content changes." Style="{StaticResource MutedLabelStyle}" />
+                    <Button Text="Choose MaskPack from Files" Clicked="OnChoosePackClicked" Style="{StaticResource PrimaryButtonStyle}" />
+                    <Label Text="{Binding InspectionSummary}" FontAttributes="Bold" />
+                    <Label Text="{Binding DetailsText}" Style="{StaticResource TinyLabelStyle}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}" IsVisible="{Binding HasConflicts}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Conflict preview" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="Choose a result for each existing ID. Merge keeps exact matches and safely renames different content." Style="{StaticResource MutedLabelStyle}" />
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Conflicts}" Spacing="10">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="packs:MaskPackConflictChoice">
+                                <Border Padding="12" Stroke="#64748B" BackgroundColor="#111827">
+                                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
+                                        <Label Text="{Binding Title}" FontAttributes="Bold" />
+                                        <Label Grid.Row="1" Text="{Binding Detail}" Style="{StaticResource TinyLabelStyle}" />
+                                        <Picker
+                                            Grid.Row="2"
+                                            Title="Conflict action"
+                                            ItemsSource="{Binding ResolutionOptions}"
+                                            SelectedItem="{Binding Resolution, Mode=TwoWay}"
+                                            SemanticProperties.Description="Conflict import action" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" IsVisible="{Binding RequiresReplaceConfirmation}">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Confirm destructive replacement" FontAttributes="Bold" />
+                            <Label Text="Replacement overwrites the selected local IDs. Built-in faces are never replaceable." Style="{StaticResource TinyLabelStyle}" />
+                        </VerticalStackLayout>
+                        <Switch Grid.Column="1" IsToggled="{Binding ConfirmReplace, Mode=TwoWay}" SemanticProperties.Description="Confirm replacement of existing content" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Button
+                Text="Import inspected package"
+                Command="{Binding ImportCommand}"
+                IsVisible="{Binding HasValidInspection}"
+                Style="{StaticResource PrimaryButtonStyle}" />
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Export" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="Export user faces, animations and timing, text presets, Pages, Scenes, setlists, and safe Library ordering." Style="{StaticResource MutedLabelStyle}" />
+                    <Entry Placeholder="Pack name" Text="{Binding PackName, Mode=TwoWay}" />
+                    <Entry Placeholder="Author" Text="{Binding Author, Mode=TwoWay}" />
+                    <Button Text="Export and share MaskPack" Clicked="OnExportPackClicked" Style="{StaticResource SecondaryButtonStyle}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource StatusBorderStyle}">
+                <Label Text="{Binding StatusText}" />
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
