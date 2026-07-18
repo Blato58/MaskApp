@@ -71,7 +71,7 @@ public sealed class PerformanceAnimationBuilder
                 .Select(slot => new PerformanceAnimationFrame
                 {
                     Slot = playbackSlotMap[slot],
-                    Duration = defaultFrameDuration
+                    Duration = animation.FrameDuration ?? defaultFrameDuration
                 })
                 .ToArray(),
             LoopMode = loopMode,

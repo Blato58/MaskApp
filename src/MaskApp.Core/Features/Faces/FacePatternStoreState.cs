@@ -5,7 +5,7 @@ public sealed record FacePatternStoreState
     public const int LegacySchemaVersion = 1;
     public const int PreviousSchemaVersion = 2;
     public const int CurrentSchemaVersion = 3;
-    public const int CurrentSeedVersion = 7;
+    public const int CurrentSeedVersion = 8;
 
     public static FacePatternStoreState Seeded => new()
     {

@@ -4,6 +4,7 @@ using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.Gallery;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.QuickActions;
+using MaskApp.Core.Features.Stage;
 using MaskApp.Core.Features.Text;
 using MaskApp.Core.Features.TextPresets;
 
@@ -90,16 +91,35 @@ public sealed class PagesViewModelTests
         await viewModel.InitializeAsync();
         await viewModel.AddPageCommand.ExecuteAsync();
 
-        Assert.Equal(3, viewModel.Pages.Count);
-        Assert.Equal("Page 3 of 3", viewModel.PagePositionText);
-        Assert.Equal("ON", viewModel.Pages[2].DotText);
+        Assert.Equal(4, viewModel.Pages.Count);
+        Assert.Equal("Page 4 of 4", viewModel.PagePositionText);
+        Assert.Equal("ON", viewModel.Pages[3].DotText);
         Assert.Equal("OFF", viewModel.Pages[0].DotText);
 
         await viewModel.Pages[0].SelectCommand.ExecuteAsync();
 
-        Assert.Equal("Page 1 of 3", viewModel.PagePositionText);
+        Assert.Equal("Page 1 of 4", viewModel.PagePositionText);
         Assert.Equal("ON", viewModel.Pages[0].DotText);
-        Assert.Equal("OFF", viewModel.Pages[2].DotText);
+        Assert.Equal("OFF", viewModel.Pages[3].DotText);
+    }
+
+    [Fact]
+    public async Task BuiltInHolyPriestPage_IsAvailableAsDedicatedStagePage()
+    {
+        var viewModel = CreateViewModel();
+        var stageSource = new PagesStageShowSource(viewModel);
+
+        await stageSource.InitializeAsync();
+        var pageIndex = Array.FindIndex(
+            viewModel.Pages.ToArray(),
+            page => page.PageId == BuiltInGalleryPages.HolyPriestPageId);
+        var show = await stageSource.SelectPageAsync(pageIndex);
+
+        Assert.True(pageIndex >= 0);
+        Assert.Equal("Holy Priest", show.PageTitle);
+        Assert.Equal(12, show.Tiles.Count);
+        Assert.Equal(6, show.Tiles.Count(tile => tile.ItemType == GalleryItemType.AppBuiltInAnimation));
+        Assert.Equal(6, show.Tiles.Count(tile => tile.ItemType == GalleryItemType.CustomStaticFace));
     }
 
     [Fact]
@@ -150,7 +170,8 @@ public sealed class PagesViewModelTests
         var saved = layoutStore.State.Pages
             .SelectMany(page => page.Items)
             .Single(item => item.GalleryItemId == $"text:{preset.Id.Value}");
-        Assert.Equal(FacePattern.MaxSlot, saved.FastMaskSlot);
+        Assert.Equal(14, saved.FastMaskSlot);
+        Assert.DoesNotContain(saved.FastMaskSlot!.Value, AppBuiltInAnimationCatalog.ReservedSlots);
         Assert.NotEmpty(saved.FastContentFingerprint);
         Assert.True(Assert.Single(viewModel.Shortcuts).IsFastSlotPrepared);
 
@@ -250,18 +271,19 @@ public sealed class PagesViewModelTests
         await shortcut.SendCommand.ExecuteAsync();
         shortcut = viewModel.Shortcuts.Single(item => item.Item.Id == animation.Id);
         await shortcut.SendCommand.ExecuteAsync();
+        viewModel.StopMaskAnimation();
 
         var playbackSlots = AppBuiltInAnimationCatalog.CreateBuiltIns()[0].PlaybackSlots;
         Assert.Equal(2, faceTransport.UploadCount);
-        Assert.Equal(2, commandTransport.Commands.Count);
+        Assert.True(commandTransport.Commands.Count >= 2);
+        Assert.Equal((byte)playbackSlots[0], commandTransport.Commands[0].Plaintext.Span[6]);
         Assert.All(commandTransport.Commands, command =>
         {
             Assert.Equal(MaskCommandKind.FacePlay, command.Kind);
             Assert.Equal(1, command.Plaintext.Span[5]);
-            Assert.Equal((byte)playbackSlots[0], command.Plaintext.Span[6]);
+            Assert.Contains(command.Plaintext.Span[6], playbackSlots.Select(slot => (byte)slot));
         });
         Assert.True(viewModel.Shortcuts.Single(item => item.Item.Id == animation.Id).IsFastSlotPrepared);
-        viewModel.StopMaskAnimation();
     }
 
     [Fact]
@@ -282,8 +304,8 @@ public sealed class PagesViewModelTests
         await shortcut.PrepareCommand.ExecuteAsync();
 
         Assert.Equal(4, faceTransport.UploadCount);
-        Assert.Single(commandTransport.Commands);
-        Assert.Equal(MaskCommandKind.FacePlay, commandTransport.Commands[0].Kind);
+        Assert.NotEmpty(commandTransport.Commands);
+        Assert.All(commandTransport.Commands, command => Assert.Equal(MaskCommandKind.FacePlay, command.Kind));
         Assert.Contains("Refreshed", viewModel.StatusText, StringComparison.OrdinalIgnoreCase);
         Assert.True(viewModel.Shortcuts.Single(item => item.Item.Id == animation.Id).IsFastSlotPrepared);
     }
@@ -476,11 +498,10 @@ public sealed class PagesViewModelTests
         facePatternStore ??= new InMemoryFacePatternStore();
         commandTransport ??= new RecordingCommandTransport();
         faceTransport ??= new RecordingFaceTransport();
-        var diySlotPlayback = new DiySlotPlaybackCoordinator(
+        var diySlotPlayback = CreateAcknowledgedDiySlotPlayback(
             facePatternStore,
             faceTransport,
-            commandTransport,
-            fastAnimationFrameInterval: TimeSpan.FromDays(1));
+            commandTransport);
         return new PagesViewModel(
             new QuickActionCatalog(),
             new InMemoryTextPresetStore(new TextPresetStoreState { Presets = textPresets ?? [] }),
@@ -493,6 +514,38 @@ public sealed class PagesViewModelTests
             new RecordingTextTransport(),
             faceTransport,
             diySlotPlayback);
+    }
+
+    private static DiySlotPlaybackCoordinator CreateAcknowledgedDiySlotPlayback(
+        IFacePatternStore facePatternStore,
+        IFaceUploadTransport faceTransport,
+        IMaskCommandTransport commandTransport)
+    {
+        var builder = new PerformanceAnimationBuilder(PerformanceAnimation.MaxFrameDuration);
+        var analyzer = new FlashSafetyAnalyzer();
+        var acknowledgements = AppBuiltInAnimationCatalog.CreateBuiltIns()
+            .Select(animation => builder.FromAppBuiltIn(animation))
+            .Select(analyzer.Analyze)
+            .Where(assessment => !assessment.IsSafeByDefault)
+            .Select(assessment => new FlashSafetyAcknowledgement
+            {
+                ContentId = assessment.ContentId,
+                RevisionHash = assessment.RevisionHash,
+                AcknowledgedAt = DateTimeOffset.UtcNow,
+                Warning = FlashSafetyAcknowledgementService.RequiredWarning
+            })
+            .ToArray();
+        var engine = new PerformanceAnimationEngine(
+            commandTransport,
+            flashSafetyAnalyzer: analyzer,
+            flashSafetyAcknowledgementStore: new InMemoryFlashSafetyAcknowledgementStore(
+                new FlashSafetyAcknowledgementState { Acknowledgements = acknowledgements }));
+        return new DiySlotPlaybackCoordinator(
+            facePatternStore,
+            faceTransport,
+            commandTransport,
+            engine,
+            builder);
     }
 
     private static PageAddItemViewModel CreateAddItemViewModel(

@@ -92,8 +92,8 @@ public sealed class GalleryPageShortcutCard : INotifyPropertyChanged
             : $"{Item.PerformanceAnimation.StoredFrames.Count} unique DIY slots · prepare once"
         : Item.AppAnimation is not null
         ? IsFastSlotPrepared
-            ? $"{Item.AppAnimation.Frames.Count} DIY slots · continuous 75 ms PLAY"
-            : $"{Item.AppAnimation.Frames.Count} DIY slots · prepare once"
+            ? $"{Item.AppAnimation.Frames.Count} DIY slots · continuous {Item.AppAnimation.FrameDurationMilliseconds} ms PLAY"
+            : $"{Item.AppAnimation.Frames.Count} DIY slots · {Item.AppAnimation.FrameDurationMilliseconds} ms · prepare once"
         : (IsFastSlotCapable, IsFastSlotPrepared, Layout.FastMaskSlot) switch
         {
             (true, true, int slot) => $"Fast slot {slot} · instant",

@@ -18,6 +18,12 @@ public sealed record AppBuiltInAnimation
 
     public bool IsFavorite { get; init; } = true;
 
+    public TimeSpan? FrameDuration { get; init; }
+
+    public int FrameDurationMilliseconds => (int)Math.Round(
+        (FrameDuration ?? PerformanceAnimationBuilder.DefaultFrameDuration).TotalMilliseconds,
+        MidpointRounding.AwayFromZero);
+
     public IReadOnlyList<AppBuiltInAnimationFrame> Frames { get; init; } = [];
 
     public IReadOnlyList<int> PlaybackSlots { get; init; } = [];
@@ -62,6 +68,16 @@ public sealed record AppBuiltInAnimation
         if (playbackSlots.Any(slot => !frameSlots.Contains(slot)))
         {
             throw new ArgumentException("Animation playback can only reference its stored frame slots.", nameof(PlaybackSlots));
+        }
+
+        if (FrameDuration is { } frameDuration &&
+            (frameDuration < PerformanceAnimation.MinFrameDuration ||
+             frameDuration > PerformanceAnimation.MaxFrameDuration))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(FrameDuration),
+                frameDuration,
+                $"Animation frame duration must be between {PerformanceAnimation.MinFrameDuration.TotalMilliseconds:0} and {PerformanceAnimation.MaxFrameDuration.TotalMilliseconds:0} ms.");
         }
 
         return this with

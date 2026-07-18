@@ -38,6 +38,11 @@ public static class FacePatternFactory
             CreateCharacter("cyclops", "Happy Cyclops", now),
             CreateCharacter("sleepy", "Sleepy Face", now),
             CreateCharacter("holy-priest-cross", "Holy Priest · Cross", now),
+            CreateCharacter("holy-priest-antihero", "Holy Priest · Masked Antihero", now),
+            CreateCharacter("holy-priest-bass-powah", "Holy Priest · Bass Pistons", now),
+            CreateCharacter("holy-priest-atlantis", "Holy Priest · Atlantis Sonar", now),
+            CreateCharacter("holy-priest-no-balance", "Holy Priest · No Balance", now),
+            CreateCharacter("holy-priest-retro-future", "Holy Priest · 90s → Future", now),
             CreateCharacter("mask-calibration", "Mask Calibration · Color Anchors", now)
         ];
     }

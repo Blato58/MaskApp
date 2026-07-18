@@ -74,6 +74,11 @@ internal static class FaceArtwork
             case "holy-priest-inverted": DrawHolyPriestMask(canvas, FaceColor.Black, PureWhite); break;
             case "holy-priest-red": DrawHolyPriestMask(canvas, PureWhite, PureRed); break;
             case "holy-priest-blue": DrawHolyPriestMask(canvas, PureWhite, PureBlue); break;
+            case "holy-priest-antihero": DrawHolyPriestAntihero(canvas); break;
+            case "holy-priest-bass-powah": DrawHolyPriestBassPowah(canvas); break;
+            case "holy-priest-atlantis": DrawHolyPriestAtlantis(canvas); break;
+            case "holy-priest-no-balance": DrawHolyPriestNoBalance(canvas); break;
+            case "holy-priest-retro-future": DrawHolyPriestRetroFuture(canvas); break;
             default: throw new ArgumentOutOfRangeException(nameof(artworkId), artworkId, "Unknown face artwork.");
         }
     }
@@ -544,6 +549,104 @@ internal static class FaceArtwork
         {
             canvas.FillRect(left, row, width, 1, FaceColor.Black);
         }
+    }
+
+    private static void DrawHolyPriestAntihero(FaceArtCanvas canvas)
+    {
+        canvas.FillRect(0, 0, FacePattern.Width, FacePattern.Height, FaceColor.Black);
+        canvas.FillPolygon(DeepBlue, (8, 5), (37, 5), (44, 30), (35, 51), (23, 57), (10, 51), (1, 30));
+        canvas.FillPolygon(Ink, (11, 8), (34, 8), (40, 29), (32, 47), (23, 53), (13, 47), (5, 29));
+
+        canvas.Line(4, 14, 41, 14, Cyan, 2);
+        canvas.Line(4, 22, 41, 22, White, 2);
+        canvas.Line(7, 23, 38, 15, Cyan, 2);
+        canvas.FillRect(19, 25, 8, 20, DeepRed);
+        canvas.FillRect(21, 27, 4, 16, Red);
+        canvas.FillRect(17, 47, 12, 3, White);
+        canvas.FillCircle(23, 35, 2, PureWhite);
+    }
+
+    private static void DrawHolyPriestBassPowah(FaceArtCanvas canvas)
+    {
+        canvas.FillRect(0, 0, FacePattern.Width, FacePattern.Height, FaceColor.Black);
+        canvas.FillRect(3, 8, 40, 7, DeepRed);
+        canvas.FillRect(6, 10, 34, 3, Red);
+        canvas.Line(5, 20, 40, 20, White, 2);
+
+        (int Left, int Top, int Height)[] pistons = [(5, 27, 23), (18, 22, 31), (31, 29, 19)];
+        foreach (var (left, top, height) in pistons)
+        {
+            canvas.FillRect(left, top, 10, height, DeepRed);
+            canvas.FillRect(left + 2, top + 2, 6, height - 4, Red);
+            canvas.FillRect(left, top - 3, 10, 4, Orange);
+            canvas.FillRect(left + 3, top - 5, 4, 3, White);
+        }
+
+        canvas.Line(2, 55, 43, 55, Orange, 2);
+        canvas.PlotMany(Cyan, (4, 18), (23, 18), (41, 18), (10, 53), (35, 53));
+    }
+
+    private static void DrawHolyPriestAtlantis(FaceArtCanvas canvas)
+    {
+        canvas.FillRect(0, 0, FacePattern.Width, FacePattern.Height, FaceColor.Black);
+        canvas.FillEllipse(23, 30, 21, 25, DeepBlue);
+        canvas.FillEllipse(23, 30, 18, 21, FaceColor.Black);
+        canvas.FillEllipse(23, 30, 15, 18, Blue);
+        canvas.FillEllipse(23, 30, 12, 14, FaceColor.Black);
+        canvas.FillEllipse(23, 30, 8, 10, Cyan);
+        canvas.FillEllipse(23, 30, 5, 6, FaceColor.Black);
+        canvas.FillCircle(23, 30, 2, PureWhite);
+
+        canvas.Line(4, 14, 41, 14, Cyan, 1);
+        canvas.Line(2, 45, 43, 45, Blue, 2);
+        canvas.FillPolygon(White, (23, 8), (18, 15), (28, 15));
+        canvas.FillPolygon(DeepBlue, (23, 51), (17, 43), (29, 43));
+    }
+
+    private static void DrawHolyPriestNoBalance(FaceArtCanvas canvas)
+    {
+        canvas.FillRect(0, 0, FacePattern.Width, FacePattern.Height, FaceColor.Black);
+        canvas.FillCircle(18, 29, 18, DeepPurple);
+        canvas.FillCircle(18, 29, 14, FaceColor.Black);
+        canvas.Line(18, 7, 39, 29, Purple, 3);
+        canvas.Line(39, 29, 18, 51, Purple, 3);
+        canvas.Line(18, 51, 2, 29, Orange, 3);
+        canvas.Line(2, 29, 18, 7, Orange, 3);
+        canvas.Line(7, 46, 38, 12, Cyan, 2);
+        canvas.FillCircle(18, 29, 4, Orange);
+        canvas.FillCircle(18, 29, 2, PureWhite);
+        canvas.FillRect(35, 25, 7, 7, Cyan);
+        canvas.FillRect(37, 27, 3, 3, FaceColor.Black);
+    }
+
+    private static void DrawHolyPriestRetroFuture(FaceArtCanvas canvas)
+    {
+        canvas.FillRect(0, 0, FacePattern.Width, FacePattern.Height, FaceColor.Black);
+        canvas.FillRect(8, 6, 30, 3, DeepPurple);
+        canvas.FillRect(11, 9, 24, 3, Purple);
+        canvas.FillRect(14, 12, 18, 3, Cyan);
+        canvas.FillRect(17, 15, 12, 3, White);
+        canvas.FillRect(20, 18, 6, 9, Pink);
+
+        canvas.Line(2, 31, 43, 31, Cyan, 2);
+        foreach (var bottomX in new[] { 1, 8, 16, 30, 38, 45 })
+        {
+            canvas.Line(23, 31, bottomX, 57, Purple, 1);
+        }
+
+        (int Row, int Left, int Right)[] horizonRows =
+        [
+            (35, 18, 28),
+            (40, 14, 32),
+            (46, 9, 37),
+            (53, 4, 42)
+        ];
+        foreach (var (row, left, right) in horizonRows)
+        {
+            canvas.Line(left, row, right, row, DeepPurple, 2);
+        }
+
+        canvas.PlotMany(White, (5, 24), (40, 21), (9, 17), (35, 27), (23, 55));
     }
 
     private static void DrawMaskCalibration(FaceArtCanvas canvas)

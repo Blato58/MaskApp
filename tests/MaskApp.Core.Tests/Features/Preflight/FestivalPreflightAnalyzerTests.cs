@@ -111,6 +111,7 @@ public sealed class FestivalPreflightAnalyzerTests
     public void Analyze_UnsafeAnimation_IsBlockedUntilExactRevisionIsAcknowledged()
     {
         var animation = AppBuiltInAnimationCatalog.CreateBuiltIns()[0];
+        Assert.Equal(150, animation.FrameDurationMilliseconds);
         var performanceAnimation = new PerformanceAnimationBuilder().FromAppBuiltIn(animation);
         var safetyAssessment = new FlashSafetyAnalyzer().Analyze(performanceAnimation);
         Assert.False(safetyAssessment.IsSafeByDefault);
@@ -153,7 +154,10 @@ public sealed class FestivalPreflightAnalyzerTests
         });
 
         Assert.Equal(FestivalPreflightStatus.NotReady, blocked.Status);
-        Assert.Contains(blocked.Issues, issue => issue.Code == "flash-safety-blocked");
+        var blockedIssue = Assert.Single(blocked.Issues, issue => issue.Code == "flash-safety-blocked");
+        Assert.Contains(animation.DisplayName, blockedIssue.Message, StringComparison.Ordinal);
+        Assert.Contains("Playback blocked", blockedIssue.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("explicitly acknowledge", blockedIssue.RecoveryAction, StringComparison.OrdinalIgnoreCase);
         Assert.Single(blocked.FlashSafetyResults);
         Assert.Equal(FestivalPreflightStatus.Degraded, acknowledged.Status);
         Assert.DoesNotContain(acknowledged.Issues, issue => issue.Code == "flash-safety-blocked");

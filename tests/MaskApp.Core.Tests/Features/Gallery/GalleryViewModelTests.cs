@@ -300,18 +300,19 @@ public sealed class GalleryViewModelTests
 
         await viewModel.SendAsync(animation);
         await viewModel.SendAsync(animation);
+        viewModel.StopMaskAnimation();
 
         var playbackSlots = AppBuiltInAnimationCatalog.CreateBuiltIns()[0].PlaybackSlots;
         Assert.Equal(2, faceTransport.Packages.Count);
-        Assert.Equal(2, commandTransport.SentCommands.Count);
+        Assert.True(commandTransport.SentCommands.Count >= 2);
+        Assert.Equal((byte)playbackSlots[0], commandTransport.SentCommands[0].Plaintext.Span[6]);
         Assert.All(commandTransport.SentCommands, command =>
         {
             Assert.Equal(MaskCommandKind.FacePlay, command.Kind);
             Assert.Equal(1, command.Plaintext.Span[5]);
-            Assert.Equal((byte)playbackSlots[0], command.Plaintext.Span[6]);
+            Assert.Contains(command.Plaintext.Span[6], playbackSlots.Select(slot => (byte)slot));
         });
         Assert.Contains("no upload", viewModel.StatusText, StringComparison.OrdinalIgnoreCase);
-        viewModel.StopMaskAnimation();
     }
 
     private static GalleryViewModel CreateViewModel(
@@ -331,11 +332,10 @@ public sealed class GalleryViewModelTests
         commandTransport ??= new RecordingCommandTransport();
         faceTransport ??= new RecordingFaceTransport();
         var textTransport = new RecordingTextTransport();
-        var diySlotPlayback = new DiySlotPlaybackCoordinator(
+        var diySlotPlayback = CreateAcknowledgedDiySlotPlayback(
             faceStore,
             faceTransport,
-            commandTransport,
-            fastAnimationFrameInterval: TimeSpan.FromDays(1));
+            commandTransport);
         return new GalleryViewModel(
             new QuickActionCatalog(),
             textStore,
@@ -348,6 +348,38 @@ public sealed class GalleryViewModelTests
             textTransport,
             faceTransport,
             diySlotPlayback);
+    }
+
+    private static DiySlotPlaybackCoordinator CreateAcknowledgedDiySlotPlayback(
+        IFacePatternStore facePatternStore,
+        IFaceUploadTransport faceTransport,
+        IMaskCommandTransport commandTransport)
+    {
+        var builder = new PerformanceAnimationBuilder(PerformanceAnimation.MaxFrameDuration);
+        var analyzer = new FlashSafetyAnalyzer();
+        var acknowledgements = AppBuiltInAnimationCatalog.CreateBuiltIns()
+            .Select(animation => builder.FromAppBuiltIn(animation))
+            .Select(analyzer.Analyze)
+            .Where(assessment => !assessment.IsSafeByDefault)
+            .Select(assessment => new FlashSafetyAcknowledgement
+            {
+                ContentId = assessment.ContentId,
+                RevisionHash = assessment.RevisionHash,
+                AcknowledgedAt = DateTimeOffset.UtcNow,
+                Warning = FlashSafetyAcknowledgementService.RequiredWarning
+            })
+            .ToArray();
+        var engine = new PerformanceAnimationEngine(
+            commandTransport,
+            flashSafetyAnalyzer: analyzer,
+            flashSafetyAcknowledgementStore: new InMemoryFlashSafetyAcknowledgementStore(
+                new FlashSafetyAcknowledgementState { Acknowledgements = acknowledgements }));
+        return new DiySlotPlaybackCoordinator(
+            facePatternStore,
+            faceTransport,
+            commandTransport,
+            engine,
+            builder);
     }
 
     private static GalleryItemCard[] Flatten(GalleryViewModel viewModel) =>

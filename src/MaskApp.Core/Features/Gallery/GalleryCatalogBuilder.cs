@@ -168,6 +168,7 @@ public sealed class GalleryCatalogBuilder
     {
         var normalized = animation.Normalize();
         var slotLabel = string.Join(", ", normalized.ReservedSlots);
+        var cadenceLabel = $"{normalized.FrameDurationMilliseconds} ms";
         var isPrepared = DiySlotPlaybackCoordinator.IsAnimationPrepared(normalized, faceState);
         return new GalleryItem
         {
@@ -181,9 +182,9 @@ public sealed class GalleryCatalogBuilder
             IconKey = "anim",
             SortIndex = sortIndex,
             LastSendStatus = isPrepared
-                ? "Prepared on active mask profile · continuous 75 ms PLAY"
-                : "Prepare once, then loop with continuous 75 ms PLAY",
-            PreviewBadgeText = $"DIY · {normalized.Frames.Count} frames",
+                ? $"Prepared on active mask profile · continuous {cadenceLabel} PLAY"
+                : $"Prepare once, then loop with continuous {cadenceLabel} PLAY",
+            PreviewBadgeText = $"DIY · {normalized.Frames.Count} frames · {cadenceLabel}",
             PreviewSourceText = normalized.Description,
             CanManage = false,
             FacePattern = normalized.PreviewPattern,

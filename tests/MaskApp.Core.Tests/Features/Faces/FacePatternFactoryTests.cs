@@ -5,15 +5,15 @@ namespace MaskApp.Core.Tests.Features.Faces;
 public sealed class FacePatternFactoryTests
 {
     [Fact]
-    public void CreateBuiltIns_ReturnsOriginalSmileysAndTwentySixPixelCharacters()
+    public void CreateBuiltIns_ReturnsOriginalSmileysAndExpandedPixelCharacters()
     {
         var faces = FacePatternFactory.CreateBuiltIns();
 
-        Assert.Equal(32, faces.Count);
+        Assert.Equal(37, faces.Count);
         Assert.Equal(
             [FaceEmotion.Happy, FaceEmotion.Sad, FaceEmotion.Angry, FaceEmotion.Surprised, FaceEmotion.Meh, FaceEmotion.Wink],
             faces.Take(6).Select(face => face.Emotion).ToArray());
-        Assert.Equal(26, faces.Count(face => face.Id.StartsWith("built-in-face-", StringComparison.Ordinal)));
+        Assert.Equal(31, faces.Count(face => face.Id.StartsWith("built-in-face-", StringComparison.Ordinal)));
         Assert.Contains(faces, face => face.DisplayName == "Pixel Cat");
         Assert.Contains(faces, face => face.DisplayName == "Rave DJ");
         Assert.Contains(faces, face => face.DisplayName == "Three-Eyed Monster");
@@ -141,7 +141,7 @@ public sealed class FacePatternFactoryTests
         var normalized = legacyState.Normalize();
 
         Assert.Equal(FacePatternStoreState.CurrentSeedVersion, normalized.SeedVersion);
-        Assert.Equal(33, normalized.Patterns.Count);
+        Assert.Equal(38, normalized.Patterns.Count);
         Assert.Contains(normalized.Patterns, face => face.Id == customFace.Id);
         var migratedBuiltIn = normalized.Patterns.Single(face => face.Id == customizedBuiltIn.Id);
         Assert.False(migratedBuiltIn.IsFavorite);

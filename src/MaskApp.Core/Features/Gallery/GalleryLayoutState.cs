@@ -2,27 +2,13 @@ namespace MaskApp.Core.Features.Gallery;
 
 public sealed record GalleryLayoutState
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     public int SchemaVersion { get; init; } = CurrentSchemaVersion;
 
     public GalleryOrderState Order { get; init; } = new();
 
-    public IReadOnlyList<GalleryPageLayout> Pages { get; init; } =
-    [
-        new GalleryPageLayout
-        {
-            Title = "Live",
-            ColorHex = "#52E3FF",
-            SortIndex = 0
-        },
-        new GalleryPageLayout
-        {
-            Title = "RAVE",
-            ColorHex = "#FACC15",
-            SortIndex = 1
-        }
-    ];
+    public IReadOnlyList<GalleryPageLayout> Pages { get; init; } = BuiltInGalleryPages.CreateDefaults();
 
     public string Status { get; init; } = "Ready.";
 
@@ -30,13 +16,22 @@ public sealed record GalleryLayoutState
 
     public GalleryLayoutState Normalize()
     {
-        var pages = Pages is null || Pages.Count == 0 ? new GalleryLayoutState().Pages : Pages;
+        var pages = (Pages is null || Pages.Count == 0
+                ? BuiltInGalleryPages.CreateDefaults()
+                : Pages)
+            .Select((page, index) => page.Normalize(index))
+            .ToList();
+        if (SchemaVersion < CurrentSchemaVersion && !pages.Any(BuiltInGalleryPages.IsHolyPriestPage))
+        {
+            var sortIndex = pages.Count == 0 ? 0 : pages.Max(page => page.SortIndex) + 1;
+            pages.Add(BuiltInGalleryPages.CreateHolyPriestPage(sortIndex).Normalize(sortIndex));
+        }
+
         return this with
         {
             SchemaVersion = CurrentSchemaVersion,
             Order = Order ?? new GalleryOrderState(),
             Pages = pages
-                .Select((page, index) => page.Normalize(index))
                 .OrderBy(page => page.SortIndex)
                 .ThenBy(page => page.Title, StringComparer.OrdinalIgnoreCase)
                 .ToArray(),
