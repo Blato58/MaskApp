@@ -37,9 +37,8 @@ public class JsonFacePatternStoreCore : IFacePatternStore
                 var document = await JsonSerializer.DeserializeAsync<StoreDocument>(stream, SerializerOptions, cancellationToken)
                     .ConfigureAwait(false);
                 if (document is null ||
-                    document.SchemaVersion is not FacePatternStoreState.LegacySchemaVersion and
-                        not FacePatternStoreState.PreviousSchemaVersion and
-                        not FacePatternStoreState.CurrentSchemaVersion)
+                    document.SchemaVersion is < FacePatternStoreState.LegacySchemaVersion or
+                        > FacePatternStoreState.CurrentSchemaVersion)
                 {
                     return FacePatternStoreState.Seeded with
                     {
@@ -54,6 +53,7 @@ public class JsonFacePatternStoreCore : IFacePatternStore
                     SeedVersion = document.SeedVersion,
                     Patterns = document.Patterns,
                     SlotInstallations = document.SlotInstallations,
+                    SavedPalettes = document.SavedPalettes,
                     Status = "Ready."
                 }.Normalize();
             }
@@ -89,7 +89,8 @@ public class JsonFacePatternStoreCore : IFacePatternStore
                 SchemaVersion = FacePatternStoreState.CurrentSchemaVersion,
                 SeedVersion = FacePatternStoreState.CurrentSeedVersion,
                 Patterns = normalized.Patterns.ToArray(),
-                SlotInstallations = normalized.SlotInstallations.ToArray()
+                SlotInstallations = normalized.SlotInstallations.ToArray(),
+                SavedPalettes = normalized.SavedPalettes.ToArray()
             };
             var tempFilePath = $"{filePath}.tmp";
 
@@ -116,5 +117,7 @@ public class JsonFacePatternStoreCore : IFacePatternStore
         public FacePattern[] Patterns { get; init; } = [];
 
         public FaceSlotInstallation[] SlotInstallations { get; init; } = [];
+
+        public FaceSavedPalette[] SavedPalettes { get; init; } = [];
     }
 }

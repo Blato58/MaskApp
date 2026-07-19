@@ -1,42 +1,49 @@
+using MaskApp.App.Features.Audio;
 using MaskApp.App.Features.Animations;
 using MaskApp.App.Features.AnimationPacks;
 using MaskApp.App.Features.BuiltIns;
-using MaskApp.App.Features.Faces;
-using MaskApp.App.Features.Preflight;
-using MaskApp.App.Features.Stage;
-using MaskApp.App.Features.Text;
 using MaskApp.App.Features.Device;
+using MaskApp.App.Features.Faces;
 using MaskApp.App.Features.Library;
 using MaskApp.App.Features.Live;
 using MaskApp.App.Features.Onboarding;
+using MaskApp.App.Features.Preflight;
 using MaskApp.App.Features.Shows;
+using MaskApp.App.Features.Stage;
+using MaskApp.App.Features.Text;
 using MaskApp.App.Infrastructure.Bluetooth;
+using MaskApp.App.Infrastructure.Audio;
 using MaskApp.App.Infrastructure.Accessibility;
+using MaskApp.App.Infrastructure.Lifecycle;
 using MaskApp.App.Infrastructure.Media;
 using MaskApp.App.Infrastructure.Storage;
 #if ANDROID
 using MaskApp.App.Platforms.Android;
 #endif
 #if IOS
+using MaskApp.App.Infrastructure.WatchRemote;
 using MaskApp.App.Platforms.iOS;
 #endif
 using MaskApp.Core.Features.Connect;
+using MaskApp.Core.Features.Audio;
 using MaskApp.Core.Features.Animations;
 using MaskApp.Core.Features.AnimationPacks;
 using MaskApp.Core.Features.BuiltIns;
 using MaskApp.Core.Features.Faces;
+using MaskApp.Core.Features.Experience;
 using MaskApp.Core.Features.Gallery;
+using MaskApp.Core.Features.Live;
+using MaskApp.Core.Features.Lifecycle;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.QuickActions;
 using MaskApp.Core.Features.Profiles;
 using MaskApp.Core.Features.Preflight;
 using MaskApp.Core.Features.Stage;
 using MaskApp.Core.Features.Scenes;
+using MaskApp.Core.Features.Shows;
 using MaskApp.Core.Features.Text;
 using MaskApp.Core.Features.TextPresets;
-using MaskApp.Core.Features.Experience;
-using MaskApp.Core.Features.Live;
-using MaskApp.Core.Features.Shows;
+using MaskApp.Core.Features.WatchRemote;
 using Microsoft.Extensions.Logging;
 
 namespace MaskApp.App;
@@ -80,6 +87,7 @@ public static class MauiProgram
         builder.Services.AddTransient<TextUploadViewModel>();
         builder.Services.AddTransient<FestivalPreflightPage>();
         builder.Services.AddSingleton<FestivalPreflightViewModel>();
+        builder.Services.AddSingleton<IPreflightRuntimeStateProvider, MauiPreflightRuntimeStateProvider>();
         builder.Services.AddTransient<StageModePage>();
         builder.Services.AddTransient<StageModeViewModel>();
         builder.Services.AddTransient<PagesStageShowSource>();
@@ -139,6 +147,14 @@ public static class MauiProgram
         builder.Services.AddSingleton<SceneReadinessEvaluator>();
         builder.Services.AddSingleton<ISceneCatalogSource, GallerySceneCatalogSource>();
         builder.Services.AddSingleton<ISceneItemDispatcher, GallerySceneItemDispatcher>();
+        builder.Services.AddSingleton<WatchRemoteExecutionSession>();
+        builder.Services.AddSingleton<WatchRemoteCoordinator>();
+        builder.Services.AddSingleton<IWatchRemoteActionDispatcher>(sp =>
+            sp.GetRequiredService<WatchRemoteCoordinator>());
+        builder.Services.AddSingleton<IWatchRemoteStateProvider>(sp =>
+            sp.GetRequiredService<WatchRemoteCoordinator>());
+        builder.Services.AddSingleton<WatchRemoteMessageCodec>();
+        builder.Services.AddSingleton<WatchRemoteActionProcessor>();
 
 #if IOS
         builder.Services.AddSingleton<IosMotionPreference>();
@@ -146,6 +162,7 @@ public static class MauiProgram
             sp.GetRequiredService<IosMotionPreference>(),
             sp.GetRequiredService<IAppExperienceSettingsStore>()));
         builder.Services.AddSingleton<IMotionPreference>(sp => sp.GetRequiredService<ExperienceMotionPreference>());
+        builder.Services.AddSingleton<IAudioCaptureService, IosAudioCaptureService>();
         builder.Services.AddSingleton<IosBleAdapter>();
         builder.Services.AddSingleton<IBleScanner>(sp => sp.GetRequiredService<IosBleAdapter>());
         builder.Services.AddSingleton<ProfiledBleDeviceConnection>(sp =>
@@ -156,6 +173,7 @@ public static class MauiProgram
                 sp.GetRequiredService<MaskProfileSession>(),
                 adapter,
                 adapter,
+                adapter,
                 adapter);
         });
         builder.Services.AddSingleton<IBleDeviceConnection>(sp =>
@@ -167,12 +185,16 @@ public static class MauiProgram
                 adapter,
                 adapter,
                 adapter,
-                sp.GetRequiredService<ProfiledBleDeviceConnection>());
+                sp.GetRequiredService<ProfiledBleDeviceConnection>(),
+                audioVisualizationTransport: adapter);
         });
         builder.Services.AddSingleton<IMaskCommandTransport>(sp => sp.GetRequiredService<MaskBleScheduler>());
         builder.Services.AddSingleton<IMaskEmergencyControl>(sp => sp.GetRequiredService<MaskBleScheduler>());
         builder.Services.AddSingleton<ITextUploadTransport>(sp => sp.GetRequiredService<MaskBleScheduler>());
         builder.Services.AddSingleton<IFaceUploadTransport>(sp => sp.GetRequiredService<MaskBleScheduler>());
+        builder.Services.AddSingleton<IAudioVisualizationTransport>(sp => sp.GetRequiredService<MaskBleScheduler>());
+        builder.Services.AddSingleton<IVisualWorkCancellationSource>(sp => sp.GetRequiredService<MaskBleScheduler>());
+        builder.Services.AddSingleton<IWatchConnectivityService, IosWatchConnectivityService>();
         builder.Services.AddSingleton<IFaceImageDecoder, IosFaceImageDecoder>();
         builder.Services.AddSingleton<IAnimationMediaDecoder, IosAnimationMediaDecoder>();
 #elif ANDROID
@@ -181,6 +203,7 @@ public static class MauiProgram
             sp.GetRequiredService<AndroidMotionPreference>(),
             sp.GetRequiredService<IAppExperienceSettingsStore>()));
         builder.Services.AddSingleton<IMotionPreference>(sp => sp.GetRequiredService<ExperienceMotionPreference>());
+        builder.Services.AddSingleton<IAudioCaptureService, AndroidAudioCaptureService>();
         builder.Services.AddSingleton<AndroidBleAdapter>();
         builder.Services.AddSingleton<IBleScanner>(sp => sp.GetRequiredService<AndroidBleAdapter>());
         builder.Services.AddSingleton<ProfiledBleDeviceConnection>(sp =>
@@ -189,6 +212,7 @@ public static class MauiProgram
             return new ProfiledBleDeviceConnection(
                 adapter,
                 sp.GetRequiredService<MaskProfileSession>(),
+                adapter,
                 adapter,
                 adapter,
                 adapter);
@@ -202,27 +226,34 @@ public static class MauiProgram
                 adapter,
                 adapter,
                 adapter,
-                sp.GetRequiredService<ProfiledBleDeviceConnection>());
+                sp.GetRequiredService<ProfiledBleDeviceConnection>(),
+                audioVisualizationTransport: adapter);
         });
         builder.Services.AddSingleton<IMaskCommandTransport>(sp => sp.GetRequiredService<MaskBleScheduler>());
         builder.Services.AddSingleton<IMaskEmergencyControl>(sp => sp.GetRequiredService<MaskBleScheduler>());
         builder.Services.AddSingleton<ITextUploadTransport>(sp => sp.GetRequiredService<MaskBleScheduler>());
         builder.Services.AddSingleton<IFaceUploadTransport>(sp => sp.GetRequiredService<MaskBleScheduler>());
+        builder.Services.AddSingleton<IAudioVisualizationTransport>(sp => sp.GetRequiredService<MaskBleScheduler>());
+        builder.Services.AddSingleton<IVisualWorkCancellationSource>(sp => sp.GetRequiredService<MaskBleScheduler>());
+        builder.Services.AddSingleton<IWatchConnectivityService, UnavailableWatchConnectivityService>();
         builder.Services.AddSingleton<IFaceImageDecoder, AndroidFaceImageDecoder>();
         builder.Services.AddSingleton<IAnimationMediaDecoder, AndroidAnimationMediaDecoder>();
 #else
         builder.Services.AddSingleton<UnavailableBleAdapter>();
+        builder.Services.AddSingleton<IAudioCaptureService, UnavailableAudioCaptureService>();
         builder.Services.AddSingleton<IBleScanner>(sp => sp.GetRequiredService<UnavailableBleAdapter>());
         builder.Services.AddSingleton<SimulatedMaskCommandTransport>();
         builder.Services.AddSingleton<SimulatedTextUploadTransport>();
         builder.Services.AddSingleton<SimulatedFaceUploadTransport>();
+        builder.Services.AddSingleton<SimulatedAudioVisualizationTransport>();
         builder.Services.AddSingleton<ProfiledBleDeviceConnection>(sp =>
             new ProfiledBleDeviceConnection(
                 sp.GetRequiredService<UnavailableBleAdapter>(),
                 sp.GetRequiredService<MaskProfileSession>(),
                 sp.GetRequiredService<SimulatedMaskCommandTransport>(),
                 sp.GetRequiredService<SimulatedTextUploadTransport>(),
-                sp.GetRequiredService<SimulatedFaceUploadTransport>()));
+                sp.GetRequiredService<SimulatedFaceUploadTransport>(),
+                sp.GetRequiredService<SimulatedAudioVisualizationTransport>()));
         builder.Services.AddSingleton<IBleDeviceConnection>(sp =>
             sp.GetRequiredService<ProfiledBleDeviceConnection>());
         builder.Services.AddSingleton<MaskBleScheduler>(sp =>
@@ -230,14 +261,30 @@ public static class MauiProgram
                 sp.GetRequiredService<SimulatedMaskCommandTransport>(),
                 sp.GetRequiredService<SimulatedTextUploadTransport>(),
                 sp.GetRequiredService<SimulatedFaceUploadTransport>(),
-                sp.GetRequiredService<ProfiledBleDeviceConnection>()));
+                sp.GetRequiredService<ProfiledBleDeviceConnection>(),
+                audioVisualizationTransport: sp.GetRequiredService<SimulatedAudioVisualizationTransport>()));
         builder.Services.AddSingleton<IMaskCommandTransport>(sp => sp.GetRequiredService<MaskBleScheduler>());
         builder.Services.AddSingleton<IMaskEmergencyControl>(sp => sp.GetRequiredService<MaskBleScheduler>());
         builder.Services.AddSingleton<ITextUploadTransport>(sp => sp.GetRequiredService<MaskBleScheduler>());
         builder.Services.AddSingleton<IFaceUploadTransport>(sp => sp.GetRequiredService<MaskBleScheduler>());
+        builder.Services.AddSingleton<IAudioVisualizationTransport>(sp => sp.GetRequiredService<MaskBleScheduler>());
+        builder.Services.AddSingleton<IVisualWorkCancellationSource>(sp => sp.GetRequiredService<MaskBleScheduler>());
+        builder.Services.AddSingleton<IWatchConnectivityService, UnavailableWatchConnectivityService>();
         builder.Services.AddSingleton<IFaceImageDecoder, UnavailableFaceImageDecoder>();
         builder.Services.AddSingleton<IAnimationMediaDecoder, UnavailableAnimationMediaDecoder>();
 #endif
+        builder.Services.AddSingleton<MaskProfileMetricsRecorder>();
+        builder.Services.AddSingleton<AudioVisualizationDiagnostic>();
+        builder.Services.AddSingleton<AudioVisualizerProcessor>();
+        builder.Services.AddSingleton<AudioFlashSafetyGate>();
+        builder.Services.AddSingleton<AudioVisualizerEngine>(sp =>
+            new AudioVisualizerEngine(
+                sp.GetRequiredService<IAudioCaptureService>(),
+                sp.GetRequiredService<IAudioVisualizationTransport>(),
+                sp.GetRequiredService<MaskProfileSession>(),
+                sp.GetRequiredService<AudioVisualizerProcessor>(),
+                sp.GetRequiredService<AudioFlashSafetyGate>(),
+                sp.GetRequiredService<IVisualWorkCancellationSource>()));
         builder.Services.AddSingleton<IAnimationClock, MonotonicAnimationClock>();
         builder.Services.AddSingleton<PerformanceAnimationBuilder>();
         builder.Services.AddSingleton<AnimationProjectCompiler>();
@@ -262,6 +309,8 @@ public static class MauiProgram
             sp.GetRequiredService<SceneExecutionEngine>());
         builder.Services.AddSingleton<SetlistCoordinator>();
         builder.Services.AddSingleton<BleAutoConnectCoordinator>();
+        builder.Services.AddSingleton<IAppLifecycleOperations, MauiAppLifecycleOperations>();
+        builder.Services.AddSingleton<AppLifecycleCoordinator>();
 
 #if DEBUG
         builder.Logging.AddDebug();

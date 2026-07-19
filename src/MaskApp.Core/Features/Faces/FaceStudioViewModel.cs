@@ -5,21 +5,49 @@ using MaskApp.Core.Features.Connect;
 
 namespace MaskApp.Core.Features.Faces;
 
+public enum FaceEditorTool
+{
+    Draw,
+    Fill,
+    SelectMove
+}
+
+public sealed record FaceSelectionBounds(int Left, int Top, int Right, int Bottom);
+
 public sealed class FaceStudioViewModel : INotifyPropertyChanged
 {
     private const string OffColor = "#05070D";
     private const int MaxDiagnosticHexLength = 1024;
+    private const int MaxHistoryDepth = 50;
 
     private readonly IFacePatternStore store;
     private readonly IFaceUploadTransport transport;
+    private readonly Stack<EditorSnapshot> undoHistory = new();
+    private readonly Stack<EditorSnapshot> redoHistory = new();
+    private FacePatternStoreState storeState = new();
     private FacePattern currentPattern = FacePatternFactory.CreateBuiltIns()[0];
     private IReadOnlyList<FacePattern> patterns = [];
     private IReadOnlyList<FacePatternCard> patternCards = [];
     private IReadOnlyList<FacePreviewCell> previewCells = [];
+    private IReadOnlyList<FaceSavedPalette> savedPalettes = [];
+    private IReadOnlyList<FaceColorOption> activeColorOptions = FaceColorOption.Defaults;
+    private FaceSavedPalette? selectedPalette;
     private FaceColorOption selectedColor;
     private string faceName = "Happy Smiley";
+    private string paletteName = "Palette 1";
+    private string paletteStatusText = "Use colors from this face to save a reusable palette.";
     private int selectedSlot = 1;
     private bool isEraseMode;
+    private FaceEditorTool selectedTool;
+    private bool isHorizontalSymmetryEnabled;
+    private bool isVerticalSymmetryEnabled;
+    private HashSet<int> selectedCellIndices = [];
+    private FaceSelectionBounds? selectionBounds;
+    private EditorSnapshot? editTransactionStart;
+    private (int Column, int Row)? lastInteractionCell;
+    private (int Column, int Row)? selectionDragStart;
+    private FacePattern? selectionDragPattern;
+    private int[] selectionDragIndices = [];
     private bool isSending;
     private string statusText;
     private string storeStatusText = "Face library ready.";
@@ -49,7 +77,7 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
         });
         MirrorCommand = new AsyncRelayCommand(_ =>
         {
-            Mirror();
+            MirrorHorizontally();
             return Task.CompletedTask;
         });
         UseAutoSlotCommand = new AsyncRelayCommand(_ =>
@@ -58,6 +86,33 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
             StatusText = $"Auto selected DIY slot {SelectedSlot}; reserved animation slots were skipped.";
             return Task.CompletedTask;
         });
+        MirrorVerticalCommand = new AsyncRelayCommand(_ =>
+        {
+            MirrorVertically();
+            return Task.CompletedTask;
+        });
+        UndoCommand = new AsyncRelayCommand(_ =>
+        {
+            Undo();
+            return Task.CompletedTask;
+        }, () => CanUndo);
+        RedoCommand = new AsyncRelayCommand(_ =>
+        {
+            Redo();
+            return Task.CompletedTask;
+        }, () => CanRedo);
+        SelectDrawToolCommand = CreateToolCommand(FaceEditorTool.Draw);
+        SelectFillToolCommand = CreateToolCommand(FaceEditorTool.Fill);
+        SelectMoveToolCommand = CreateToolCommand(FaceEditorTool.SelectMove);
+        NewPaletteCommand = new AsyncRelayCommand(_ =>
+        {
+            SelectedPalette = null;
+            PaletteName = $"Palette {SavedPalettes.Count + 1}";
+            PaletteStatusText = "Enter a name, then save the colors used by this face.";
+            return Task.CompletedTask;
+        });
+        SavePaletteCommand = new AsyncRelayCommand(SavePaletteAsync, () => !string.IsNullOrWhiteSpace(PaletteName));
+        DeletePaletteCommand = new AsyncRelayCommand(DeletePaletteAsync, () => SelectedPalette is not null);
         SaveCommand = new AsyncRelayCommand(SaveAsync, CanSave);
         SaveAsCopyCommand = new AsyncRelayCommand(SaveAsCopyAsync, CanSave);
         UploadCommand = new AsyncRelayCommand(UploadAsync, CanUpload);
@@ -77,6 +132,24 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
     public AsyncRelayCommand MirrorCommand { get; }
 
     public AsyncRelayCommand UseAutoSlotCommand { get; }
+
+    public AsyncRelayCommand MirrorVerticalCommand { get; }
+
+    public AsyncRelayCommand UndoCommand { get; }
+
+    public AsyncRelayCommand RedoCommand { get; }
+
+    public AsyncRelayCommand SelectDrawToolCommand { get; }
+
+    public AsyncRelayCommand SelectFillToolCommand { get; }
+
+    public AsyncRelayCommand SelectMoveToolCommand { get; }
+
+    public AsyncRelayCommand NewPaletteCommand { get; }
+
+    public AsyncRelayCommand SavePaletteCommand { get; }
+
+    public AsyncRelayCommand DeletePaletteCommand { get; }
 
     public AsyncRelayCommand SaveCommand { get; }
 
@@ -102,6 +175,60 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
     {
         get => previewCells;
         private set => SetField(ref previewCells, value);
+    }
+
+    public IReadOnlyList<FaceSavedPalette> SavedPalettes
+    {
+        get => savedPalettes;
+        private set => SetField(ref savedPalettes, value);
+    }
+
+    public IReadOnlyList<FaceColorOption> ActiveColorOptions
+    {
+        get => activeColorOptions;
+        private set => SetField(ref activeColorOptions, value);
+    }
+
+    public FaceSavedPalette? SelectedPalette
+    {
+        get => selectedPalette;
+        set
+        {
+            if (!SetField(ref selectedPalette, value))
+            {
+                return;
+            }
+
+            PaletteName = value?.DisplayName ?? PaletteName;
+            ActiveColorOptions = value is null
+                ? FaceColorOption.Defaults
+                : value.Colors
+                    .Select((color, index) => new FaceColorOption(GetColorName(color, index), color))
+                    .ToArray();
+            SelectedColor = ActiveColorOptions.FirstOrDefault() ?? FaceColorOption.Defaults[0];
+            PaletteStatusText = value is null
+                ? "Default drawing colors active."
+                : $"{value.DisplayName} active with {value.Colors.Length} color(s).";
+            DeletePaletteCommand.RaiseCanExecuteChanged();
+        }
+    }
+
+    public string PaletteName
+    {
+        get => paletteName;
+        set
+        {
+            if (SetField(ref paletteName, value ?? string.Empty))
+            {
+                SavePaletteCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public string PaletteStatusText
+    {
+        get => paletteStatusText;
+        private set => SetField(ref paletteStatusText, value);
     }
 
     public FacePattern CurrentPattern
@@ -174,6 +301,105 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
     }
 
     public string DrawModeText => IsEraseMode ? "Erase" : "Paint";
+
+    public FaceEditorTool SelectedTool
+    {
+        get => selectedTool;
+        private set
+        {
+            if (SetField(ref selectedTool, value))
+            {
+                OnPropertyChanged(nameof(IsDrawTool));
+                OnPropertyChanged(nameof(IsFillTool));
+                OnPropertyChanged(nameof(IsSelectMoveTool));
+                OnPropertyChanged(nameof(EditorHintText));
+                OnPropertyChanged(nameof(EditorStateText));
+                if (value != FaceEditorTool.SelectMove)
+                {
+                    ClearSelection();
+                }
+            }
+        }
+    }
+
+    public bool IsDrawTool => SelectedTool == FaceEditorTool.Draw;
+
+    public bool IsFillTool => SelectedTool == FaceEditorTool.Fill;
+
+    public bool IsSelectMoveTool => SelectedTool == FaceEditorTool.SelectMove;
+
+    public bool IsHorizontalSymmetryEnabled
+    {
+        get => isHorizontalSymmetryEnabled;
+        set
+        {
+            if (SetField(ref isHorizontalSymmetryEnabled, value))
+            {
+                OnPropertyChanged(nameof(EditorHintText));
+                OnPropertyChanged(nameof(EditorStateText));
+            }
+        }
+    }
+
+    public bool IsVerticalSymmetryEnabled
+    {
+        get => isVerticalSymmetryEnabled;
+        set
+        {
+            if (SetField(ref isVerticalSymmetryEnabled, value))
+            {
+                OnPropertyChanged(nameof(EditorHintText));
+                OnPropertyChanged(nameof(EditorStateText));
+            }
+        }
+    }
+
+    public FaceSelectionBounds? SelectionBounds
+    {
+        get => selectionBounds;
+        private set
+        {
+            if (SetField(ref selectionBounds, value))
+            {
+                OnPropertyChanged(nameof(HasSelection));
+                OnPropertyChanged(nameof(SelectionStatusText));
+                OnPropertyChanged(nameof(EditorHintText));
+                OnPropertyChanged(nameof(EditorStateText));
+            }
+        }
+    }
+
+    public bool HasSelection => SelectionBounds is not null;
+
+    public string SelectionStatusText => SelectionBounds is { } selection
+        ? $"Selection columns {selection.Left + 1}-{selection.Right + 1}, rows {selection.Top + 1}-{selection.Bottom + 1}."
+        : "No pixel selection.";
+
+    public string EditorHintText => SelectedTool switch
+    {
+        FaceEditorTool.Draw when IsHorizontalSymmetryEnabled && IsVerticalSymmetryEnabled =>
+            "Drag to draw in four-way horizontal and vertical symmetry.",
+        FaceEditorTool.Draw when IsHorizontalSymmetryEnabled =>
+            "Drag to draw with left/right symmetry.",
+        FaceEditorTool.Draw when IsVerticalSymmetryEnabled =>
+            "Drag to draw with top/bottom symmetry.",
+        FaceEditorTool.Draw => "Drag to draw or erase.",
+        FaceEditorTool.Fill => "Tap a connected region to fill it; enabled symmetry also fills mirrored regions.",
+        _ when HasSelection => "Drag the selected connected region to move it.",
+        _ => "Tap a lit region to select it, then drag to move it."
+    };
+
+    public string EditorStateText =>
+        $"Active tool: {SelectedTool switch
+        {
+            FaceEditorTool.SelectMove => "Select and move",
+            _ => SelectedTool.ToString()
+        }}. Horizontal symmetry {(IsHorizontalSymmetryEnabled ? "on" : "off")}. " +
+        $"Vertical symmetry {(IsVerticalSymmetryEnabled ? "on" : "off")}. {SelectionStatusText}";
+
+    public bool CanUndo => undoHistory.Count > 0;
+
+    public bool CanRedo => redoHistory.Count > 0;
 
     public bool IsSending
     {
@@ -317,7 +543,18 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
 
     public void SelectColor(string colorName)
     {
-        var color = FaceColorOptions.FirstOrDefault(option => string.Equals(option.Name, colorName, StringComparison.OrdinalIgnoreCase));
+        var color = ActiveColorOptions.FirstOrDefault(option =>
+            string.Equals(option.Name, colorName, StringComparison.OrdinalIgnoreCase))
+            ?? FaceColorOptions.FirstOrDefault(option =>
+                string.Equals(option.Name, colorName, StringComparison.OrdinalIgnoreCase));
+        if (color is not null)
+        {
+            SelectedColor = color;
+        }
+    }
+
+    public void SelectColor(FaceColorOption color)
+    {
         if (color is not null)
         {
             SelectedColor = color;
@@ -326,17 +563,90 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
 
     public void SetCell(int column, int row)
     {
-        var pixel = IsEraseMode
-            ? FacePixel.Off
-            : new FacePixel(true, SelectedColor.Color);
-        CurrentPattern = CurrentPattern.WithPixel(column, row, pixel) with
+        var standalone = editTransactionStart is null;
+        if (standalone)
         {
-            DisplayName = FaceName,
-            Source = CurrentPattern.IsBuiltIn ? FacePatternSource.Custom : CurrentPattern.Source,
-            Emotion = CurrentPattern.IsBuiltIn ? FaceEmotion.Custom : CurrentPattern.Emotion,
-            PreferredSlot = SelectedSlot
-        };
-        RefreshPreview();
+            BeginEditTransaction();
+        }
+
+        ApplyToolAt(column, row);
+        if (standalone)
+        {
+            EndEditTransaction();
+        }
+    }
+
+    public void BeginCanvasInteraction(int column, int row)
+    {
+        BeginEditTransaction();
+        lastInteractionCell = (column, row);
+        if (SelectedTool == FaceEditorTool.SelectMove)
+        {
+            if (!selectedCellIndices.Contains((row * FacePattern.Width) + column))
+            {
+                SelectConnectedRegion(column, row);
+            }
+
+            selectionDragStart = (column, row);
+            selectionDragPattern = CurrentPattern.Normalize();
+            selectionDragIndices = selectedCellIndices.ToArray();
+            return;
+        }
+
+        ApplyToolAt(column, row);
+    }
+
+    public void ContinueCanvasInteraction(int column, int row)
+    {
+        if (lastInteractionCell == (column, row))
+        {
+            return;
+        }
+
+        lastInteractionCell = (column, row);
+        if (SelectedTool == FaceEditorTool.Draw)
+        {
+            DrawAt(column, row);
+        }
+        else if (SelectedTool == FaceEditorTool.SelectMove)
+        {
+            MoveSelectionTo(column, row);
+        }
+    }
+
+    public void EndCanvasInteraction()
+    {
+        selectionDragStart = null;
+        selectionDragPattern = null;
+        selectionDragIndices = [];
+        lastInteractionCell = null;
+        EndEditTransaction();
+    }
+
+    public void Undo()
+    {
+        if (undoHistory.Count == 0)
+        {
+            return;
+        }
+
+        PushBounded(redoHistory, CaptureSnapshot());
+        ApplySnapshot(undoHistory.Pop());
+        StatusText = "Undid the last face edit.";
+        NotifyHistoryChanged();
+    }
+
+    public void Redo()
+    {
+        if (redoHistory.Count == 0)
+        {
+            return;
+        }
+
+        PushBounded(undoHistory, CaptureSnapshot());
+        ApplySnapshot(redoHistory.Pop());
+        StatusText = "Redid the face edit.";
+        NotifyHistoryChanged();
     }
 
     public void ImportImage(FaceSampleImage image, FacePatternSource source, string displayName)
@@ -358,18 +668,12 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
 
     private void Clear()
     {
-        CurrentPattern = CurrentPattern with
-        {
-            Pixels = Enumerable.Repeat(FacePixel.Off, FacePattern.PixelCount).ToArray(),
-            Source = CurrentPattern.IsBuiltIn ? FacePatternSource.Custom : CurrentPattern.Source,
-            Emotion = CurrentPattern.IsBuiltIn ? FaceEmotion.Custom : CurrentPattern.Emotion,
-            UpdatedAt = DateTimeOffset.UtcNow
-        };
-        RefreshPreview();
-        StatusText = "Face cleared.";
+        ApplyImmediatePixelChange(
+            Enumerable.Repeat(FacePixel.Off, FacePattern.PixelCount).ToArray(),
+            "Face cleared.");
     }
 
-    private void Mirror()
+    private void MirrorHorizontally()
     {
         var normalized = CurrentPattern.Normalize();
         var pixels = normalized.Pixels.ToArray();
@@ -383,15 +687,74 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
             }
         }
 
-        CurrentPattern = normalized with
+        ApplyImmediatePixelChange(pixels, "Left half mirrored to the right.");
+    }
+
+    private void MirrorVertically()
+    {
+        var normalized = CurrentPattern.Normalize();
+        var pixels = normalized.Pixels.ToArray();
+        for (var row = 0; row < FacePattern.Height / 2; row++)
         {
-            Pixels = pixels,
-            Source = normalized.IsBuiltIn ? FacePatternSource.Custom : normalized.Source,
-            Emotion = normalized.IsBuiltIn ? FaceEmotion.Custom : normalized.Emotion,
-            UpdatedAt = DateTimeOffset.UtcNow
+            var mirrorRow = FacePattern.Height - row - 1;
+            for (var column = 0; column < FacePattern.Width; column++)
+            {
+                pixels[(mirrorRow * FacePattern.Width) + column] =
+                    pixels[(row * FacePattern.Width) + column];
+            }
+        }
+
+        ApplyImmediatePixelChange(pixels, "Top half mirrored to the bottom.");
+    }
+
+    private async Task SavePaletteAsync(CancellationToken cancellationToken)
+    {
+        var colors = CurrentPattern.Normalize().Pixels
+            .Where(pixel => pixel.IsLit)
+            .Select(pixel => pixel.Color)
+            .Append(SelectedColor.Color)
+            .Distinct()
+            .Take(FaceSavedPalette.MaxColors)
+            .ToArray();
+        var palette = new FaceSavedPalette
+        {
+            Id = SelectedPalette?.Id ?? $"palette-{Guid.NewGuid():N}",
+            DisplayName = PaletteName,
+            Colors = colors
+        }.Normalize();
+        var state = (await store.LoadAsync(cancellationToken).ConfigureAwait(false)).Normalize();
+        state = state with
+        {
+            SavedPalettes = state.SavedPalettes
+                .Where(item => !string.Equals(item.Id, palette.Id, StringComparison.Ordinal))
+                .Append(palette)
+                .ToArray()
         };
-        RefreshPreview();
-        StatusText = "Left side mirrored to right.";
+        await store.SaveAsync(state, cancellationToken).ConfigureAwait(false);
+        ApplyState(state);
+        SelectedPalette = SavedPalettes.First(item => string.Equals(item.Id, palette.Id, StringComparison.Ordinal));
+        PaletteStatusText = $"Saved {palette.DisplayName} with {palette.Colors.Length} color(s).";
+    }
+
+    private async Task DeletePaletteAsync(CancellationToken cancellationToken)
+    {
+        if (SelectedPalette is not { } palette)
+        {
+            return;
+        }
+
+        var state = (await store.LoadAsync(cancellationToken).ConfigureAwait(false)).Normalize();
+        state = state with
+        {
+            SavedPalettes = state.SavedPalettes
+                .Where(item => !string.Equals(item.Id, palette.Id, StringComparison.Ordinal))
+                .ToArray()
+        };
+        await store.SaveAsync(state, cancellationToken).ConfigureAwait(false);
+        ApplyState(state);
+        SelectedPalette = null;
+        PaletteName = $"Palette {SavedPalettes.Count + 1}";
+        PaletteStatusText = $"Deleted {palette.DisplayName}. Default drawing colors active.";
     }
 
     private async Task SaveAsync(CancellationToken cancellationToken)
@@ -526,7 +889,21 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
 
     private void ApplyState(FacePatternStoreState state)
     {
-        Patterns = state.Normalize().Patterns;
+        var selectedPaletteId = SelectedPalette?.Id;
+        storeState = state.Normalize();
+        Patterns = storeState.Patterns;
+        SavedPalettes = storeState.SavedPalettes;
+        if (!string.IsNullOrWhiteSpace(selectedPaletteId))
+        {
+            SelectedPalette = SavedPalettes.FirstOrDefault(palette =>
+                string.Equals(palette.Id, selectedPaletteId, StringComparison.Ordinal));
+        }
+
+        RefreshPatternCards();
+    }
+
+    private void RefreshPatternCards()
+    {
         PatternCards = Patterns
             .Select(pattern => new FacePatternCard(
                 pattern,
@@ -562,10 +939,307 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
         }
 
         RefreshPreview();
-        ApplyState(new FacePatternStoreState { Patterns = Patterns });
+        ClearSelection();
+        ResetHistory();
+        RefreshPatternCards();
         SaveCommand.RaiseCanExecuteChanged();
         SaveAsCopyCommand.RaiseCanExecuteChanged();
         UploadCommand.RaiseCanExecuteChanged();
+    }
+
+    private void ApplyToolAt(int column, int row)
+    {
+        if (column is < 0 or >= FacePattern.Width || row is < 0 or >= FacePattern.Height)
+        {
+            return;
+        }
+
+        if (SelectedTool == FaceEditorTool.Fill)
+        {
+            FillAt(column, row);
+        }
+        else if (SelectedTool == FaceEditorTool.SelectMove)
+        {
+            SelectConnectedRegion(column, row);
+        }
+        else
+        {
+            DrawAt(column, row);
+        }
+    }
+
+    private void DrawAt(int column, int row)
+    {
+        var pattern = CurrentPattern.Normalize();
+        var pixels = pattern.Pixels.ToArray();
+        var pixel = IsEraseMode ? FacePixel.Off : new FacePixel(true, SelectedColor.Color);
+        foreach (var index in GetSymmetricIndices(column, row))
+        {
+            pixels[index] = pixel;
+        }
+
+        ReplaceCanvasPixels(pixels);
+    }
+
+    private void FillAt(int column, int row)
+    {
+        var pattern = CurrentPattern.Normalize();
+        var pixels = pattern.Pixels.ToArray();
+        var replacement = IsEraseMode ? FacePixel.Off : new FacePixel(true, SelectedColor.Color);
+        foreach (var index in GetSymmetricIndices(column, row))
+        {
+            FloodFill(pixels, index % FacePattern.Width, index / FacePattern.Width, replacement);
+        }
+
+        if (ReplaceCanvasPixels(pixels))
+        {
+            StatusText = "Connected region filled.";
+        }
+    }
+
+    private IEnumerable<int> GetSymmetricIndices(int column, int row)
+    {
+        var columns = IsHorizontalSymmetryEnabled
+            ? new[] { column, FacePattern.Width - column - 1 }
+            : [column];
+        var rows = IsVerticalSymmetryEnabled
+            ? new[] { row, FacePattern.Height - row - 1 }
+            : [row];
+        return rows
+            .SelectMany(targetRow => columns.Select(targetColumn => (targetRow * FacePattern.Width) + targetColumn))
+            .Distinct();
+    }
+
+    private static void FloodFill(FacePixel[] pixels, int column, int row, FacePixel replacement)
+    {
+        var target = pixels[(row * FacePattern.Width) + column].Normalize();
+        replacement = replacement.Normalize();
+        if (target == replacement)
+        {
+            return;
+        }
+
+        var queue = new Queue<(int Column, int Row)>();
+        queue.Enqueue((column, row));
+        while (queue.TryDequeue(out var cell))
+        {
+            if (cell.Column is < 0 or >= FacePattern.Width || cell.Row is < 0 or >= FacePattern.Height)
+            {
+                continue;
+            }
+
+            var index = (cell.Row * FacePattern.Width) + cell.Column;
+            if (pixels[index].Normalize() != target)
+            {
+                continue;
+            }
+
+            pixels[index] = replacement;
+            queue.Enqueue((cell.Column - 1, cell.Row));
+            queue.Enqueue((cell.Column + 1, cell.Row));
+            queue.Enqueue((cell.Column, cell.Row - 1));
+            queue.Enqueue((cell.Column, cell.Row + 1));
+        }
+    }
+
+    private void SelectConnectedRegion(int column, int row)
+    {
+        var pattern = CurrentPattern.Normalize();
+        var start = pattern.GetPixel(column, row).Normalize();
+        if (!start.IsLit)
+        {
+            ClearSelection();
+            StatusText = "Tap a lit region to select it.";
+            return;
+        }
+
+        var selected = new HashSet<int>();
+        var queue = new Queue<(int Column, int Row)>();
+        queue.Enqueue((column, row));
+        while (queue.TryDequeue(out var cell))
+        {
+            if (cell.Column is < 0 or >= FacePattern.Width || cell.Row is < 0 or >= FacePattern.Height)
+            {
+                continue;
+            }
+
+            var index = (cell.Row * FacePattern.Width) + cell.Column;
+            if (selected.Contains(index) || pattern.Pixels[index].Normalize() != start)
+            {
+                continue;
+            }
+
+            selected.Add(index);
+            queue.Enqueue((cell.Column - 1, cell.Row));
+            queue.Enqueue((cell.Column + 1, cell.Row));
+            queue.Enqueue((cell.Column, cell.Row - 1));
+            queue.Enqueue((cell.Column, cell.Row + 1));
+        }
+
+        selectedCellIndices = selected;
+        UpdateSelectionBounds();
+        StatusText = $"Selected {selected.Count} connected pixel(s).";
+    }
+
+    private void MoveSelectionTo(int column, int row)
+    {
+        if (selectionDragStart is not { } start || selectionDragPattern is null || selectionDragIndices.Length == 0)
+        {
+            return;
+        }
+
+        var minColumn = selectionDragIndices.Min(index => index % FacePattern.Width);
+        var maxColumn = selectionDragIndices.Max(index => index % FacePattern.Width);
+        var minRow = selectionDragIndices.Min(index => index / FacePattern.Width);
+        var maxRow = selectionDragIndices.Max(index => index / FacePattern.Width);
+        var deltaColumn = Math.Clamp(column - start.Column, -minColumn, FacePattern.Width - maxColumn - 1);
+        var deltaRow = Math.Clamp(row - start.Row, -minRow, FacePattern.Height - maxRow - 1);
+        var source = selectionDragPattern.Normalize();
+        var pixels = source.Pixels.ToArray();
+        foreach (var index in selectionDragIndices)
+        {
+            pixels[index] = FacePixel.Off;
+        }
+
+        selectedCellIndices = [];
+        foreach (var index in selectionDragIndices)
+        {
+            var sourceColumn = index % FacePattern.Width;
+            var sourceRow = index / FacePattern.Width;
+            var destination = ((sourceRow + deltaRow) * FacePattern.Width) + sourceColumn + deltaColumn;
+            pixels[destination] = source.Pixels[index];
+            selectedCellIndices.Add(destination);
+        }
+
+        ReplaceCanvasPixels(pixels);
+        UpdateSelectionBounds();
+        StatusText = $"Selection moved {deltaColumn:+0;-0;0} columns, {deltaRow:+0;-0;0} rows.";
+    }
+
+    private void ClearSelection()
+    {
+        selectedCellIndices = [];
+        SelectionBounds = null;
+    }
+
+    private void UpdateSelectionBounds()
+    {
+        if (selectedCellIndices.Count == 0)
+        {
+            SelectionBounds = null;
+            return;
+        }
+
+        SelectionBounds = new FaceSelectionBounds(
+            selectedCellIndices.Min(index => index % FacePattern.Width),
+            selectedCellIndices.Min(index => index / FacePattern.Width),
+            selectedCellIndices.Max(index => index % FacePattern.Width),
+            selectedCellIndices.Max(index => index / FacePattern.Width));
+    }
+
+    private void ApplyImmediatePixelChange(FacePixel[] pixels, string status)
+    {
+        var before = CaptureSnapshot();
+        if (!ReplaceCanvasPixels(pixels))
+        {
+            return;
+        }
+
+        PushBounded(undoHistory, before);
+        redoHistory.Clear();
+        StatusText = status;
+        NotifyHistoryChanged();
+    }
+
+    private bool ReplaceCanvasPixels(FacePixel[] pixels)
+    {
+        var normalized = CurrentPattern.Normalize();
+        var replacement = pixels.Select(pixel => pixel.Normalize()).ToArray();
+        if (normalized.Pixels.SequenceEqual(replacement))
+        {
+            return false;
+        }
+
+        CurrentPattern = normalized with
+        {
+            Pixels = replacement,
+            DisplayName = FaceName,
+            Source = normalized.IsBuiltIn ? FacePatternSource.Custom : normalized.Source,
+            Emotion = normalized.IsBuiltIn ? FaceEmotion.Custom : normalized.Emotion,
+            PreferredSlot = SelectedSlot,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+        RefreshPreview();
+        return true;
+    }
+
+    private void BeginEditTransaction() => editTransactionStart ??= CaptureSnapshot();
+
+    private void EndEditTransaction()
+    {
+        if (editTransactionStart is not { } before)
+        {
+            return;
+        }
+
+        editTransactionStart = null;
+        if (!SnapshotsEqual(before, CaptureSnapshot()))
+        {
+            PushBounded(undoHistory, before);
+            redoHistory.Clear();
+            NotifyHistoryChanged();
+        }
+    }
+
+    private EditorSnapshot CaptureSnapshot() => new(CurrentPattern, FaceName, SelectedSlot);
+
+    private void ApplySnapshot(EditorSnapshot snapshot)
+    {
+        CurrentPattern = snapshot.Pattern;
+        FaceName = snapshot.FaceName;
+        SelectedSlot = snapshot.SelectedSlot;
+        ClearSelection();
+        RefreshPreview();
+        RefreshPatternCards();
+    }
+
+    private static bool SnapshotsEqual(EditorSnapshot left, EditorSnapshot right) =>
+        left.FaceName == right.FaceName &&
+        left.SelectedSlot == right.SelectedSlot &&
+        left.Pattern.Id == right.Pattern.Id &&
+        left.Pattern.Source == right.Pattern.Source &&
+        left.Pattern.Emotion == right.Pattern.Emotion &&
+        left.Pattern.Pixels.SequenceEqual(right.Pattern.Pixels);
+
+    private static void PushBounded(Stack<EditorSnapshot> stack, EditorSnapshot snapshot)
+    {
+        if (stack.Count >= MaxHistoryDepth)
+        {
+            var retained = stack.Reverse().Skip(1).ToArray();
+            stack.Clear();
+            foreach (var item in retained)
+            {
+                stack.Push(item);
+            }
+        }
+
+        stack.Push(snapshot);
+    }
+
+    private void ResetHistory()
+    {
+        undoHistory.Clear();
+        redoHistory.Clear();
+        editTransactionStart = null;
+        NotifyHistoryChanged();
+    }
+
+    private void NotifyHistoryChanged()
+    {
+        OnPropertyChanged(nameof(CanUndo));
+        OnPropertyChanged(nameof(CanRedo));
+        UndoCommand.RaiseCanExecuteChanged();
+        RedoCommand.RaiseCanExecuteChanged();
     }
 
     private void RefreshPreview()
@@ -592,9 +1266,19 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
             return 7;
         }
 
-        var state = new FacePatternStoreState { Patterns = Patterns };
+        var state = storeState with { Patterns = Patterns };
         return state.NextCustomSlot(AppBuiltInAnimationCatalog.ReservedSlots);
     }
+
+    private AsyncRelayCommand CreateToolCommand(FaceEditorTool tool) => new(_ =>
+    {
+        SelectedTool = tool;
+        return Task.CompletedTask;
+    });
+
+    private static string GetColorName(FaceColor color, int index) =>
+        FaceColorOption.Defaults.FirstOrDefault(option => option.Color == color)?.Name
+        ?? $"Saved {index + 1}";
 
     private bool CanSave() => !string.IsNullOrWhiteSpace(FaceName);
 
@@ -669,4 +1353,6 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
         OnPropertyChanged(propertyName);
         return true;
     }
+
+    private sealed record EditorSnapshot(FacePattern Pattern, string FaceName, int SelectedSlot);
 }

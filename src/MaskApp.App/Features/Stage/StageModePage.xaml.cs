@@ -22,6 +22,8 @@ public partial class StageModePage : ContentPage
         BindingContext = viewModel;
     }
 
+    public StageModeViewModel ViewModel => viewModel;
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();

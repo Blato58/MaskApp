@@ -47,6 +47,8 @@ public sealed class FestivalPreflightAnalyzer
                 "Open Device, connect the physical show mask, then rerun Preflight."));
         }
 
+        AddRuntimePermissionIssues(request, issues);
+
         AddProfileIssues(profile, capabilities, request.EvaluatedAt, issues);
         if (request.SchedulerSnapshot is { PendingOperationCount: > 0 } scheduler)
         {
@@ -139,6 +141,62 @@ public sealed class FestivalPreflightAnalyzer
                 .Select(group => group.First())
                 .ToArray()
         };
+    }
+
+    private static void AddRuntimePermissionIssues(
+        FestivalPreflightRequest request,
+        ICollection<PreflightIssue> issues)
+    {
+        if (request.RequiredRuntimePermissions.HasFlag(PreflightRuntimeRequirement.Bluetooth))
+        {
+            AddRuntimePermissionIssue(
+                "bluetooth",
+                "Bluetooth",
+                request.RuntimeSnapshot.BluetoothAccess,
+                request.RuntimeSnapshot.BluetoothDetail,
+                "Open Device, grant Bluetooth access in system settings, turn Bluetooth on, then reconnect the mask.",
+                issues);
+        }
+
+        if (request.RequiredRuntimePermissions.HasFlag(PreflightRuntimeRequirement.Microphone))
+        {
+            AddRuntimePermissionIssue(
+                "microphone",
+                "Microphone",
+                request.RuntimeSnapshot.MicrophoneAccess,
+                request.RuntimeSnapshot.MicrophoneDetail,
+                "Grant microphone access in system settings, return to Audio Labs, and explicitly start capture again.",
+                issues);
+        }
+    }
+
+    private static void AddRuntimePermissionIssue(
+        string codePrefix,
+        string displayName,
+        PreflightRuntimeAccessStatus status,
+        string detail,
+        string recoveryAction,
+        ICollection<PreflightIssue> issues)
+    {
+        if (status == PreflightRuntimeAccessStatus.Granted)
+        {
+            return;
+        }
+
+        var suffix = status switch
+        {
+            PreflightRuntimeAccessStatus.Denied => "denied",
+            PreflightRuntimeAccessStatus.Unavailable => "unavailable",
+            _ => "unverified"
+        };
+        var message = string.IsNullOrWhiteSpace(detail)
+            ? $"{displayName} runtime access is {suffix}."
+            : detail.Trim();
+        issues.Add(new PreflightIssue(
+            $"{codePrefix}-permission-{suffix}",
+            PreflightIssueSeverity.Blocking,
+            message,
+            recoveryAction));
     }
 
     private static void AddProfileIssues(

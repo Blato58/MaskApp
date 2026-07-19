@@ -169,6 +169,43 @@ public sealed class GalleryViewModelTests
     }
 
     [Fact]
+    public async Task MoveItemToAsync_ReordersNonAdjacentItems_AndRejectsCrossSectionDrop()
+    {
+        var first = CreatePreset("Drag target one", "Drag Pack");
+        var second = CreatePreset("Drag target two", "Drag Pack");
+        var third = CreatePreset("Drag target three", "Drag Pack");
+        var outside = CreatePreset("Outside target", "Other Pack");
+        var layoutStore = new RecordingGalleryLayoutStore();
+        var viewModel = CreateViewModel(textPresets: [first, second, third, outside], layoutStore: layoutStore);
+
+        await viewModel.InitializeAsync();
+        var firstId = $"text:{first.Id.Value}";
+        var thirdId = $"text:{third.Id.Value}";
+        var outsideId = $"text:{outside.Id.Value}";
+
+        var originalIds = viewModel.Groups
+            .Single(group => group.Items.Any(card => card.Id == firstId))
+            .Items
+            .Select(card => card.Id)
+            .ToList();
+        var sourceIndex = originalIds.IndexOf(firstId);
+        var targetIndex = originalIds.IndexOf(thirdId);
+        originalIds.RemoveAt(sourceIndex);
+        originalIds.Insert(targetIndex, firstId);
+
+        Assert.True(await viewModel.MoveItemToAsync(firstId, thirdId));
+        Assert.Equal(
+            originalIds,
+            viewModel.Groups
+                .Single(group => group.Items.Any(card => card.Id == firstId))
+                .Items
+                .Select(card => card.Id));
+
+        Assert.False(await viewModel.MoveItemToAsync(firstId, outsideId));
+        Assert.Contains("within their current section", viewModel.StatusText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task IsEditMode_RebuildsCardsIntoEditState()
     {
         var preset = CreatePreset("Editable gallery item", "Edit Pack");

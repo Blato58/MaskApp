@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="MaskApp.App.Features.Audio.AudioLabsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+
+    xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
+    xmlns:audio="clr-namespace:MaskApp.App.Features.Audio"
+    x:DataType="audio:AudioLabsViewModel"
+    Title="{loc:AppText Key=Ui033}"
+    BackgroundColor="{StaticResource PageBackgroundColor}">
+    <Grid RowDefinitions="*,Auto">
+        <ScrollView>
+            <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="16">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="{loc:AppText Key=Ui035}" Style="{StaticResource PageTitleLabelStyle}" SemanticProperties.HeadingLevel="Level1" />
+                    <Label Text="{loc:AppText Key=Ui103}" TextColor="{StaticResource WarningColor}" FontAttributes="Bold" />
+                </VerticalStackLayout>
+
+                <Border Style="{StaticResource PanelBorderStyle}" Stroke="{StaticResource WarningColor}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="{loc:AppText Key=Ui273}" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Label
+                            Text="{loc:AppText Key=Ui169}"
+                            Style="{StaticResource MutedLabelStyle}" />
+                        <Label Text="{Binding ModeSafetyText}" Style="{StaticResource TinyLabelStyle}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource PanelBorderStyle}">
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="{loc:AppText Key=Ui003}" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Label Text="{Binding TransportText}" Style="{StaticResource MutedLabelStyle}" />
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="5">
+                                <Label Text="{loc:AppText Key=Ui123}" Style="{StaticResource TinyLabelStyle}" />
+                                <Picker
+                                    ItemsSource="{Binding FramingOptions}"
+                                    ItemDisplayBinding="{Binding Label, x:DataType=audio:AudioFramingOption}"
+                                    SelectedItem="{Binding SelectedFramingOption, Mode=TwoWay}"
+                                    SemanticProperties.Description="{loc:AppText Key=Ui034}" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                <Label Text="{loc:AppText Key=Ui213}" Style="{StaticResource TinyLabelStyle}" />
+                                <Picker
+                                    ItemsSource="{Binding PackingModeOptions}"
+                                    ItemDisplayBinding="{Binding Label, x:DataType=audio:AudioPackingModeOption}"
+                                    SelectedItem="{Binding SelectedPackingModeOption, Mode=TwoWay}"
+                                    SemanticProperties.Description="{loc:AppText Key=Ui117}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                        <Button
+                            Text="{loc:AppText Key=Ui271}"
+                            Command="{Binding RunDiagnosticCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            SemanticProperties.Hint="{loc:AppText Key=Ui305}" />
+                        <Border Style="{StaticResource CompactPanelBorderStyle}">
+                            <VerticalStackLayout Spacing="5">
+                                <Label Text="{Binding EvidenceStatusText}" FontAttributes="Bold" TextColor="{StaticResource AccentColor}" />
+                                <Label Text="{Binding EvidenceText}" Style="{StaticResource MutedLabelStyle}" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10" IsVisible="{Binding CanConfirmPhysicalResult}">
+                            <Button Text="{loc:AppText Key=Ui360}" Clicked="OnConfirmPassedClicked" Style="{StaticResource PrimaryButtonStyle}" />
+                            <Button Grid.Column="1" Text="{loc:AppText Key=Ui174}" Clicked="OnConfirmFailedClicked" Style="{StaticResource SecondaryButtonStyle}" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource PanelBorderStyle}">
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="{loc:AppText Key=Ui004}" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Button
+                            Text="{loc:AppText Key=Ui054}"
+                            Command="{Binding CalibrateCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            SemanticProperties.Hint="{loc:AppText Key=Ui357}" />
+                        <Label Text="{loc:AppText Key=Ui361}" Style="{StaticResource TinyLabelStyle}" />
+                        <Picker ItemsSource="{Binding ModeOptions}" ItemDisplayBinding="{Binding Label, x:DataType=audio:AudioVisualizerModeOption}" SelectedItem="{Binding SelectedModeOption, Mode=TwoWay}" />
+
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="4">
+                            <Label Text="{loc:AppText Key=Ui307}" FontAttributes="Bold" />
+                            <Label Grid.Column="1" Text="{Binding SensitivityText}" Style="{StaticResource TinyLabelStyle}" />
+                            <Slider Grid.Row="1" Grid.ColumnSpan="2" Minimum="0.25" Maximum="4" Value="{Binding Sensitivity, Mode=TwoWay}" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="4">
+                            <Label Text="{loc:AppText Key=Ui342}" FontAttributes="Bold" />
+                            <Label Grid.Column="1" Text="{Binding ThresholdText}" Style="{StaticResource TinyLabelStyle}" />
+                            <Slider Grid.Row="1" Grid.ColumnSpan="2" Minimum="0" Maximum="0.75" Value="{Binding Threshold, Mode=TwoWay}" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="4">
+                            <Label Text="{loc:AppText Key=Ui318}" FontAttributes="Bold" />
+                            <Label Grid.Column="1" Text="{Binding SmoothingText}" Style="{StaticResource TinyLabelStyle}" />
+                            <Slider Grid.Row="1" Grid.ColumnSpan="2" Minimum="0" Maximum="0.9" Value="{Binding Smoothing, Mode=TwoWay}" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource PanelBorderStyle}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="{loc:AppText Key=Ui005}" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Label Text="{loc:AppText Key=Ui321}" Style="{StaticResource MutedLabelStyle}" />
+                        <Button
+                            Text="{loc:AppText Key=Ui320}"
+                            Command="{Binding StartCommand}"
+                            IsEnabled="{Binding CanStartLive}"
+                            Style="{StaticResource PrimaryButtonStyle}" />
+                        <Label Text="{Binding RuntimeStatsText}" Style="{StaticResource TinyLabelStyle}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CompactPanelBorderStyle}">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                        <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" VerticalOptions="Center" />
+                        <Label Grid.Column="1" Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" VerticalTextAlignment="Center" />
+                    </Grid>
+                </Border>
+
+                <BoxView HeightRequest="12" Opacity="0" />
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Border Grid.Row="1" Style="{StaticResource PanelBorderStyle}" Margin="12" BackgroundColor="{StaticResource PageBackgroundColor}">
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Button
+                    Text="{loc:AppText Key=Ui326}"
+                    Command="{Binding StopCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    MinimumHeightRequest="56"
+                    SemanticProperties.Hint="{loc:AppText Key=Ui329}" />
+                <Button
+                    Grid.Column="1"
+                    Text="{loc:AppText Key=Ui045}"
+                    Command="{Binding BlackoutCommand}"
+                    Style="{StaticResource DangerButtonStyle}"
+                    MinimumHeightRequest="56"
+                    SemanticProperties.Hint="{loc:AppText Key=Ui330}" />
+            </Grid>
+        </Border>
+    </Grid>
+</ContentPage>

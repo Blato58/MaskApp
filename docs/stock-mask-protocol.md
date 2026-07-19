@@ -219,6 +219,17 @@ affect DIY playback on the tested mask. The lifecycle handoff, sustained cadence
 battery impact, persistence, overwrite behavior, and ACK behavior still need
 physical confirmation.
 
+iOS creates its CoreBluetooth central manager with a stable restoration
+identifier. A restored peripheral reference is cached, but MaskApp stops any
+restored scan, clears transport readiness, and does not rediscover
+characteristics or send a command until a foreground manual/remembered-device
+connection reactivates the correct per-mask profile. A restored connection is
+therefore continuity evidence, not permission to replay the prior look. Every
+connection-state transition advances the scheduler generation and discards old
+queued work. If the link drops while the app is backgrounded, auto-connect stays
+paused until the window is activated; background scanning and indefinite
+phone-timed playback are not promised.
+
 Static DIY face upload has Java evidence from `UCropActivity` and
 `BitmapUtils.getBitmapData`: the original Android crop path uses a 46x58 crop
 target, then `CropImage.imageData` stores 2668 RGB triplets ordered
@@ -313,19 +324,40 @@ the length selects one of four packing modes. The handler expands packed
 4-bit levels `0..9` into a 24-element render buffer; values above `9` are
 clamped to zero. Modes `0`/`1` consume 12 packed bytes, mode `2` consumes six,
 and mode `3` consumes four. Palette, orientation, and visible behavior still
-need a real-mask test; see the detailed firmware analysis before implementing
-this alternate live-view path.
+need a real-mask test; see the detailed firmware analysis before treating this
+alternate live-view path as a product capability.
 
 MaskApp status:
 
-- The UUID is documented in `MaskBleProtocol`.
-- No microphone-driven visualizer product flow is implemented yet.
-- Rhythm, Voice Mouth, Bass Face, Drop Detector, and real-time effects must stay
-  Labs/Experimental until deterministic packets are implemented and tested on a
-  real mask.
+- iOS and Android discover characteristic `960B` explicitly and surface
+  missing-characteristic state instead of falling back to the command or upload
+  characteristic.
+- Deterministic builders cover firmware-declared lengths `13`, `7`, and `6`,
+  plus the original Android client's declared length `15`. Modes `0..3` are
+  supported; the Android UI's undocumented mode `4` is not sent.
+- Audio packets use the shared BLE scheduler. Newer live frames supersede queued
+  stale frames, ordinary control/upload traffic stays ahead of them, and Stop,
+  Blackout, disconnect, or scheduler shutdown cancels the producer.
+- The reachable Audio Visualizer Labs flow first sends a finite deterministic
+  sequence. Because this characteristic has no explicit ACK, a completed BLE
+  write records only `PendingPhysicalConfirmation`. Live microphone input is
+  unlocked only after the user confirms that sequence on the currently active
+  physical mask; that evidence is stored per mask profile and simulator evidence
+  cannot unlock it.
+- Native iOS and Android microphone capture is foreground-only. Spectrum, Bass
+  Face, Voice Mouth, and Drop Detector use bounded latest-buffer processing,
+  room-noise calibration, smoothing, threshold, sensitivity, and the cadence
+  proven by the finite test. Audio interruptions, input-route changes,
+  navigation away, background/lock, disconnect, Stop, and Blackout end capture;
+  foreground return never restarts it automatically.
+- Drop Detector has a 500 ms refractory period. Every live mode also passes a
+  non-overridable gate that suppresses a fourth full-bright rise inside one
+  second. Blackout is never subject to that gate.
 
-Future implementation should start with deterministic test packets and an
-explicit stop/recovery path before adding microphone input.
+These modes remain Labs/Experimental. Unit tests and platform builds prove
+packet construction, scheduling, gating, signal processing, and lifecycle
+policy; they do not prove palette, orientation, visual quality, cadence,
+thermal behavior, or photosensitivity safety on a physical mask.
 
 ## Responses/ACKs
 
@@ -360,9 +392,9 @@ encrypted 16-byte blocks and plaintext fallback.
 | DIY/custom image upload | `DATS`/payload/`DATCP`, `CHEC`, `PLAY`, `DELE` | Implemented Face Studio upload plus Library/Pages prepare-once and PLAY-only replay | Static 46x58 orientation and visual output confirmed; slot lifecycle and ACK behavior need real-mask tests |
 | App-built custom animation | Static DIY frames, continuously repeated one-slot `PLAY` commands, and a multi-slot background handoff | Implemented Experimental catalog with per-frame fingerprints, configurable per-animation foreground timing, app-wide playback ownership, iOS write backpressure, and a best-effort mask-owned lock/background fallback; Holy Priest currently uses 300-400 ms | Firmware sequence is slower and `SPEED` is ineffective; foreground cadence, background handoff, battery impact, persistence, and visuals need real-mask tests |
 | Static text fast slot | Text rasterized into a 46x58 DIY image, then `PLAY` | Implemented in Pages; native text modes intentionally not preserved | Needs real-mask test |
-| Audio visualizer | audio characteristic encrypted packets | Documented only | Needs real-mask test |
+| Audio visualizer | audio characteristic encrypted packets | Implemented in reachable Labs with deterministic fixtures, explicit characteristic discovery, finite per-mask evidence gate, scheduler ownership, and foreground-only native capture | Needs per-mask finite-sequence, cadence, visual, interruption, thermal, and battery tests |
 | RAVE command fallbacks | `LIGHT`, `IMAG`, `ANIM` | Implemented as test/fallback controls | Needs real-mask test |
-| Drop Detector / Voice Mouth / Bass Face | App-layer composition over visualizer/text/DIY | Labs/Experimental | Needs real-mask test |
+| Drop Detector / Voice Mouth / Bass Face | App-layer composition over the 24-value visualizer buffer | Implemented Labs/Experimental with calibration, tuning, bounded processing, Drop refractory timing, and a non-overridable live flash gate | Needs real-mask visual, ambient-source, cadence, and photosensitivity review |
 
 ## RAVE FAST Implementation Guidance
 

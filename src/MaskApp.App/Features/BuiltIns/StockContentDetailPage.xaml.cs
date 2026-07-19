@@ -37,12 +37,25 @@ public partial class StockContentDetailPage : ContentPage, IQueryAttributable
         base.OnAppearing();
         await viewModel.InitializeAsync();
         viewModel.SelectCatalogItem(selectedType, selectedId);
-        DetailPreview.IsAnimationPlaying = viewModel.CurrentPreviewIsAnimated && !motionPreference.IsReducedMotionEnabled;
+        UpdateAnimationState();
+        viewModel.PropertyChanged += OnViewModelPropertyChanged;
     }
 
     protected override void OnDisappearing()
     {
+        viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         DetailPreview.IsAnimationPlaying = false;
         base.OnDisappearing();
     }
+
+    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(BuiltInsViewModel.CurrentPreviewIsAnimated) or nameof(BuiltInsViewModel.CurrentPreviewResourceName))
+        {
+            UpdateAnimationState();
+        }
+    }
+
+    private void UpdateAnimationState() =>
+        DetailPreview.IsAnimationPlaying = viewModel.CurrentPreviewIsAnimated && !motionPreference.IsReducedMotionEnabled;
 }

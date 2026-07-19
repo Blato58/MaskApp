@@ -3,10 +3,12 @@
     x:Class="MaskApp.App.Features.Faces.FaceStudioPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+
+    xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
     xmlns:controls="clr-namespace:MaskApp.App.Controls"
     xmlns:faces="clr-namespace:MaskApp.Core.Features.Faces;assembly=MaskApp.Core"
     x:DataType="faces:FaceStudioViewModel"
-    Title="Face Studio"
+    Title="{x:Static loc:AppText.FaceStudio}"
     BackgroundColor="{AppThemeBinding Dark={StaticResource DarkCanvasColor}, Light={StaticResource LightCanvasColor}}">
     <ScrollView>
         <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="16">
@@ -14,7 +16,7 @@
                 <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Face Studio" Style="{StaticResource PageTitleLabelStyle}" />
+                            <Label Text="{x:Static loc:AppText.FaceStudio}" Style="{StaticResource PageTitleLabelStyle}" />
                             <Label Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
                         </VerticalStackLayout>
                         <Border Grid.Column="1" Style="{StaticResource StatusPillBorderStyle}">
@@ -24,7 +26,7 @@
 
                     <Entry
                         Grid.Row="1"
-                        Placeholder="Face name"
+                        Placeholder="{loc:AppText Key=Ui108}"
                         Text="{Binding FaceName, Mode=TwoWay}" />
 
                     <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
@@ -34,26 +36,30 @@
                             Value="{Binding SelectedSlot, Mode=TwoWay}" />
                         <Label
                             Grid.Column="1"
-                            Text="{Binding SelectedSlot, StringFormat='Slot {0}'}"
+                            Text="{Binding SelectedSlot, StringFormat='{loc:AppText Key=Ui430}'}"
                             Style="{StaticResource MetricLabelStyle}"
                             VerticalTextAlignment="Center" />
-                        <Button Grid.Column="2" Text="Auto" Command="{Binding UseAutoSlotCommand}" SemanticProperties.Hint="Choose the next safe unreserved DIY slot" />
+                        <Button
+                            Grid.Column="2"
+                            Text="{loc:Translate Auto}"
+                            Command="{Binding UseAutoSlotCommand}"
+                            SemanticProperties.Hint="{loc:Translate AutoSlotHint}" />
                     </Grid>
 
                     <Grid Grid.Row="3" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
-                        <Button Text="Pick Photo" Clicked="OnPickPhotoClicked" />
-                        <Button Grid.Column="1" Text="Camera" Clicked="OnCapturePhotoClicked" />
-                        <Button Grid.Row="1" Text="New Blank" Command="{Binding NewBlankCommand}" />
-                        <Button Grid.Row="1" Grid.Column="1" Text="Upload + Play" Command="{Binding UploadCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Text="{loc:AppText Key=Ui222}" Clicked="OnPickPhotoClicked" />
+                        <Button Grid.Column="1" Text="{loc:AppText Key=Ui055}" Clicked="OnCapturePhotoClicked" />
+                        <Button Grid.Row="1" Text="{loc:AppText Key=Ui181}" Command="{Binding NewBlankCommand}" />
+                        <Button Grid.Row="1" Grid.Column="1" Text="{loc:AppText Key=Ui352}" Command="{Binding UploadCommand}" Style="{StaticResource PrimaryButtonStyle}" />
                     </Grid>
                 </Grid>
             </Border>
 
             <Border Style="{StaticResource PanelBorderStyle}">
-                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="46x58 native mask canvas" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Label Text="{loc:AppText Key=Ui006}" Style="{StaticResource SectionTitleLabelStyle}" />
                             <Label Text="{Binding CurrentPatternSubtitle}" Style="{StaticResource TinyLabelStyle}" />
                         </VerticalStackLayout>
                         <ActivityIndicator
@@ -66,30 +72,104 @@
                         x:Name="FaceCanvas"
                         Grid.Row="1"
                         HeightRequest="420"
-                        StartInteraction="OnCanvasInteraction"
-                        DragInteraction="OnCanvasInteraction" />
+                        StartInteraction="OnCanvasStartInteraction"
+                        DragInteraction="OnCanvasDragInteraction"
+                        EndInteraction="OnCanvasEndInteraction"
+                        SemanticProperties.Description="{loc:AppText Key=Ui099}" />
 
-                    <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                        <Switch IsToggled="{Binding IsEraseMode, Mode=TwoWay}" />
-                        <Label Grid.Column="1" Text="{Binding DrawModeText}" VerticalTextAlignment="Center" />
-                        <Label Grid.Column="2" Text="{Binding SelectedColorSummary}" Style="{StaticResource TinyLabelStyle}" VerticalTextAlignment="Center" />
+                    <VerticalStackLayout Grid.Row="2" Spacing="3">
+                        <Label Text="{Binding EditorHintText}" Style="{StaticResource TinyLabelStyle}" HorizontalTextAlignment="Center" />
+                        <Label Text="{Binding EditorStateText}" Style="{StaticResource TinyLabelStyle}" HorizontalTextAlignment="Center" SemanticProperties.HeadingLevel="None" />
+                    </VerticalStackLayout>
+
+                    <Grid Grid.Row="3" ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                        <Button Text="{loc:AppText Key=Ui093}" Command="{Binding SelectDrawToolCommand}" Style="{StaticResource EditorToolButtonStyle}">
+                            <Button.Triggers><DataTrigger TargetType="Button" Binding="{Binding IsDrawTool}" Value="True"><Setter Property="BackgroundColor" Value="{StaticResource SelectedSurfaceColor}" /><Setter Property="BorderColor" Value="{StaticResource AccentColor}" /></DataTrigger></Button.Triggers>
+                        </Button>
+                        <Button Grid.Column="1" Text="{loc:AppText Key=Ui115}" Command="{Binding SelectFillToolCommand}" Style="{StaticResource EditorToolButtonStyle}">
+                            <Button.Triggers><DataTrigger TargetType="Button" Binding="{Binding IsFillTool}" Value="True"><Setter Property="BackgroundColor" Value="{StaticResource SelectedSurfaceColor}" /><Setter Property="BorderColor" Value="{StaticResource AccentColor}" /></DataTrigger></Button.Triggers>
+                        </Button>
+                        <Button Grid.Column="2" Text="{loc:AppText Key=Ui299}" Command="{Binding SelectMoveToolCommand}" Style="{StaticResource EditorToolButtonStyle}" SemanticProperties.Description="{loc:AppText Key=Ui300}">
+                            <Button.Triggers><DataTrigger TargetType="Button" Binding="{Binding IsSelectMoveTool}" Value="True"><Setter Property="BackgroundColor" Value="{StaticResource SelectedSurfaceColor}" /><Setter Property="BorderColor" Value="{StaticResource AccentColor}" /></DataTrigger></Button.Triggers>
+                        </Button>
                     </Grid>
 
-                    <Grid Grid.Row="3" RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
-                        <Button BackgroundColor="#FACC15" BorderColor="#FACC15" Clicked="OnColorClicked" CommandParameter="Yellow" HeightRequest="42" SemanticProperties.Description="Yellow drawing color" Text="" WidthRequest="46" />
-                        <Button Grid.Column="1" BackgroundColor="#FFFFFF" BorderColor="#D1D5DB" BorderWidth="1" Clicked="OnColorClicked" CommandParameter="White" HeightRequest="42" SemanticProperties.Description="White drawing color" Text="" WidthRequest="46" />
-                        <Button Grid.Column="2" BackgroundColor="#52E3FF" BorderColor="#52E3FF" Clicked="OnColorClicked" CommandParameter="Cyan" HeightRequest="42" SemanticProperties.Description="Cyan drawing color" Text="" WidthRequest="46" />
-                        <Button Grid.Column="3" BackgroundColor="#F472B6" BorderColor="#F472B6" Clicked="OnColorClicked" CommandParameter="Pink" HeightRequest="42" SemanticProperties.Description="Pink drawing color" Text="" WidthRequest="46" />
-                        <Button Grid.Column="4" BackgroundColor="#22C55E" BorderColor="#22C55E" Clicked="OnColorClicked" CommandParameter="Green" HeightRequest="42" SemanticProperties.Description="Green drawing color" Text="" WidthRequest="46" />
-                        <Button Grid.Column="5" BackgroundColor="#EF4444" BorderColor="#EF4444" Clicked="OnColorClicked" CommandParameter="Red" HeightRequest="42" SemanticProperties.Description="Red drawing color" Text="" WidthRequest="46" />
-                        <Button Grid.Column="6" BackgroundColor="#A855F7" BorderColor="#A855F7" Clicked="OnColorClicked" CommandParameter="Purple" HeightRequest="42" SemanticProperties.Description="Purple drawing color" Text="" WidthRequest="46" />
+                    <ScrollView Grid.Row="4" Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                        <HorizontalStackLayout Spacing="12">
+                            <HorizontalStackLayout Spacing="5" VerticalOptions="Center">
+                                <Label Text="{loc:AppText Key=Ui102}" Style="{StaticResource TinyLabelStyle}" VerticalTextAlignment="Center" />
+                                <Switch IsToggled="{Binding IsEraseMode, Mode=TwoWay}" />
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Spacing="5" VerticalOptions="Center">
+                                <Label Text="{loc:AppText Key=Ui156}" Style="{StaticResource TinyLabelStyle}" VerticalTextAlignment="Center" />
+                                <Switch IsToggled="{Binding IsHorizontalSymmetryEnabled, Mode=TwoWay}" />
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Spacing="5" VerticalOptions="Center">
+                                <Label Text="{loc:AppText Key=Ui344}" Style="{StaticResource TinyLabelStyle}" VerticalTextAlignment="Center" />
+                                <Switch IsToggled="{Binding IsVerticalSymmetryEnabled, Mode=TwoWay}" />
+                            </HorizontalStackLayout>
+                        </HorizontalStackLayout>
+                    </ScrollView>
 
-                        <Button Grid.Row="1" Text="Clear" Command="{Binding ClearCommand}" />
-                        <Button Grid.Row="1" Grid.Column="1" Text="Mirror" Command="{Binding MirrorCommand}" />
-                        <Button Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Text="Save" Command="{Binding SaveCommand}" />
-                        <Button Grid.Row="1" Grid.Column="4" Grid.ColumnSpan="2" Text="Save Copy" Command="{Binding SaveAsCopyCommand}" />
-                        <Button Grid.Row="1" Grid.Column="6" Text="Delete" Command="{Binding DeleteCommand}" />
+                    <Grid Grid.Row="5" RowDefinitions="Auto,Auto" RowSpacing="6">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Label Text="{loc:AppText Key=Ui094}" Style="{StaticResource TinyLabelStyle}" VerticalTextAlignment="Center" />
+                            <Label Grid.Column="1" Text="{Binding SelectedColorSummary}" Style="{StaticResource TinyLabelStyle}" VerticalTextAlignment="Center" />
+                        </Grid>
+                        <ScrollView Grid.Row="1" Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                            <HorizontalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding ActiveColorOptions}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="faces:FaceColorOption">
+                                        <Button
+                                            Text="{Binding Name}"
+                                            BorderColor="{Binding Hex}"
+                                            BorderWidth="3"
+                                            Clicked="OnPaletteColorClicked"
+                                            CommandParameter="{Binding .}"
+                                            HeightRequest="44"
+                                            MinimumWidthRequest="72"
+                                            SemanticProperties.Description="{Binding Name, StringFormat='{loc:AppText Key=Ui416}'}" />
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </HorizontalStackLayout>
+                        </ScrollView>
                     </Grid>
+
+                    <ScrollView Grid.Row="6" Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                        <HorizontalStackLayout Spacing="8">
+                            <Button Text="{loc:AppText Key=Ui350}" Command="{Binding UndoCommand}" Style="{StaticResource CompactButtonStyle}" />
+                            <Button Text="{loc:AppText Key=Ui252}" Command="{Binding RedoCommand}" Style="{StaticResource CompactButtonStyle}" />
+                            <Button Text="{loc:AppText Key=Ui058}" Command="{Binding ClearCommand}" Style="{StaticResource CompactButtonStyle}" />
+                            <Button Text="{loc:AppText Key=Ui172}" Command="{Binding MirrorCommand}" Style="{StaticResource CompactButtonStyle}" />
+                            <Button Text="{loc:AppText Key=Ui173}" Command="{Binding MirrorVerticalCommand}" Style="{StaticResource CompactButtonStyle}" />
+                            <Button Text="{loc:AppText Key=Ui274}" Command="{Binding SaveCommand}" Style="{StaticResource CompactButtonStyle}" />
+                            <Button Text="{loc:AppText Key=Ui276}" Command="{Binding SaveAsCopyCommand}" Style="{StaticResource CompactButtonStyle}" />
+                            <Button Text="{loc:AppText Key=Ui081}" Command="{Binding DeleteCommand}" Style="{StaticResource CompactButtonStyle}" />
+                        </HorizontalStackLayout>
+                    </ScrollView>
+
+                    <Border Grid.Row="7" Style="{StaticResource ActionCardBorderStyle}">
+                        <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="{loc:AppText Key=Ui284}" Style="{StaticResource SectionTitleLabelStyle}" />
+                                    <Label Text="{Binding PaletteStatusText}" Style="{StaticResource TinyLabelStyle}" />
+                                </VerticalStackLayout>
+                                <Button Grid.Column="1" Text="{loc:AppText Key=Ui180}" Command="{Binding NewPaletteCommand}" Style="{StaticResource CompactButtonStyle}" />
+                            </Grid>
+                            <Picker
+                                Grid.Row="1"
+                                Title="{loc:AppText Key=Ui136}"
+                                ItemsSource="{Binding SavedPalettes}"
+                                ItemDisplayBinding="{Binding DisplayName, x:DataType=faces:FaceSavedPalette}"
+                                SelectedItem="{Binding SelectedPalette, Mode=TwoWay}" />
+                            <Entry Grid.Row="2" Placeholder="{loc:AppText Key=Ui219}" Text="{Binding PaletteName, Mode=TwoWay}" />
+                            <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <Button Text="{loc:AppText Key=Ui278}" Command="{Binding SavePaletteCommand}" Style="{StaticResource NeonBlueButtonStyle}" />
+                                <Button Grid.Column="1" Text="{loc:AppText Key=Ui084}" Command="{Binding DeletePaletteCommand}" />
+                            </Grid>
+                        </Grid>
+                    </Border>
                 </Grid>
             </Border>
 
@@ -97,11 +177,11 @@
                 <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Saved faces" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Label Text="{loc:AppText Key=Ui283}" Style="{StaticResource SectionTitleLabelStyle}" />
                             <Label Text="{Binding StoreStatusText}" Style="{StaticResource TinyLabelStyle}" />
                         </VerticalStackLayout>
                         <Border Grid.Column="1" Style="{StaticResource StatusPillBorderStyle}">
-                            <Label Text="{Binding PatternCards.Count, StringFormat='{0} faces'}" Style="{StaticResource ChipLabelStyle}" />
+                            <Label Text="{Binding PatternCards.Count, StringFormat='{loc:AppText Key=Ui418}'}" Style="{StaticResource ChipLabelStyle}" />
                         </Border>
                     </Grid>
 
@@ -115,7 +195,7 @@
                                                 HeightRequest="72"
                                                 WidthRequest="58"
                                                 Pattern="{Binding Pattern}"
-                                                SemanticDescription="{Binding DisplayName, StringFormat='{0} face preview'}" />
+                                                SemanticDescription="{Binding DisplayName, StringFormat='{loc:AppText Key=Ui417}'}" />
                                             <VerticalStackLayout Grid.Column="1" Spacing="2">
                                                 <Label Text="{Binding DisplayName}" FontSize="18" FontAttributes="Bold" />
                                                 <Label Text="{Binding Subtitle}" Style="{StaticResource MutedLabelStyle}" />
@@ -123,9 +203,9 @@
                                         </Grid>
                                         <Label Grid.Row="1" Text="{Binding StatusText}" Style="{StaticResource TinyLabelStyle}" />
                                         <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                                            <Button Text="Open" Command="{Binding OpenCommand}" />
-                                            <Button Grid.Column="1" Text="Upload" Command="{Binding UploadCommand}" Style="{StaticResource NeonBlueButtonStyle}" />
-                                            <Button Grid.Column="2" Text="Delete" Command="{Binding DeleteCommand}" />
+                                            <Button Text="{loc:AppText Key=Ui200}" Command="{Binding OpenCommand}" />
+                                            <Button Grid.Column="1" Text="{loc:AppText Key=Ui351}" Command="{Binding UploadCommand}" Style="{StaticResource NeonBlueButtonStyle}" />
+                                            <Button Grid.Column="2" Text="{loc:AppText Key=Ui081}" Command="{Binding DeleteCommand}" />
                                         </Grid>
                                     </Grid>
                                 </Border>
@@ -139,23 +219,23 @@
                             <Label Text="{Binding AcknowledgementModeText}" Style="{StaticResource TinyLabelStyle}" />
                         </VerticalStackLayout>
                         <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
-                            <Label Text="Write-only" Style="{StaticResource TinyLabelStyle}" VerticalTextAlignment="Center" />
+                            <Label Text="{loc:AppText Key=Ui368}" Style="{StaticResource TinyLabelStyle}" VerticalTextAlignment="Center" />
                             <Switch IsEnabled="{Binding CanUseCompatibilityWriteOnly}" IsToggled="{Binding UseCompatibilityWriteOnly, Mode=TwoWay}" />
                         </HorizontalStackLayout>
                     </Grid>
                 </Grid>
             </Border>
 
-            <Button x:Name="DiagnosticsToggle" Text="Show diagnostics" Clicked="OnToggleDiagnosticsClicked" Style="{StaticResource SecondaryButtonStyle}" />
+            <Button x:Name="DiagnosticsToggle" Text="{loc:AppText Key=Ui313}" Clicked="OnToggleDiagnosticsClicked" Style="{StaticResource SecondaryButtonStyle}" />
             <Border x:Name="DiagnosticsPanel" IsVisible="False" Style="{StaticResource PanelBorderStyle}">
                 <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
-                    <Label Text="Diagnostics" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="{loc:AppText Key=Ui086}" Style="{StaticResource SectionTitleLabelStyle}" />
                     <Grid Grid.Row="1" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="4">
-                        <Label Text="Command" Style="{StaticResource TinyLabelStyle}" />
+                        <Label Text="{loc:AppText Key=Ui060}" Style="{StaticResource TinyLabelStyle}" />
                         <Label Grid.Column="1" Text="{Binding LastCommandText}" Style="{StaticResource MutedLabelStyle}" />
-                        <Label Grid.Row="1" Text="Frames" Style="{StaticResource TinyLabelStyle}" />
+                        <Label Grid.Row="1" Text="{loc:AppText Key=Ui122}" Style="{StaticResource TinyLabelStyle}" />
                         <Label Grid.Row="1" Grid.Column="1" Text="{Binding FrameCount}" Style="{StaticResource MutedLabelStyle}" />
-                        <Label Grid.Row="2" Text="Payload" Style="{StaticResource TinyLabelStyle}" />
+                        <Label Grid.Row="2" Text="{loc:AppText Key=Ui220}" Style="{StaticResource TinyLabelStyle}" />
                         <Label Grid.Row="2" Grid.Column="1" FontSize="12" LineBreakMode="CharacterWrap" Text="{Binding LastPayloadHex}" TextColor="{StaticResource SecondaryTextColor}" />
                     </Grid>
                 </Grid>

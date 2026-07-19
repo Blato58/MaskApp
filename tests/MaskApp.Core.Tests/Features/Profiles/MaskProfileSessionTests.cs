@@ -1,4 +1,5 @@
 using MaskApp.Core.Features.Connect;
+using MaskApp.Core.Features.Audio;
 using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.Profiles;
 
@@ -112,6 +113,32 @@ public sealed class MaskProfileSessionTests
         Assert.StartsWith("mask-", lower, StringComparison.Ordinal);
         Assert.DoesNotContain("aa:bb:cc:dd:ee:ff", lower, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(37, lower.Length);
+    }
+
+    [Fact]
+    public async Task AudioPhysicalEvidence_IsScopedToTheExactMaskProfile()
+    {
+        var profileStore = new InMemoryMaskProfileStore();
+        var session = new MaskProfileSession(profileStore);
+        await session.ActivateAsync(FirstMask);
+        await session.RecordAudioVisualizationEvidenceAsync(new AudioVisualizationEvidence
+        {
+            Status = AudioVisualizationEvidenceStatus.Passed,
+            CharacteristicObserved = true,
+            IsSimulated = false,
+            PacketsAttempted = 5,
+            PacketsSent = 5,
+            RequestedCadenceHz = 8,
+            StatusText = "Physical test passed."
+        });
+
+        var second = await session.ActivateAsync(SecondMask);
+        var restoredFirst = await session.ActivateAsync(FirstMask);
+
+        Assert.Equal(AudioVisualizationEvidenceStatus.Unknown, second.AudioVisualizationEvidence.Status);
+        Assert.False(second.AudioVisualizationEvidence.EnablesLiveMicrophone);
+        Assert.Equal(AudioVisualizationEvidenceStatus.Passed, restoredFirst.AudioVisualizationEvidence.Status);
+        Assert.True(restoredFirst.AudioVisualizationEvidence.EnablesLiveMicrophone);
     }
 
     private static MaskCapabilitySnapshot CreateCapabilities(MaskAcknowledgementMode acknowledgementMode) =>

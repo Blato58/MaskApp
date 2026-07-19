@@ -9,6 +9,7 @@ public sealed class JsonFacePatternStoreCoreTests
     [Theory]
     [InlineData(FacePatternStoreState.LegacySchemaVersion)]
     [InlineData(FacePatternStoreState.PreviousSchemaVersion)]
+    [InlineData(FacePatternStoreState.PaletteFreeSchemaVersion)]
     public async Task LoadAsync_MigratesEarlierSchemaAndCustomDrawing(int schemaVersion)
     {
         var filePath = Path.Combine(Path.GetTempPath(), $"maskapp-faces-{Guid.NewGuid():N}.json");
@@ -40,9 +41,39 @@ public sealed class JsonFacePatternStoreCoreTests
 
             Assert.False(state.UsedFallback);
             Assert.Equal(FacePatternStoreState.CurrentSchemaVersion, state.SchemaVersion);
+            Assert.Empty(state.SavedPalettes);
             var migrated = Assert.Single(state.Patterns, pattern => pattern.Id == legacyPattern.Id);
             Assert.Equal(FacePattern.PixelCount, migrated.Pixels.Length);
             Assert.Contains(migrated.Pixels, pixel => pixel.IsLit && pixel.Color == new FaceColor(0x52, 0xE3, 0xFF));
+        }
+        finally
+        {
+            File.Delete(filePath);
+            File.Delete($"{filePath}.tmp");
+        }
+    }
+
+    [Fact]
+    public async Task SaveAndLoadAsync_PreservesSavedPalettes()
+    {
+        var filePath = Path.Combine(Path.GetTempPath(), $"maskapp-faces-{Guid.NewGuid():N}.json");
+        var store = new JsonFacePatternStoreCore(filePath);
+        var palette = new FaceSavedPalette
+        {
+            Id = "stage-colors",
+            DisplayName = "Stage colors",
+            Colors = [new FaceColor(0x12, 0x34, 0x56), new FaceColor(0xEF, 0x44, 0x44)]
+        };
+
+        try
+        {
+            await store.SaveAsync(new FacePatternStoreState { SavedPalettes = [palette] });
+            var loaded = await store.LoadAsync();
+
+            var saved = Assert.Single(loaded.SavedPalettes);
+            Assert.Equal(FacePatternStoreState.CurrentSchemaVersion, loaded.SchemaVersion);
+            Assert.Equal(palette.Id, saved.Id);
+            Assert.Equal(palette.Colors, saved.Colors);
         }
         finally
         {

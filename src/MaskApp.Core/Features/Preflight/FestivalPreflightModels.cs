@@ -108,6 +108,11 @@ public sealed record FestivalPreflightRequest
 
     public BleConnectionState ConnectionState { get; init; } = BleConnectionState.Disconnected;
 
+    public PreflightRuntimeSnapshot RuntimeSnapshot { get; init; } = new();
+
+    public PreflightRuntimeRequirement RequiredRuntimePermissions { get; init; } =
+        PreflightRuntimeRequirement.Bluetooth;
+
     public FlashSafetyAcknowledgementState FlashSafetyAcknowledgements { get; init; } = new();
 
     public DateTimeOffset EvaluatedAt { get; init; } = DateTimeOffset.UtcNow;

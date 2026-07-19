@@ -3,41 +3,43 @@
     x:Class="MaskApp.App.Features.BuiltIns.BuiltInsPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+
+    xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
     xmlns:builtins="clr-namespace:MaskApp.Core.Features.BuiltIns;assembly=MaskApp.Core"
     xmlns:controls="clr-namespace:MaskApp.App.Controls"
     x:DataType="builtins:BuiltInsViewModel"
-    Title="Stock Catalog"
+    Title="{loc:Translate StockCatalog}"
     BackgroundColor="{AppThemeBinding Dark={StaticResource DarkCanvasColor}, Light={StaticResource LightCanvasColor}}">
     <Grid RowDefinitions="Auto,Auto,*" Padding="18,14,18,0" RowSpacing="12">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
             <VerticalStackLayout Spacing="2">
-                <Label Text="Stock Catalog" Style="{StaticResource PageTitleLabelStyle}" />
+                <Label Text="{loc:Translate StockCatalog}" Style="{StaticResource PageTitleLabelStyle}" />
                 <Label Text="{Binding CatalogSummaryText}" Style="{StaticResource TinyLabelStyle}" />
             </VerticalStackLayout>
             <Button
                 Grid.Column="1"
-                Text="BLACKOUT"
+                Text="{loc:AppText Key=Ui045}"
                 Command="{Binding BlackoutCommand}"
-                SemanticProperties.Hint="Immediately dims the connected mask"
+                SemanticProperties.Hint="{loc:AppText Key=Ui143}"
                 Style="{StaticResource DangerButtonStyle}" />
         </Grid>
 
         <Grid Grid.Row="1" RowDefinitions="Auto,Auto" RowSpacing="10">
             <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                 <Button
-                    Text="Faces"
+                    Text="{loc:AppText Key=Ui110}"
                     Command="{Binding SelectStaticImageCommand}"
                     Style="{StaticResource PrimaryButtonStyle}" />
                 <Button
                     Grid.Column="1"
-                    Text="Animations"
+                    Text="{loc:AppText Key=Ui028}"
                     Command="{Binding SelectAnimationCommand}"
                     Style="{StaticResource SecondaryButtonStyle}" />
             </Grid>
             <SearchBar
                 Grid.Row="1"
-                Placeholder="Search name, ID, hex, or tag"
-                SemanticProperties.Description="Search built-in faces and animations"
+                Placeholder="{loc:AppText Key=Ui297}"
+                SemanticProperties.Description="{loc:AppText Key=Ui295}"
                 Text="{Binding SearchText, Mode=TwoWay}" />
         </Grid>
 
@@ -49,8 +51,8 @@
             SelectionMode="None">
             <CollectionView.EmptyView>
                 <VerticalStackLayout Padding="24" Spacing="8">
-                    <Label Text="No matching built-ins" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center" />
-                    <Label Text="Try a different name or ID." Style="{StaticResource MutedLabelStyle}" HorizontalTextAlignment="Center" />
+                    <Label Text="{loc:AppText Key=Ui189}" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                    <Label Text="{loc:AppText Key=Ui349}" Style="{StaticResource MutedLabelStyle}" HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
             </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>
@@ -61,14 +63,14 @@
                                 HeightRequest="82"
                                 WidthRequest="66"
                                 IsAnimationPlaying="{Binding IsAnimationPlaying}"
-                                SemanticDescription="{Binding Title, StringFormat='{0} preview'}"
+                                SemanticDescription="{Binding Title, StringFormat='{loc:AppText Key=Ui419}'}"
                                 Source="{Binding PreviewResourceName}" />
                             <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
                                 <Label Text="{Binding Title}" FontSize="17" FontAttributes="Bold" />
                                 <Label Text="{Binding IdLabel}" Style="{StaticResource TinyLabelStyle}" />
                                 <Label Text="{Binding StatusLabel}" Style="{StaticResource MutedLabelStyle}" />
                                 <Button
-                                    Text="Details"
+                                    Text="{loc:AppText Key=Ui085}"
                                     Clicked="OnDetailsClicked"
                                     CommandParameter="{Binding .}"
                                     HorizontalOptions="Start"
@@ -81,9 +83,9 @@
                                     SemanticProperties.Description="{Binding FavoriteAccessibilityLabel}"
                                     Style="{StaticResource CompactButtonStyle}" />
                                 <Button
-                                    Text="Send"
+                                    Text="{loc:AppText Key=Ui302}"
                                     Command="{Binding SendCommand}"
-                                    SemanticProperties.Hint="Sends this stock item to the connected mask"
+                                    SemanticProperties.Hint="{loc:AppText Key=Ui306}"
                                     Style="{StaticResource PrimaryButtonStyle}" />
                             </VerticalStackLayout>
                         </Grid>
@@ -92,9 +94,9 @@
             </CollectionView.ItemTemplate>
             <CollectionView.Footer>
                 <VerticalStackLayout Padding="8,18,8,28" Spacing="5">
-                    <Label Text="Stock previews" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="{loc:AppText Key=Ui324}" Style="{StaticResource SectionTitleLabelStyle}" />
                     <Label
-                        Text="These are the original app previews. Physical mask output can vary by hardware and firmware."
+                        Text="{loc:AppText Key=Ui341}"
                         Style="{StaticResource MutedLabelStyle}" />
                     <Label Text="{Binding TransportReadinessText}" Style="{StaticResource TinyLabelStyle}" />
                 </VerticalStackLayout>

@@ -1,3 +1,4 @@
+using MaskApp.App.Resources.Strings;
 using System.ComponentModel;
 using MaskApp.App.Infrastructure.Media;
 using MaskApp.Core.Features.Faces;
@@ -44,13 +45,14 @@ public partial class FaceStudioPage : ContentPage, IQueryAttributable
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(FaceStudioViewModel.PreviewCells))
+        if (e.PropertyName is nameof(FaceStudioViewModel.PreviewCells)
+            or nameof(FaceStudioViewModel.SelectionBounds))
         {
             MainThread.BeginInvokeOnMainThread(FaceCanvas.Invalidate);
         }
     }
 
-    private void OnCanvasInteraction(object? sender, TouchEventArgs e)
+    private void OnCanvasStartInteraction(object? sender, TouchEventArgs e)
     {
         if (e.Touches.Length == 0)
         {
@@ -59,9 +61,24 @@ public partial class FaceStudioPage : ContentPage, IQueryAttributable
 
         if (drawable.TryGetCell(e.Touches[0], out var column, out var row))
         {
-            viewModel.SetCell(column, row);
+            viewModel.BeginCanvasInteraction(column, row);
             FaceCanvas.Invalidate();
         }
+    }
+
+    private void OnCanvasDragInteraction(object? sender, TouchEventArgs e)
+    {
+        if (e.Touches.Length > 0 && drawable.TryGetCell(e.Touches[0], out var column, out var row))
+        {
+            viewModel.ContinueCanvasInteraction(column, row);
+            FaceCanvas.Invalidate();
+        }
+    }
+
+    private void OnCanvasEndInteraction(object? sender, TouchEventArgs e)
+    {
+        viewModel.EndCanvasInteraction();
+        FaceCanvas.Invalidate();
     }
 
     private void OnColorClicked(object? sender, EventArgs e)
@@ -69,6 +86,14 @@ public partial class FaceStudioPage : ContentPage, IQueryAttributable
         if (sender is Button { CommandParameter: string colorName })
         {
             viewModel.SelectColor(colorName);
+        }
+    }
+
+    private void OnPaletteColorClicked(object? sender, EventArgs e)
+    {
+        if (sender is Button { CommandParameter: FaceColorOption color })
+        {
+            viewModel.SelectColor(color);
         }
     }
 
@@ -84,7 +109,7 @@ public partial class FaceStudioPage : ContentPage, IQueryAttributable
                 CompressionQuality = 90,
                 RotateImage = true,
                 PreserveMetaData = false,
-                Title = "Choose a face image"
+                Title = AppText.Get("Ui394")
             });
             var file = results.FirstOrDefault();
             if (file is null)
@@ -96,7 +121,7 @@ public partial class FaceStudioPage : ContentPage, IQueryAttributable
         }
         catch (Exception ex)
         {
-            await DisplayAlertAsync("Import failed", GetShortErrorMessage(ex), "OK");
+            await DisplayAlertAsync(AppText.Get("Ui395"), GetShortErrorMessage(ex), AppText.Get("Ui390"));
         }
     }
 
@@ -104,7 +129,7 @@ public partial class FaceStudioPage : ContentPage, IQueryAttributable
     {
         if (!MediaPicker.Default.IsCaptureSupported)
         {
-            await DisplayAlertAsync("Camera unavailable", "This device does not report camera capture support.", "OK");
+            await DisplayAlertAsync(AppText.Get("Ui396"), AppText.Get("Ui397"), AppText.Get("Ui390"));
             return;
         }
 
@@ -117,7 +142,7 @@ public partial class FaceStudioPage : ContentPage, IQueryAttributable
                 CompressionQuality = 90,
                 RotateImage = true,
                 PreserveMetaData = false,
-                Title = "Capture a face image"
+                Title = AppText.Get("Ui398")
             });
             if (file is null)
             {
@@ -128,7 +153,7 @@ public partial class FaceStudioPage : ContentPage, IQueryAttributable
         }
         catch (Exception ex)
         {
-            await DisplayAlertAsync("Camera failed", GetShortErrorMessage(ex), "OK");
+            await DisplayAlertAsync(AppText.Get("Ui399"), GetShortErrorMessage(ex), AppText.Get("Ui390"));
         }
     }
 
@@ -138,7 +163,7 @@ public partial class FaceStudioPage : ContentPage, IQueryAttributable
         var image = await imageDecoder.DecodeAsync(stream);
         if (image is null)
         {
-            await DisplayAlertAsync("Import unavailable", "Image decoding is not available on this platform build.", "OK");
+            await DisplayAlertAsync(AppText.Get("Ui400"), AppText.Get("Ui401"), AppText.Get("Ui390"));
             return;
         }
 
@@ -158,6 +183,6 @@ public partial class FaceStudioPage : ContentPage, IQueryAttributable
     private void OnToggleDiagnosticsClicked(object? sender, EventArgs e)
     {
         DiagnosticsPanel.IsVisible = !DiagnosticsPanel.IsVisible;
-        DiagnosticsToggle.Text = DiagnosticsPanel.IsVisible ? "Hide diagnostics" : "Show diagnostics";
+        DiagnosticsToggle.Text = DiagnosticsPanel.IsVisible ? AppText.Get("Ui387") : AppText.Get("Ui313");
     }
 }

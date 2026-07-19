@@ -2,6 +2,7 @@
 using CoreBluetooth;
 using Foundation;
 using MaskApp.Core.Bluetooth;
+using MaskApp.Core.Features.Audio;
 using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.MaskControl;
@@ -14,34 +15,47 @@ using Microsoft.Extensions.Logging;
 
 namespace MaskApp.App.Infrastructure.Bluetooth;
 
-public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleDeviceConnection, IMaskCommandTransport, ITextUploadTransport, IFaceUploadTransport
+public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleDeviceConnection, IMaskCommandTransport, ITextUploadTransport, IFaceUploadTransport, IAudioVisualizationTransport
 {
+    private const string CentralRestoreIdentifier = "app.turquoise6409.green2444.mask-central";
     private static readonly CBUUID MaskServiceUuid = CBUUID.FromString(MaskBleProtocol.ServiceUuid);
     private static readonly CBUUID CommandCharacteristicUuid = CBUUID.FromString(MaskBleProtocol.CommandCharacteristicUuid);
     private static readonly CBUUID TextUploadCharacteristicUuid = CBUUID.FromString(MaskBleProtocol.TextUploadCharacteristicUuid);
+    private static readonly CBUUID AudioVisualizationCharacteristicUuid = CBUUID.FromString(MaskBleProtocol.AudioVisualizationCharacteristicUuid);
     private static readonly CBUUID NotificationCharacteristicUuid = CBUUID.FromString(MaskBleProtocol.NotificationCharacteristicUuid);
 
     private readonly Dictionary<string, CBPeripheral> peripheralsById = [];
+    private readonly HashSet<string> restoredPeripheralIds = new(StringComparer.Ordinal);
     private readonly object writeAvailabilitySync = new();
     private CBCentralManager? centralManager;
     private CBPeripheral? connectedPeripheral;
     private CBCharacteristic? generalWriteCharacteristic;
     private CBCharacteristic? textUploadWriteCharacteristic;
     private CBCharacteristic? textNotifyCharacteristic;
+    private CBCharacteristic? audioVisualizationWriteCharacteristic;
     private MaskPeripheralDelegate? connectedPeripheralDelegate;
     private TaskCompletionSource<TextUploadAcknowledgement>? pendingTextAcknowledgement;
     private TaskCompletionSource<FaceUploadAcknowledgement>? pendingFaceAcknowledgement;
     private TaskCompletionSource<bool>? pendingWriteAvailability;
     private TextUploadTransportState textUploadState = TextUploadTransportState.Disconnected;
     private FaceUploadTransportState faceUploadState = FaceUploadTransportState.Disconnected;
+    private AudioVisualizationTransportState audioVisualizationState = AudioVisualizationTransportState.Disconnected;
+    private bool scanRequested;
     private event EventHandler<TextUploadTransportStateChangedEventArgs>? TextUploadStateChanged;
     private event EventHandler<FaceUploadTransportStateChangedEventArgs>? FaceUploadStateChanged;
+    private event EventHandler<AudioVisualizationTransportStateChangedEventArgs>? AudioVisualizationStateChanged;
 #if DEBUG
     private readonly ILogger<IosBleAdapter> logger;
 
     public IosBleAdapter(ILogger<IosBleAdapter> logger)
     {
         this.logger = logger;
+        EnsureCentralManager();
+    }
+#else
+    public IosBleAdapter()
+    {
+        EnsureCentralManager();
     }
 #endif
 
@@ -59,8 +73,14 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         add => FaceUploadStateChanged += value;
         remove => FaceUploadStateChanged -= value;
     }
+    event EventHandler<AudioVisualizationTransportStateChangedEventArgs>? IAudioVisualizationTransport.StateChanged
+    {
+        add => AudioVisualizationStateChanged += value;
+        remove => AudioVisualizationStateChanged -= value;
+    }
 
     public bool IsScanning { get; private set; }
+    public CBManagerState CentralState => centralManager?.State ?? CBManagerState.Unknown;
     public BleConnectionState State { get; private set; } = BleConnectionState.Disconnected;
     public MaskCommandTransportState TransportState { get; private set; } = MaskCommandTransportState.Disconnected;
     public string TransportDisplayName => "iOS CoreBluetooth";
@@ -72,6 +92,16 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
     public bool SupportsAcknowledgements => textNotifyCharacteristic is not null;
     TextUploadTransportState ITextUploadTransport.State => textUploadState;
     FaceUploadTransportState IFaceUploadTransport.State => faceUploadState;
+    AudioVisualizationTransportState IAudioVisualizationTransport.State => audioVisualizationState;
+    bool IAudioVisualizationTransport.IsReady => audioVisualizationState == AudioVisualizationTransportState.Ready;
+    string IAudioVisualizationTransport.StatusText => audioVisualizationState switch
+    {
+        AudioVisualizationTransportState.Ready =>
+            "Audio visualization characteristic discovered; physical output is not yet confirmed.",
+        AudioVisualizationTransportState.Unsupported =>
+            "This mask did not expose the documented audio visualization characteristic.",
+        _ => TransportStatusText
+    };
     public string StatusText => textUploadState switch
     {
         TextUploadTransportState.Ready => "Text upload ready with ACK confirmation.",
@@ -81,23 +111,28 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
 
     public Task StartScanningAsync(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         EnsureCentralManager();
+        scanRequested = true;
 
         if (centralManager is null || centralManager.State != CBManagerState.PoweredOn)
         {
-            ScannerStateChanged?.Invoke(this, new BleScannerStateChangedEventArgs(false, "Bluetooth is not ready."));
+            IsScanning = false;
+            ScannerStateChanged?.Invoke(
+                this,
+                new BleScannerStateChangedEventArgs(
+                    false,
+                    "Bluetooth is not ready. The foreground scan will start when it becomes available."));
             return Task.CompletedTask;
         }
 
-        IsScanning = true;
-        ScannerStateChanged?.Invoke(this, new BleScannerStateChangedEventArgs(true, "Scanning for masks..."));
-        centralManager.ScanForPeripherals(peripheralUuids: null, options: (PeripheralScanningOptions?)null);
-
+        BeginRequestedScan(centralManager);
         return Task.CompletedTask;
     }
 
     public Task StopScanningAsync(CancellationToken cancellationToken = default)
     {
+        scanRequested = false;
         centralManager?.StopScan();
         IsScanning = false;
         ScannerStateChanged?.Invoke(this, new BleScannerStateChangedEventArgs(false, "Scan stopped."));
@@ -118,12 +153,26 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         generalWriteCharacteristic = null;
         textUploadWriteCharacteristic = null;
         textNotifyCharacteristic = null;
+        audioVisualizationWriteCharacteristic = null;
         connectedPeripheral = null;
         connectedPeripheralDelegate = null;
         pendingTextAcknowledgement?.TrySetCanceled();
         pendingTextAcknowledgement = null;
         pendingFaceAcknowledgement?.TrySetCanceled();
         pendingFaceAcknowledgement = null;
+        restoredPeripheralIds.Remove(device.Id);
+        if (peripheral.State == CBPeripheralState.Connected)
+        {
+            State = BleConnectionState.Connected;
+            BeginMaskServiceDiscovery(peripheral);
+            ConnectionStateChanged?.Invoke(
+                this,
+                new BleConnectionStateChangedEventArgs(
+                    State,
+                    $"Restored connection to {device.Name}; no previous output was replayed."));
+            return Task.CompletedTask;
+        }
+
         State = BleConnectionState.Connecting;
         SetTransportState(MaskCommandTransportState.Disconnected, "Connecting to mask...");
         ConnectionStateChanged?.Invoke(this, new BleConnectionStateChangedEventArgs(State, $"Connecting to {device.Name}..."));
@@ -142,12 +191,14 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         generalWriteCharacteristic = null;
         textUploadWriteCharacteristic = null;
         textNotifyCharacteristic = null;
+        audioVisualizationWriteCharacteristic = null;
         connectedPeripheral = null;
         connectedPeripheralDelegate = null;
         pendingTextAcknowledgement?.TrySetCanceled();
         pendingTextAcknowledgement = null;
         pendingFaceAcknowledgement?.TrySetCanceled();
         pendingFaceAcknowledgement = null;
+        restoredPeripheralIds.Clear();
         State = BleConnectionState.Disconnected;
         SetTransportState(MaskCommandTransportState.Disconnected, "Disconnected.");
         ConnectionStateChanged?.Invoke(this, new BleConnectionStateChangedEventArgs(State, "Disconnected."));
@@ -189,6 +240,51 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
 #endif
             SetTransportState(MaskCommandTransportState.Failed, ex.Message);
             return MaskCommandResult.Failure(ex.Message);
+        }
+    }
+
+    public async Task<AudioVisualizationSendResult> SendAsync(
+        AudioVisualizationPacket packet,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(packet);
+        cancellationToken.ThrowIfCancellationRequested();
+        var peripheral = connectedPeripheral;
+        var characteristic = audioVisualizationWriteCharacteristic;
+        if (peripheral is null
+            || characteristic is null
+            || audioVisualizationState != AudioVisualizationTransportState.Ready)
+        {
+            return AudioVisualizationSendResult.Failure(
+                "The connected mask does not expose a ready audio visualization characteristic.");
+        }
+
+        try
+        {
+            await WaitForWriteAvailabilityAsync(peripheral, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!ReferenceEquals(connectedPeripheral, peripheral)
+                || !ReferenceEquals(audioVisualizationWriteCharacteristic, characteristic)
+                || audioVisualizationState != AudioVisualizationTransportState.Ready)
+            {
+                return AudioVisualizationSendResult.Failure(
+                    "The mask connection changed before the audio frame could be written.");
+            }
+
+#if DEBUG
+            logger.LogDebug(
+                "Writing iOS audio visualization packet {PayloadHex} to {CharacteristicUuid}.",
+                Convert.ToHexString(packet.EncryptedPayload),
+                characteristic.UUID.ToString());
+#endif
+            using var payload = NSData.FromArray(packet.EncryptedPayload);
+            peripheral.WriteValue(payload, characteristic, CBCharacteristicWriteType.WithoutResponse);
+            return AudioVisualizationSendResult.Success(
+                "Audio visualization packet accepted by CoreBluetooth without an application-level ACK.");
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return AudioVisualizationSendResult.Failure(exception.Message);
         }
     }
 
@@ -635,6 +731,17 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
 
     public override void UpdatedState(CBCentralManager central)
     {
+        if (central.State == CBManagerState.PoweredOn && scanRequested)
+        {
+            BeginRequestedScan(central);
+            return;
+        }
+
+        if (central.State != CBManagerState.PoweredOn)
+        {
+            IsScanning = false;
+        }
+
         var message = central.State switch
         {
             CBManagerState.PoweredOn => "Bluetooth is ready.",
@@ -686,10 +793,73 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
             peripheral.Name ?? "mask",
             peripheral.Identifier.ToString());
 #endif
+        var peripheralId = peripheral.Identifier.ToString();
+        if (!string.IsNullOrWhiteSpace(peripheralId))
+        {
+            restoredPeripheralIds.Remove(peripheralId);
+        }
         State = BleConnectionState.Connected;
         BeginMaskServiceDiscovery(peripheral);
         MainThread.BeginInvokeOnMainThread(() =>
             ConnectionStateChanged?.Invoke(this, new BleConnectionStateChangedEventArgs(State, $"Connected to {peripheral.Name ?? "mask"}.")));
+    }
+
+    public override void WillRestoreState(CBCentralManager central, NSDictionary dict)
+    {
+        if (central.IsScanning)
+        {
+            central.StopScan();
+        }
+
+        IsScanning = false;
+        var restoredArray = dict[CBCentralManager.RestoredStatePeripheralsKey] as NSArray;
+        var restoredPeripherals = restoredArray is null
+            ? []
+            : (NSArray.ArrayFromHandle<CBPeripheral>(restoredArray.Handle) ?? [])
+                .OfType<CBPeripheral>()
+                .ToArray();
+        foreach (var peripheral in restoredPeripherals)
+        {
+            var id = peripheral.Identifier.ToString();
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                continue;
+            }
+
+            peripheralsById[id] = peripheral;
+            restoredPeripheralIds.Add(id);
+            if (peripheral.State == CBPeripheralState.Connecting)
+            {
+                central.CancelPeripheralConnection(peripheral);
+            }
+        }
+
+        generalWriteCharacteristic = null;
+        textUploadWriteCharacteristic = null;
+        textNotifyCharacteristic = null;
+        audioVisualizationWriteCharacteristic = null;
+        connectedPeripheral = null;
+        connectedPeripheralDelegate = null;
+        pendingTextAcknowledgement?.TrySetCanceled();
+        pendingTextAcknowledgement = null;
+        pendingFaceAcknowledgement?.TrySetCanceled();
+        pendingFaceAcknowledgement = null;
+        State = BleConnectionState.Disconnected;
+        SetTransportState(
+            MaskCommandTransportState.Disconnected,
+            restoredPeripherals.Length == 0
+                ? "CoreBluetooth restored with no mask connection."
+                : "CoreBluetooth restored a mask reference; foreground reconnect is required and no output was replayed.");
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            ScannerStateChanged?.Invoke(
+                this,
+                new BleScannerStateChangedEventArgs(false, TransportStatusText));
+            ConnectionStateChanged?.Invoke(
+                this,
+                new BleConnectionStateChangedEventArgs(State, TransportStatusText));
+        });
     }
 
 #pragma warning disable CS8765
@@ -700,6 +870,7 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         generalWriteCharacteristic = null;
         textUploadWriteCharacteristic = null;
         textNotifyCharacteristic = null;
+        audioVisualizationWriteCharacteristic = null;
         connectedPeripheral = null;
         connectedPeripheralDelegate = null;
         pendingTextAcknowledgement?.TrySetCanceled();
@@ -718,6 +889,7 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         generalWriteCharacteristic = null;
         textUploadWriteCharacteristic = null;
         textNotifyCharacteristic = null;
+        audioVisualizationWriteCharacteristic = null;
         connectedPeripheral = null;
         connectedPeripheralDelegate = null;
         pendingTextAcknowledgement?.TrySetCanceled();
@@ -732,7 +904,53 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
 
     private void EnsureCentralManager()
     {
-        centralManager ??= new CBCentralManager(this, null);
+        centralManager ??= new CBCentralManager(
+            this,
+            null,
+            new CBCentralInitOptions
+            {
+                RestoreIdentifier = CentralRestoreIdentifier,
+                ShowPowerAlert = true
+            });
+    }
+
+    private void BeginRequestedScan(CBCentralManager central)
+    {
+        if (!scanRequested || central.State != CBManagerState.PoweredOn)
+        {
+            return;
+        }
+
+        IsScanning = true;
+        if (!central.IsScanning)
+        {
+            central.ScanForPeripherals(peripheralUuids: null, options: (PeripheralScanningOptions?)null);
+        }
+
+        ScannerStateChanged?.Invoke(this, new BleScannerStateChangedEventArgs(true, "Scanning for masks..."));
+        foreach (var restoredDevice in restoredPeripheralIds
+                     .Select(id => peripheralsById.TryGetValue(id, out var peripheral)
+                         ? CreateRestoredDevice(peripheral)
+                         : null)
+                     .OfType<DiscoveredMaskDevice>()
+                     .ToArray())
+        {
+            DeviceDiscovered?.Invoke(this, restoredDevice);
+        }
+    }
+
+    private static DiscoveredMaskDevice? CreateRestoredDevice(CBPeripheral peripheral)
+    {
+        var id = peripheral.Identifier.ToString();
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return null;
+        }
+
+        return new DiscoveredMaskDevice(
+            id,
+            string.IsNullOrWhiteSpace(peripheral.Name) ? "Shining Mask" : peripheral.Name,
+            -127);
     }
 
     private void BeginMaskServiceDiscovery(CBPeripheral peripheral)
@@ -741,6 +959,7 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         generalWriteCharacteristic = null;
         textUploadWriteCharacteristic = null;
         textNotifyCharacteristic = null;
+        audioVisualizationWriteCharacteristic = null;
         connectedPeripheralDelegate = new MaskPeripheralDelegate(this);
         peripheral.Delegate = connectedPeripheralDelegate;
         SetTransportState(MaskCommandTransportState.Discovering, "Connected. Discovering mask controls...");
@@ -830,6 +1049,14 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
 #endif
             }
 
+            if (IsUuid(characteristic.UUID, AudioVisualizationCharacteristicUuid))
+            {
+                audioVisualizationWriteCharacteristic = characteristic;
+#if DEBUG
+                logger.LogDebug("Selected audio visualization characteristic {CharacteristicUuid}.", characteristic.UUID.ToString());
+#endif
+            }
+
             if (IsUuid(characteristic.UUID, NotificationCharacteristicUuid) && CanNotify(characteristic))
             {
                 textNotifyCharacteristic = characteristic;
@@ -869,6 +1096,7 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
         TransportStatusText = message;
         RefreshTextUploadState(message);
         RefreshFaceUploadState(message);
+        RefreshAudioVisualizationState(message);
         MainThread.BeginInvokeOnMainThread(() =>
             TransportStateChanged?.Invoke(this, new MaskCommandTransportStateChangedEventArgs(state, message)));
     }
@@ -929,6 +1157,36 @@ public sealed class IosBleAdapter : CBCentralManagerDelegate, IBleScanner, IBleD
                     message,
                     SupportsAcknowledgements,
                     IsReady)));
+    }
+
+    private void RefreshAudioVisualizationState(string fallbackMessage)
+    {
+        var state = TransportState switch
+        {
+            MaskCommandTransportState.Ready when audioVisualizationWriteCharacteristic is not null =>
+                AudioVisualizationTransportState.Ready,
+            MaskCommandTransportState.Ready => AudioVisualizationTransportState.Unsupported,
+            MaskCommandTransportState.Discovering => AudioVisualizationTransportState.Discovering,
+            MaskCommandTransportState.Failed => AudioVisualizationTransportState.Failed,
+            _ => AudioVisualizationTransportState.Disconnected
+        };
+        var message = state switch
+        {
+            AudioVisualizationTransportState.Ready =>
+                "Audio visualization characteristic discovered; visible output still requires a finite physical test.",
+            AudioVisualizationTransportState.Unsupported =>
+                "This mask did not expose the documented audio visualization characteristic.",
+            _ => fallbackMessage
+        };
+
+        audioVisualizationState = state;
+        MainThread.BeginInvokeOnMainThread(() =>
+            AudioVisualizationStateChanged?.Invoke(
+                this,
+                new AudioVisualizationTransportStateChangedEventArgs(
+                    state,
+                    message,
+                    state == AudioVisualizationTransportState.Ready)));
     }
 
     private static Task DelayBetweenTextWritesAsync(TextUploadOptions options, CancellationToken cancellationToken) =>

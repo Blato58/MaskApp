@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using MaskApp.Core.Features.Audio;
 using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.Text;
@@ -10,17 +11,21 @@ public sealed class MaskBleScheduler :
     ITextUploadTransport,
     IFaceUploadTransport,
     IMaskEmergencyControl,
+    IAudioVisualizationTransport,
+    IVisualWorkCancellationSource,
     IDisposable,
     IAsyncDisposable
 {
     private const int EmergencyPriority = -100;
     private const int ControlPriority = 0;
     private const int UploadPriority = 10;
+    private const int AudioPriority = 20;
 
     private readonly object sync = new();
     private readonly IMaskCommandTransport commandTransport;
     private readonly ITextUploadTransport textUploadTransport;
     private readonly IFaceUploadTransport faceUploadTransport;
+    private readonly IAudioVisualizationTransport? audioVisualizationTransport;
     private readonly IBleDeviceConnection? connection;
     private readonly MaskBleSchedulerOptions options;
     private readonly PriorityQueue<ScheduledOperation, (int Priority, long Sequence)> queue = new();
@@ -38,6 +43,8 @@ public sealed class MaskBleScheduler :
     private long totalRejected;
     private long totalEmergencyCancellations;
     private TimeSpan? lastOperationDuration;
+    private string? lastCompletedOperationName;
+    private bool? lastOperationSucceeded;
     private string? lastError;
     private int pendingOperationCount;
     private bool disposed;
@@ -47,11 +54,13 @@ public sealed class MaskBleScheduler :
         ITextUploadTransport textUploadTransport,
         IFaceUploadTransport faceUploadTransport,
         IBleDeviceConnection? connection = null,
-        MaskBleSchedulerOptions? options = null)
+        MaskBleSchedulerOptions? options = null,
+        IAudioVisualizationTransport? audioVisualizationTransport = null)
     {
         this.commandTransport = commandTransport ?? throw new ArgumentNullException(nameof(commandTransport));
         this.textUploadTransport = textUploadTransport ?? throw new ArgumentNullException(nameof(textUploadTransport));
         this.faceUploadTransport = faceUploadTransport ?? throw new ArgumentNullException(nameof(faceUploadTransport));
+        this.audioVisualizationTransport = audioVisualizationTransport;
         this.connection = connection;
         this.options = options ?? new MaskBleSchedulerOptions();
         if (this.options.MaxPendingOperations <= 0)
@@ -90,6 +99,26 @@ public sealed class MaskBleScheduler :
 
     public event EventHandler<MaskBleSchedulerDiagnosticsChangedEventArgs>? DiagnosticsChanged;
 
+    public event EventHandler<VisualWorkCancelledEventArgs>? VisualWorkCancelled;
+
+    event EventHandler<AudioVisualizationTransportStateChangedEventArgs>? IAudioVisualizationTransport.StateChanged
+    {
+        add
+        {
+            if (audioVisualizationTransport is not null)
+            {
+                audioVisualizationTransport.StateChanged += value;
+            }
+        }
+        remove
+        {
+            if (audioVisualizationTransport is not null)
+            {
+                audioVisualizationTransport.StateChanged -= value;
+            }
+        }
+    }
+
     public string TransportDisplayName => commandTransport.TransportDisplayName;
 
     public bool IsSimulated => commandTransport.IsSimulated;
@@ -113,6 +142,16 @@ public sealed class MaskBleScheduler :
     string ITextUploadTransport.StatusText => textUploadTransport.StatusText;
 
     string IFaceUploadTransport.StatusText => faceUploadTransport.StatusText;
+
+    bool IAudioVisualizationTransport.IsReady => audioVisualizationTransport?.IsReady == true;
+
+    bool IAudioVisualizationTransport.IsSimulated => audioVisualizationTransport?.IsSimulated == true;
+
+    AudioVisualizationTransportState IAudioVisualizationTransport.State =>
+        audioVisualizationTransport?.State ?? AudioVisualizationTransportState.Unsupported;
+
+    string IAudioVisualizationTransport.StatusText =>
+        audioVisualizationTransport?.StatusText ?? "Audio visualization transport is not configured.";
 
     public MaskBleSchedulerSnapshot GetSnapshot()
     {
@@ -146,6 +185,7 @@ public sealed class MaskBleScheduler :
     {
         cancellationToken.ThrowIfCancellationRequested();
         var cancelledCount = CancelVisualWork("Cancelled by Stop.");
+        PublishVisualWorkCancelled(VisualWorkCancellationReason.Stop, "Live visual work stopped by the user.");
         PublishDiagnostics();
         return Task.FromResult(MaskCommandResult.Success(
             cancelledCount == 0
@@ -155,6 +195,30 @@ public sealed class MaskBleScheduler :
 
     public Task<MaskCommandResult> BlackoutAsync(CancellationToken cancellationToken = default) =>
         SendAsync(MaskCommandBuilder.Brightness(1), cancellationToken);
+
+    public Task<AudioVisualizationSendResult> SendAsync(
+        AudioVisualizationPacket packet,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(packet);
+        if (audioVisualizationTransport is null)
+        {
+            return Task.FromResult(AudioVisualizationSendResult.Failure(
+                "Audio visualization transport is not configured."));
+        }
+
+        return Enqueue(
+            $"Audio frame ({packet.PackingMode}, {packet.Framing})",
+            AudioPriority,
+            "audio:frame",
+            isEmergency: false,
+            options.AudioVisualizationTimeout,
+            token => audioVisualizationTransport.SendAsync(packet, token),
+            AudioVisualizationSendResult.Failure,
+            result => result.Succeeded,
+            result => result.Message,
+            cancellationToken);
+    }
 
     public Task<TextUploadResult> UploadAsync(
         TextUploadPackage package,
@@ -219,6 +283,7 @@ public sealed class MaskBleScheduler :
 
             invalidatedOperations = queue.UnorderedItems.Select(item => item.Element).ToArray();
             queue.Clear();
+            DrainQueueSignalsUnderLock(invalidatedOperations.Length);
             supersessionQueue.Clear();
             foreach (var operation in invalidatedOperations)
             {
@@ -243,6 +308,9 @@ public sealed class MaskBleScheduler :
         connectionCancellation.Dispose();
         shutdownCancellation.Cancel();
         queueSignal.Release();
+        PublishVisualWorkCancelled(
+            VisualWorkCancellationReason.SchedulerStopped,
+            "Live visual work stopped because the scheduler was disposed.");
         PublishDiagnostics();
     }
 
@@ -273,7 +341,7 @@ public sealed class MaskBleScheduler :
 
         if (uploadOptions.PostUploadQuietPeriod > TimeSpan.Zero && !cancellationToken.IsCancellationRequested)
         {
-            await Task.Delay(uploadOptions.PostUploadQuietPeriod).ConfigureAwait(false);
+            await Task.Delay(uploadOptions.PostUploadQuietPeriod, cancellationToken).ConfigureAwait(false);
         }
 
         return result;
@@ -290,7 +358,7 @@ public sealed class MaskBleScheduler :
 
         if (uploadOptions.PostUploadQuietPeriod > TimeSpan.Zero && !cancellationToken.IsCancellationRequested)
         {
-            await Task.Delay(uploadOptions.PostUploadQuietPeriod).ConfigureAwait(false);
+            await Task.Delay(uploadOptions.PostUploadQuietPeriod, cancellationToken).ConfigureAwait(false);
         }
 
         return result;
@@ -312,6 +380,7 @@ public sealed class MaskBleScheduler :
 
         ScheduledOperation<T> operation;
         ScheduledOperation? activeOperationToCancel = null;
+        var shouldSignalQueue = true;
         lock (sync)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
@@ -338,6 +407,12 @@ public sealed class MaskBleScheduler :
                 && priorOperation.TrySupersede(name))
             {
                 ReleasePendingCount(priorOperation);
+                if (queue.Remove(priorOperation, out _, out _))
+                {
+                    priorOperation.ReleaseResources();
+                    shouldSignalQueue = false;
+                }
+
                 totalSuperseded++;
             }
 
@@ -362,7 +437,17 @@ public sealed class MaskBleScheduler :
         }
 
         activeOperationToCancel?.CancelExecution();
-        queueSignal.Release();
+        if (isEmergency)
+        {
+            PublishVisualWorkCancelled(
+                VisualWorkCancellationReason.Blackout,
+                "Live visual work stopped by emergency Blackout.");
+        }
+        if (shouldSignalQueue)
+        {
+            queueSignal.Release();
+        }
+
         PublishDiagnostics();
         return operation.Completion;
     }
@@ -428,6 +513,8 @@ public sealed class MaskBleScheduler :
 
                     totalCompleted++;
                     lastOperationDuration = duration;
+                    lastCompletedOperationName = operation.Name;
+                    lastOperationSucceeded = operation.FailureMessage is null;
                     if (operation.FailureMessage is not null)
                     {
                         lastError = operation.FailureMessage;
@@ -458,6 +545,7 @@ public sealed class MaskBleScheduler :
             connectionGeneration++;
             invalidatedOperations = queue.UnorderedItems.Select(item => item.Element).ToArray();
             queue.Clear();
+            DrainQueueSignalsUnderLock(invalidatedOperations.Length);
             supersessionQueue.Clear();
             foreach (var operation in invalidatedOperations)
             {
@@ -479,6 +567,9 @@ public sealed class MaskBleScheduler :
         operationInProgress?.TryFail(message);
         priorConnectionCancellation.Cancel();
         priorConnectionCancellation.Dispose();
+        PublishVisualWorkCancelled(
+            VisualWorkCancellationReason.ConnectionChanged,
+            message);
         PublishDiagnostics();
     }
 
@@ -501,7 +592,11 @@ public sealed class MaskBleScheduler :
             totalRejected,
             totalEmergencyCancellations,
             lastOperationDuration,
-            lastError);
+            lastError,
+            queue.Count,
+            queueSignal.CurrentCount,
+            lastCompletedOperationName,
+            lastOperationSucceeded);
 
     private void PublishDiagnostics()
     {
@@ -513,6 +608,11 @@ public sealed class MaskBleScheduler :
 
         DiagnosticsChanged?.Invoke(this, new MaskBleSchedulerDiagnosticsChangedEventArgs(snapshot));
     }
+
+    private void PublishVisualWorkCancelled(
+        VisualWorkCancellationReason reason,
+        string message) =>
+        VisualWorkCancelled?.Invoke(this, new VisualWorkCancelledEventArgs(reason, message));
 
     private static string? GetSupersessionKey(MaskCommand command) =>
         command.Kind switch
@@ -552,17 +652,46 @@ public sealed class MaskBleScheduler :
             active = null;
         }
 
-        foreach (var operation in queue.UnorderedItems.Select(item => item.Element))
+        var queuedVisualOperations = queue.UnorderedItems
+            .Select(item => item.Element)
+            .Where(operation => !operation.IsEmergency)
+            .ToArray();
+        var removedCount = 0;
+        foreach (var operation in queuedVisualOperations)
         {
-            if (!operation.IsEmergency && operation.TryFail(reason))
+            if (operation.TryFail(reason))
             {
-                ReleasePendingCount(operation);
                 cancelledCount++;
             }
+
+            if (!queue.Remove(operation, out _, out _))
+            {
+                continue;
+            }
+
+            if (operation.SupersessionKey is not null
+                && supersessionQueue.TryGetValue(operation.SupersessionKey, out var current)
+                && ReferenceEquals(operation, current))
+            {
+                supersessionQueue.Remove(operation.SupersessionKey);
+            }
+
+            ReleasePendingCount(operation);
+            operation.ReleaseResources();
+            removedCount++;
         }
+
+        DrainQueueSignalsUnderLock(removedCount);
 
         totalEmergencyCancellations += cancelledCount;
         return (cancelledCount, active);
+    }
+
+    private void DrainQueueSignalsUnderLock(int maximumCount)
+    {
+        for (var index = 0; index < maximumCount && queueSignal.Wait(0); index++)
+        {
+        }
     }
 
     private static bool IsBlackout(MaskCommand command) =>

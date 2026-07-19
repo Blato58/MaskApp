@@ -1,3 +1,4 @@
+using MaskApp.App.Resources.Strings;
 using System.ComponentModel;
 using System.Diagnostics;
 using MaskApp.Core.Features.Animations;
@@ -168,7 +169,7 @@ public partial class AnimationStudioPage : ContentPage, IQueryAttributable
                 : FilePickerFileType.Videos;
             var file = await FilePicker.Default.PickAsync(new PickOptions
             {
-                PickerTitle = kind == AnimationMediaKind.Gif ? "Choose a GIF" : "Choose a video",
+                PickerTitle = kind == AnimationMediaKind.Gif ? AppText.Get("Ui402") : AppText.Get("Ui403"),
                 FileTypes = fileTypes
             });
             if (file is null)
@@ -186,12 +187,12 @@ public partial class AnimationStudioPage : ContentPage, IQueryAttributable
                 TimeSpan.FromMilliseconds(viewModel.ImportSampleMilliseconds));
             if (!result.Succeeded)
             {
-                await DisplayAlertAsync("Import rejected", result.Message, "OK");
+                await DisplayAlertAsync(AppText.Get("Ui404"), result.Message, AppText.Get("Ui390"));
             }
         }
         catch (Exception exception)
         {
-            await DisplayAlertAsync("Import failed", ShortMessage(exception), "OK");
+            await DisplayAlertAsync(AppText.Get("Ui395"), ShortMessage(exception), AppText.Get("Ui390"));
         }
     }
 

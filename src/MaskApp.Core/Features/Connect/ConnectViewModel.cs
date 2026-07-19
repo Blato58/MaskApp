@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using MaskApp.Core.Features.Animations;
+using MaskApp.Core.Features.Lifecycle;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.Preflight;
 using MaskApp.Core.Features.Profiles;
@@ -28,6 +29,7 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
     private readonly MaskBleScheduler? scheduler;
     private readonly PerformanceAnimationEngine? animationEngine;
     private readonly PreflightStatusSession? preflightStatusSession;
+    private readonly AppLifecycleCoordinator? lifecycleCoordinator;
     private DiscoveredMaskDevice? selectedDevice;
     private BleConnectionState connectionState = BleConnectionState.Disconnected;
     private bool isScanning;
@@ -36,6 +38,7 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
     private MaskBleSchedulerSnapshot? schedulerSnapshot;
     private AnimationPlaybackSnapshot animationSnapshot = new();
     private PreflightStatusSnapshot preflightSnapshot = PreflightStatusSnapshot.NotRun;
+    private AppLifecycleSnapshot lifecycleSnapshot = new();
     private string diagnosticsStatusText = "Diagnostics use observed state only.";
     private IReadOnlyList<string> reconnectHistory = [];
     private IReadOnlyList<string> recentSchedulerErrors = [];
@@ -50,7 +53,8 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
         MaskProfileSession? profileSession = null,
         MaskBleScheduler? scheduler = null,
         PerformanceAnimationEngine? animationEngine = null,
-        PreflightStatusSession? preflightStatusSession = null)
+        PreflightStatusSession? preflightStatusSession = null,
+        AppLifecycleCoordinator? lifecycleCoordinator = null)
     {
         this.scanner = scanner;
         this.connection = connection;
@@ -60,9 +64,11 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
         this.scheduler = scheduler;
         this.animationEngine = animationEngine;
         this.preflightStatusSession = preflightStatusSession;
+        this.lifecycleCoordinator = lifecycleCoordinator;
         schedulerSnapshot = scheduler?.GetSnapshot();
         animationSnapshot = animationEngine?.GetSnapshot() ?? new AnimationPlaybackSnapshot();
         preflightSnapshot = preflightStatusSession?.Snapshot ?? PreflightStatusSnapshot.NotRun;
+        lifecycleSnapshot = lifecycleCoordinator?.Snapshot ?? new AppLifecycleSnapshot();
         CaptureSchedulerError(schedulerSnapshot?.LastError);
 
         scanner.DeviceDiscovered += OnDeviceDiscovered;
@@ -82,6 +88,11 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
         if (preflightStatusSession is not null)
         {
             preflightStatusSession.SnapshotChanged += OnPreflightSnapshotChanged;
+        }
+
+        if (lifecycleCoordinator is not null)
+        {
+            lifecycleCoordinator.SnapshotChanged += OnLifecycleSnapshotChanged;
         }
 
         StartScanCommand = new AsyncRelayCommand(StartScanAsync, () => !IsScanning);
@@ -113,10 +124,12 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
     public bool HasReconnectHistory => ReconnectHistory.Count > 0;
 
     public IReadOnlyList<string> RecentRedactedErrors => recentSchedulerErrors
+        .Concat(lifecycleSnapshot.RecentErrors.Select(error =>
+            $"Lifecycle {error.Operation}: {error.ErrorType}: {error.Message}"))
         .Select(RedactDiagnosticText)
         .ToArray();
 
-    public bool HasRecentRedactedErrors => recentSchedulerErrors.Count > 0;
+    public bool HasRecentRedactedErrors => RecentRedactedErrors.Count > 0;
 
     public AsyncRelayCommand StartScanCommand { get; }
 
@@ -310,6 +323,13 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
         ? "No playback sample"
         : $"{animationSnapshot.FramesSent} sent · {animationSnapshot.FramesDropped} dropped · {animationSnapshot.LateFrames} late";
 
+    public string LifecycleText =>
+        $"{lifecycleSnapshot.Phase} · {lifecycleSnapshot.LastTransitionAtUtc:u}";
+
+    public string LifecycleLimitationText => lifecycleSnapshot.Phase == AppLifecyclePhase.Background
+        ? "Backgrounded: scanning, microphone capture, and rapid phone-timed playback are stopped. Reconnect never replays output automatically."
+        : "Foreground: scanning, microphone capture, and rapid phone-timed playback are available when their other readiness gates pass.";
+
     public string PreflightStatusText => preflightSnapshot.StatusText;
 
     public string PreflightSummaryText => preflightSnapshot.Summary;
@@ -349,6 +369,7 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
         schedulerSnapshot = scheduler?.GetSnapshot();
         animationSnapshot = animationEngine?.GetSnapshot() ?? new AnimationPlaybackSnapshot();
         preflightSnapshot = preflightStatusSession?.Snapshot ?? PreflightStatusSnapshot.NotRun;
+        lifecycleSnapshot = lifecycleCoordinator?.Snapshot ?? new AppLifecycleSnapshot();
         DiagnosticsStatusText = activeProfile is null
             ? "No active mask profile. Connect a mask to collect capability evidence."
             : "Diagnostics refreshed from the active mask profile and current transports.";
@@ -393,6 +414,8 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
             .AppendLine($"Scheduler last error: {SchedulerErrorText}")
             .AppendLine($"Animation state: {AnimationStateText}")
             .AppendLine($"Animation delivery: {AnimationDeliveryText}")
+            .AppendLine($"Lifecycle: {LifecycleText}")
+            .AppendLine($"Lifecycle limitation: {LifecycleLimitationText}")
             .AppendLine($"Last preflight: {PreflightStatusText}")
             .AppendLine($"Preflight summary: {PreflightSummaryText}");
         if (RecentRedactedErrors.Count == 0)
@@ -587,6 +610,12 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
         NotifyDiagnosticsChanged();
     }
 
+    private void OnLifecycleSnapshotChanged(object? sender, AppLifecycleSnapshotChangedEventArgs e)
+    {
+        lifecycleSnapshot = e.Snapshot;
+        NotifyDiagnosticsChanged();
+    }
+
     private void NotifyDiagnosticsChanged()
     {
         OnPropertyChanged(nameof(HasActiveProfile));
@@ -610,6 +639,8 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasRecentRedactedErrors));
         OnPropertyChanged(nameof(AnimationStateText));
         OnPropertyChanged(nameof(AnimationDeliveryText));
+        OnPropertyChanged(nameof(LifecycleText));
+        OnPropertyChanged(nameof(LifecycleLimitationText));
         OnPropertyChanged(nameof(PreflightStatusText));
         OnPropertyChanged(nameof(PreflightSummaryText));
         OnPropertyChanged(nameof(PreflightIcon));

@@ -8,6 +8,8 @@ public sealed record MaskCapabilitySnapshot
 
     public bool FaceUploadAvailable { get; init; }
 
+    public bool AudioVisualizationWriteAvailable { get; init; }
+
     public MaskAcknowledgementMode AcknowledgementMode { get; init; }
 
     public int DiySlotCapacity { get; init; } = 20;

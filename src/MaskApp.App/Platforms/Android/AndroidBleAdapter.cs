@@ -5,6 +5,7 @@ using Android.Bluetooth.LE;
 using Android.Content;
 using Java.Util;
 using MaskApp.Core.Bluetooth;
+using MaskApp.Core.Features.Audio;
 using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.MaskControl;
@@ -14,11 +15,12 @@ using Microsoft.Maui.ApplicationModel;
 
 namespace MaskApp.App.Infrastructure.Bluetooth;
 
-public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMaskCommandTransport, ITextUploadTransport, IFaceUploadTransport
+public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMaskCommandTransport, ITextUploadTransport, IFaceUploadTransport, IAudioVisualizationTransport
 {
     private static readonly UUID MaskServiceUuid = UUID.FromString(MaskBleProtocol.ServiceUuid)!;
     private static readonly UUID CommandCharacteristicUuid = UUID.FromString(MaskBleProtocol.CommandCharacteristicUuid)!;
     private static readonly UUID TextUploadCharacteristicUuid = UUID.FromString(MaskBleProtocol.TextUploadCharacteristicUuid)!;
+    private static readonly UUID AudioVisualizationCharacteristicUuid = UUID.FromString(MaskBleProtocol.AudioVisualizationCharacteristicUuid)!;
     private static readonly UUID NotificationCharacteristicUuid = UUID.FromString(MaskBleProtocol.NotificationCharacteristicUuid)!;
     private static readonly UUID ClientCharacteristicConfigurationUuid = UUID.FromString("00002902-0000-1000-8000-00805f9b34fb")!;
     private const int DefaultGattMtu = 23;
@@ -33,14 +35,17 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
     private BluetoothGattCharacteristic? generalWriteCharacteristic;
     private BluetoothGattCharacteristic? textUploadWriteCharacteristic;
     private BluetoothGattCharacteristic? textNotifyCharacteristic;
+    private BluetoothGattCharacteristic? audioVisualizationWriteCharacteristic;
     private AndroidGattCallback? gattCallback;
     private TaskCompletionSource<TextUploadAcknowledgement>? pendingTextAcknowledgement;
     private TaskCompletionSource<FaceUploadAcknowledgement>? pendingFaceAcknowledgement;
     private TextUploadTransportState textUploadState = TextUploadTransportState.Disconnected;
     private FaceUploadTransportState faceUploadState = FaceUploadTransportState.Disconnected;
+    private AudioVisualizationTransportState audioVisualizationState = AudioVisualizationTransportState.Disconnected;
     private int maximumWritePayloadLength = DefaultGattMtu - 3;
     private event EventHandler<TextUploadTransportStateChangedEventArgs>? TextUploadStateChanged;
     private event EventHandler<FaceUploadTransportStateChangedEventArgs>? FaceUploadStateChanged;
+    private event EventHandler<AudioVisualizationTransportStateChangedEventArgs>? AudioVisualizationStateChanged;
 
     public AndroidBleAdapter(ILogger<AndroidBleAdapter> logger)
     {
@@ -61,6 +66,11 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
         add => FaceUploadStateChanged += value;
         remove => FaceUploadStateChanged -= value;
     }
+    event EventHandler<AudioVisualizationTransportStateChangedEventArgs>? IAudioVisualizationTransport.StateChanged
+    {
+        add => AudioVisualizationStateChanged += value;
+        remove => AudioVisualizationStateChanged -= value;
+    }
 
     public bool IsScanning { get; private set; }
     public BleConnectionState State { get; private set; } = BleConnectionState.Disconnected;
@@ -74,6 +84,16 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
     public bool SupportsAcknowledgements => textNotifyCharacteristic is not null;
     TextUploadTransportState ITextUploadTransport.State => textUploadState;
     FaceUploadTransportState IFaceUploadTransport.State => faceUploadState;
+    AudioVisualizationTransportState IAudioVisualizationTransport.State => audioVisualizationState;
+    bool IAudioVisualizationTransport.IsReady => audioVisualizationState == AudioVisualizationTransportState.Ready;
+    string IAudioVisualizationTransport.StatusText => audioVisualizationState switch
+    {
+        AudioVisualizationTransportState.Ready =>
+            "Audio visualization characteristic discovered; physical output is not yet confirmed.",
+        AudioVisualizationTransportState.Unsupported =>
+            "This mask did not expose the documented audio visualization characteristic.",
+        _ => TransportStatusText
+    };
     public string StatusText => textUploadState switch
     {
         TextUploadTransportState.Ready => "Text upload ready with ACK confirmation.",
@@ -195,6 +215,35 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
             logger.LogDebug(ex, "Failed to write Android mask command {CommandKind}.", command.Kind);
             SetTransportState(MaskCommandTransportState.Failed, ex.Message);
             return Task.FromResult(MaskCommandResult.Failure(ex.Message));
+        }
+    }
+
+    public Task<AudioVisualizationSendResult> SendAsync(
+        AudioVisualizationPacket packet,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(packet);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (connectedGatt is null
+            || audioVisualizationWriteCharacteristic is null
+            || audioVisualizationState != AudioVisualizationTransportState.Ready)
+        {
+            return Task.FromResult(AudioVisualizationSendResult.Failure(
+                "The connected mask does not expose a ready audio visualization characteristic."));
+        }
+
+        try
+        {
+            WriteBytes(
+                packet.EncryptedPayload,
+                "audio visualization packet",
+                audioVisualizationWriteCharacteristic);
+            return Task.FromResult(AudioVisualizationSendResult.Success(
+                "Audio visualization packet accepted by Android GATT without an application-level ACK."));
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return Task.FromResult(AudioVisualizationSendResult.Failure(exception.Message));
         }
     }
 
@@ -701,6 +750,7 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
         }
 
         textUploadWriteCharacteristic = service.GetCharacteristic(TextUploadCharacteristicUuid);
+        audioVisualizationWriteCharacteristic = service.GetCharacteristic(AudioVisualizationCharacteristicUuid);
         var notifyCharacteristic = service.GetCharacteristic(NotificationCharacteristicUuid);
         if (notifyCharacteristic is null || !CanNotify(notifyCharacteristic))
         {
@@ -944,6 +994,7 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
         generalWriteCharacteristic = null;
         textUploadWriteCharacteristic = null;
         textNotifyCharacteristic = null;
+        audioVisualizationWriteCharacteristic = null;
         maximumWritePayloadLength = DefaultGattMtu - 3;
 
         if (connectedGatt is not null)
@@ -980,6 +1031,7 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
         TransportStatusText = message;
         RefreshTextUploadState(message);
         RefreshFaceUploadState(message);
+        RefreshAudioVisualizationState(message);
         MainThread.BeginInvokeOnMainThread(() =>
             TransportStateChanged?.Invoke(this, new MaskCommandTransportStateChangedEventArgs(state, message)));
     }
@@ -1040,6 +1092,36 @@ public sealed class AndroidBleAdapter : IBleScanner, IBleDeviceConnection, IMask
                     message,
                     SupportsAcknowledgements,
                     IsReady)));
+    }
+
+    private void RefreshAudioVisualizationState(string fallbackMessage)
+    {
+        var state = TransportState switch
+        {
+            MaskCommandTransportState.Ready when audioVisualizationWriteCharacteristic is not null =>
+                AudioVisualizationTransportState.Ready,
+            MaskCommandTransportState.Ready => AudioVisualizationTransportState.Unsupported,
+            MaskCommandTransportState.Discovering => AudioVisualizationTransportState.Discovering,
+            MaskCommandTransportState.Failed => AudioVisualizationTransportState.Failed,
+            _ => AudioVisualizationTransportState.Disconnected
+        };
+        var message = state switch
+        {
+            AudioVisualizationTransportState.Ready =>
+                "Audio visualization characteristic discovered; visible output still requires a finite physical test.",
+            AudioVisualizationTransportState.Unsupported =>
+                "This mask did not expose the documented audio visualization characteristic.",
+            _ => fallbackMessage
+        };
+
+        audioVisualizationState = state;
+        MainThread.BeginInvokeOnMainThread(() =>
+            AudioVisualizationStateChanged?.Invoke(
+                this,
+                new AudioVisualizationTransportStateChangedEventArgs(
+                    state,
+                    message,
+                    state == AudioVisualizationTransportState.Ready)));
     }
 
     private static Task DelayBetweenTextWritesAsync(TextUploadOptions options, CancellationToken cancellationToken) =>

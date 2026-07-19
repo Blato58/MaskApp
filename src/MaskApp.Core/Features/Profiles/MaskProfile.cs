@@ -1,3 +1,5 @@
+using MaskApp.Core.Features.Audio;
+
 namespace MaskApp.Core.Features.Profiles;
 
 public sealed record MaskProfile
@@ -17,6 +19,8 @@ public sealed record MaskProfile
     public double? AverageCommandLatencyMilliseconds { get; init; }
 
     public double? SustainableCadenceHz { get; init; }
+
+    public AudioVisualizationEvidence AudioVisualizationEvidence { get; init; } = new();
 
     public string PreparedStateStatus { get; init; } = "No prepared slots recorded.";
 
@@ -44,6 +48,7 @@ public sealed record MaskProfile
                 .ToArray(),
             AverageCommandLatencyMilliseconds = NormalizePositiveMetric(AverageCommandLatencyMilliseconds),
             SustainableCadenceHz = NormalizePositiveMetric(SustainableCadenceHz),
+            AudioVisualizationEvidence = (AudioVisualizationEvidence ?? new AudioVisualizationEvidence()).Normalize(),
             PreparedStateStatus = string.IsNullOrWhiteSpace(PreparedStateStatus)
                 ? "No prepared slots recorded."
                 : PreparedStateStatus.Trim()

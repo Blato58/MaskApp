@@ -12,6 +12,8 @@ public sealed class BleAutoConnectCoordinator : INotifyPropertyChanged
     private readonly IBleAutoConnectSettingsStore settingsStore;
     private readonly TimeProvider timeProvider;
     private readonly Func<TimeSpan, CancellationToken, Task> delayAsync;
+    private readonly SemaphoreSlim foregroundLifecycleGate = new(1, 1);
+    private readonly object nameFallbackSync = new();
     private readonly List<DiscoveredMaskDevice> nameFallbackCandidates = [];
     private BleAutoConnectSettings settings = BleAutoConnectSettings.Defaults;
     private DiscoveredMaskDevice? pendingRememberedDevice;
@@ -21,6 +23,8 @@ public sealed class BleAutoConnectCoordinator : INotifyPropertyChanged
     private bool isNameFallbackEvaluationPending;
     private bool coordinatorStartedScan;
     private bool manualDisconnectRequested;
+    private int isForeground;
+    private int autoConnectInProgress;
     private string autoConnectStatusText = "Auto-connect: Off";
 
     public BleAutoConnectCoordinator(
@@ -91,44 +95,81 @@ public sealed class BleAutoConnectCoordinator : INotifyPropertyChanged
 
     public async Task StartForegroundAutoConnectAsync(CancellationToken cancellationToken = default)
     {
-        await InitializeAsync(cancellationToken).ConfigureAwait(false);
-
-        if (!settings.AutoConnectEnabled)
+        Volatile.Write(ref isForeground, 1);
+        await foregroundLifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            AutoConnectStatusText = settings.LastKnownDevice is null
-                ? "Auto-connect: no remembered mask"
-                : "Auto-connect: Off";
-            return;
-        }
+            await InitializeAsync(cancellationToken).ConfigureAwait(false);
+            if (Volatile.Read(ref isForeground) == 0)
+            {
+                AutoConnectStatusText = "Auto-connect: paused while app is backgrounded";
+                return;
+            }
 
-        if (settings.LastKnownDevice is null)
+            if (!settings.AutoConnectEnabled)
+            {
+                AutoConnectStatusText = settings.LastKnownDevice is null
+                    ? "Auto-connect: no remembered mask"
+                    : "Auto-connect: Off";
+                return;
+            }
+
+            if (settings.LastKnownDevice is null)
+            {
+                AutoConnectStatusText = "Auto-connect: no remembered mask";
+                return;
+            }
+
+            if (connection.State == BleConnectionState.Connected)
+            {
+                AutoConnectStatusText = "Auto-connect: connected";
+                return;
+            }
+
+            if (IsAutoConnectSearching)
+            {
+                return;
+            }
+
+            manualDisconnectRequested = false;
+            autoConnectCancellation?.Cancel();
+            autoConnectCancellation?.Dispose();
+            autoConnectCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            ResetNameFallbackCandidates();
+            IsAutoConnectSearching = true;
+            coordinatorStartedScan = true;
+            AutoConnectStatusText = $"Auto-connect: searching for {settings.LastKnownDevice.Name}";
+
+            await scanner.StartScanningAsync(autoConnectCancellation.Token).ConfigureAwait(false);
+        }
+        finally
         {
-            AutoConnectStatusText = "Auto-connect: no remembered mask";
-            return;
+            foregroundLifecycleGate.Release();
         }
+    }
 
-        if (connection.State == BleConnectionState.Connected)
+    public async Task StopForegroundAutoConnectAsync(CancellationToken cancellationToken = default)
+    {
+        Volatile.Write(ref isForeground, 0);
+        await foregroundLifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            AutoConnectStatusText = "Auto-connect: connected";
-            return;
-        }
+            await StopCoordinatorScanAsync(cancellationToken).ConfigureAwait(false);
+            if (Interlocked.Exchange(ref autoConnectInProgress, 0) == 1)
+            {
+                pendingRememberedDevice = null;
+                await connection.DisconnectAsync(cancellationToken).ConfigureAwait(false);
+            }
 
-        if (IsAutoConnectSearching)
+            if (settings.AutoConnectEnabled && settings.LastKnownDevice is not null)
+            {
+                AutoConnectStatusText = "Auto-connect: paused while app is backgrounded";
+            }
+        }
+        finally
         {
-            return;
+            foregroundLifecycleGate.Release();
         }
-
-        manualDisconnectRequested = false;
-        autoConnectCancellation?.Cancel();
-        autoConnectCancellation?.Dispose();
-        autoConnectCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        nameFallbackCandidates.Clear();
-        isNameFallbackEvaluationPending = false;
-        IsAutoConnectSearching = true;
-        coordinatorStartedScan = true;
-        AutoConnectStatusText = $"Auto-connect: searching for {settings.LastKnownDevice.Name}";
-
-        await scanner.StartScanningAsync(autoConnectCancellation.Token).ConfigureAwait(false);
     }
 
     public async Task ConnectManuallyAsync(DiscoveredMaskDevice device, CancellationToken cancellationToken = default)
@@ -179,7 +220,7 @@ public sealed class BleAutoConnectCoordinator : INotifyPropertyChanged
     {
         await InitializeAsync(cancellationToken).ConfigureAwait(false);
         pendingRememberedDevice = null;
-        nameFallbackCandidates.Clear();
+        ResetNameFallbackCandidates();
         settings = settings with
         {
             AutoConnectEnabled = false,
@@ -208,17 +249,23 @@ public sealed class BleAutoConnectCoordinator : INotifyPropertyChanged
 
         if (cancellationToken.IsCancellationRequested || !IsAutoConnectSearching)
         {
-            isNameFallbackEvaluationPending = false;
+            lock (nameFallbackSync)
+            {
+                isNameFallbackEvaluationPending = false;
+            }
             return;
         }
 
-        isNameFallbackEvaluationPending = false;
-
-        var candidates = nameFallbackCandidates
-            .Where(candidate => string.Equals(candidate.Name, knownDevice.Name, StringComparison.Ordinal))
-            .GroupBy(candidate => candidate.Id, StringComparer.Ordinal)
-            .Select(group => group.First())
-            .ToArray();
+        DiscoveredMaskDevice[] candidates;
+        lock (nameFallbackSync)
+        {
+            isNameFallbackEvaluationPending = false;
+            candidates = nameFallbackCandidates
+                .Where(candidate => string.Equals(candidate.Name, knownDevice.Name, StringComparison.Ordinal))
+                .GroupBy(candidate => candidate.Id, StringComparer.Ordinal)
+                .Select(group => group.First())
+                .ToArray();
+        }
 
         if (candidates.Length == 1)
         {
@@ -249,15 +296,12 @@ public sealed class BleAutoConnectCoordinator : INotifyPropertyChanged
             }
 
             if (string.Equals(device.Name, settings.LastKnownDevice.Name, StringComparison.Ordinal) &&
-                !nameFallbackCandidates.Any(candidate => candidate.Id == device.Id))
+                TryAddNameFallbackCandidate(device))
             {
-                nameFallbackCandidates.Add(device);
                 AutoConnectStatusText = $"Auto-connect: verifying {device.Name}";
-                if (!isNameFallbackEvaluationPending)
-                {
-                    isNameFallbackEvaluationPending = true;
-                    _ = TryNameFallbackAfterDelayAsync(settings.LastKnownDevice, autoConnectCancellation?.Token ?? CancellationToken.None);
-                }
+                _ = TryNameFallbackAfterDelayAsync(
+                    settings.LastKnownDevice,
+                    autoConnectCancellation?.Token ?? CancellationToken.None);
             }
         }
         catch (OperationCanceledException)
@@ -271,25 +315,40 @@ public sealed class BleAutoConnectCoordinator : INotifyPropertyChanged
 
     private async Task ConnectAutoAsync(DiscoveredMaskDevice device, CancellationToken cancellationToken)
     {
-        if (!IsAutoConnectSearching)
-        {
-            return;
-        }
-
+        await foregroundLifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            if (!IsAutoConnectSearching || Volatile.Read(ref isForeground) == 0)
+            {
+                return;
+            }
+
             pendingRememberedDevice = device;
             AutoConnectStatusText = $"Auto-connect: connecting to {device.Name}";
             IsAutoConnectSearching = false;
+            Interlocked.Exchange(ref autoConnectInProgress, 1);
             await connection.ConnectAsync(device, cancellationToken).ConfigureAwait(false);
+
+            if (Volatile.Read(ref isForeground) == 0
+                && Interlocked.Exchange(ref autoConnectInProgress, 0) == 1)
+            {
+                pendingRememberedDevice = null;
+                await connection.DisconnectAsync(CancellationToken.None).ConfigureAwait(false);
+            }
         }
         catch (OperationCanceledException)
         {
+            Interlocked.Exchange(ref autoConnectInProgress, 0);
             pendingRememberedDevice = null;
         }
         catch (Exception)
         {
+            Interlocked.Exchange(ref autoConnectInProgress, 0);
             await FailAutoConnectAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        finally
+        {
+            foregroundLifecycleGate.Release();
         }
     }
 
@@ -297,6 +356,7 @@ public sealed class BleAutoConnectCoordinator : INotifyPropertyChanged
     {
         if (e.State == BleConnectionState.Failed && pendingRememberedDevice is not null)
         {
+            Interlocked.Exchange(ref autoConnectInProgress, 0);
             pendingRememberedDevice = null;
             await FailAutoConnectAsync(CancellationToken.None).ConfigureAwait(false);
             return;
@@ -304,6 +364,7 @@ public sealed class BleAutoConnectCoordinator : INotifyPropertyChanged
 
         if (e.State == BleConnectionState.Disconnected)
         {
+            Interlocked.Exchange(ref autoConnectInProgress, 0);
             if (manualDisconnectRequested)
             {
                 manualDisconnectRequested = false;
@@ -313,9 +374,17 @@ public sealed class BleAutoConnectCoordinator : INotifyPropertyChanged
                 return;
             }
 
-            if (settings.AutoConnectEnabled && settings.LastKnownDevice is not null)
+            if (Volatile.Read(ref isForeground) != 0
+                && settings.AutoConnectEnabled
+                && settings.LastKnownDevice is not null)
             {
                 await StartForegroundAutoConnectAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            else if (Volatile.Read(ref isForeground) == 0
+                     && settings.AutoConnectEnabled
+                     && settings.LastKnownDevice is not null)
+            {
+                AutoConnectStatusText = "Auto-connect: paused until the app returns to foreground";
             }
 
             return;
@@ -327,7 +396,15 @@ public sealed class BleAutoConnectCoordinator : INotifyPropertyChanged
         }
 
         var device = pendingRememberedDevice;
+        var wasAutoConnect = Interlocked.Exchange(ref autoConnectInProgress, 0) == 1;
         pendingRememberedDevice = null;
+        if (wasAutoConnect && Volatile.Read(ref isForeground) == 0)
+        {
+            await connection.DisconnectAsync(CancellationToken.None).ConfigureAwait(false);
+            AutoConnectStatusText = "Auto-connect: paused while app is backgrounded";
+            return;
+        }
+
         if (device is null)
         {
             AutoConnectStatusText = "Auto-connect: connected";
@@ -361,10 +438,9 @@ public sealed class BleAutoConnectCoordinator : INotifyPropertyChanged
         autoConnectCancellation?.Cancel();
         autoConnectCancellation?.Dispose();
         autoConnectCancellation = null;
-        nameFallbackCandidates.Clear();
-        isNameFallbackEvaluationPending = false;
+        ResetNameFallbackCandidates();
         IsAutoConnectSearching = false;
-        if (coordinatorStartedScan && scanner.IsScanning)
+        if (coordinatorStartedScan)
         {
             await scanner.StopScanningAsync(cancellationToken).ConfigureAwait(false);
         }
@@ -377,6 +453,35 @@ public sealed class BleAutoConnectCoordinator : INotifyPropertyChanged
         settings = settings.Normalize();
         await settingsStore.SaveAsync(settings, cancellationToken).ConfigureAwait(false);
         RaiseSettingsChanged();
+    }
+
+    private bool TryAddNameFallbackCandidate(DiscoveredMaskDevice device)
+    {
+        lock (nameFallbackSync)
+        {
+            if (nameFallbackCandidates.Any(candidate => candidate.Id == device.Id))
+            {
+                return false;
+            }
+
+            nameFallbackCandidates.Add(device);
+            if (isNameFallbackEvaluationPending)
+            {
+                return false;
+            }
+
+            isNameFallbackEvaluationPending = true;
+            return true;
+        }
+    }
+
+    private void ResetNameFallbackCandidates()
+    {
+        lock (nameFallbackSync)
+        {
+            nameFallbackCandidates.Clear();
+            isNameFallbackEvaluationPending = false;
+        }
     }
 
     private void RaiseSettingsChanged()

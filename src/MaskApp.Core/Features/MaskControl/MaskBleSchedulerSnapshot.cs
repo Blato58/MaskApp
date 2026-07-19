@@ -10,7 +10,11 @@ public sealed record MaskBleSchedulerSnapshot(
     long TotalRejected,
     long TotalEmergencyCancellations,
     TimeSpan? LastOperationDuration,
-    string? LastError);
+    string? LastError,
+    int RetainedQueueNodeCount = 0,
+    int QueuedWakeSignalCount = 0,
+    string? LastCompletedOperationName = null,
+    bool? LastOperationSucceeded = null);
 
 public sealed class MaskBleSchedulerDiagnosticsChangedEventArgs : EventArgs
 {
