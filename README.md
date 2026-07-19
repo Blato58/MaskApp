@@ -1,75 +1,68 @@
 # MaskApp
 
-MaskApp is the migration workspace for rewriting the existing Android Java app into a modern .NET MAUI mobile app.
+MaskApp is a .NET 10 MAUI app for controlling Shining Mask LED face masks over Bluetooth Low Energy. iOS is the primary target and Android is maintained as a secondary target. The implementation replaces the original Java application while keeping the local Android snapshot as behavioral evidence.
 
-The original source snapshot is kept in `android/` and should be treated as migration input. New code lives under `src/`.
+## Features
 
-## Projects
+- **Library** — browse stock faces and animations, create custom faces and animations, compose text, and manage portable MaskPack archives.
+- **Stage** — organize pages and scenes, run preflight checks, and use a focused performance surface.
+- **Device** — discover and reconnect masks, adjust live controls, and inspect redacted diagnostics.
 
-- `src/MaskApp.App` - .NET MAUI app, iOS first and Android secondary, using the app id `app.turquoise6409.green2444`.
-- `src/MaskApp.Core` - platform-neutral migration code for BLE protocol, feature state, parsing, and transformations.
-- `tests/MaskApp.Core.Tests` - xUnit tests for migrated core behavior.
+The mask protocol is community-reverse-engineered and device firmware can vary. Read [the protocol reference](docs/stock-mask-protocol.md) before changing BLE commands, uploads, or capability claims.
 
-## App Navigation
+## Repository Layout
 
-The primary Shell destinations are **Library**, **Stage**, and **Device**.
-Library owns content discovery and editor entry points. Stage contains Build and
-Preflight, with Pages, Scenes, setlists, and the full-screen locked performance
-surface underneath it. Device keeps ordinary connection and brightness controls
-ahead of progressively disclosed diagnostics and recovery tools.
+- `src/MaskApp.App/` — MAUI UI, feature slices, platform services, and resources.
+- `src/MaskApp.Core/` — platform-neutral protocol, models, persistence, and view-model logic.
+- `tests/MaskApp.Core.Tests/` — xUnit regression tests organized by feature.
+- `android/` and local `decompiled-app/` — read-only migration evidence.
+- `docs/` — setup, protocol, distribution, archive-format, and asset-provenance references.
+- `build/scripts/` — preview generation and iOS distribution helpers.
 
 ## Prerequisites
 
-- .NET SDK `10.0.300` or a compatible .NET 10 feature band.
-- MAUI mobile workload for building/running the app:
+- The .NET SDK version selected by `global.json` (`10.0.300` baseline).
+- The .NET MAUI mobile workload:
 
 ```powershell
 dotnet workload install maui-mobile
 ```
 
-iOS builds require a Mac build host with Xcode and Apple signing/provisioning configured. From Windows, use Visual Studio Pair to Mac or equivalent `dotnet build` Mac host properties.
+- Android SDK/JDK for Android builds.
+- A Mac build host with Xcode for iOS builds and device deployment.
 
-## Common Commands
+See [docs/setup.md](docs/setup.md) for platform-specific configuration.
 
-Core logic can be validated without a mobile device:
+## Build and Test
 
-```powershell
-dotnet test tests\MaskApp.Core.Tests\MaskApp.Core.Tests.csproj
-```
-
-Build the MAUI app for the secondary Android target locally:
+Restore the solution and run the platform-neutral test suite:
 
 ```powershell
 dotnet restore MaskApp.slnx
-dotnet build src\MaskApp.App\MaskApp.App.csproj -f net10.0-android
+dotnet test tests\MaskApp.Core.Tests\MaskApp.Core.Tests.csproj
 ```
 
-Build the primary iOS target through a Mac build host:
+Build an individual MAUI target:
 
 ```powershell
+dotnet build src\MaskApp.App\MaskApp.App.csproj -f net10.0-android
 dotnet build src\MaskApp.App\MaskApp.App.csproj -f net10.0-ios
 ```
 
-## iOS CI Distribution
+Use Visual Studio, Rider, or platform tooling for simulator and physical-device deployment. The iOS command requires an available Mac build host.
 
-The repository includes a GitHub Actions workflow for building a signed iOS IPA
-on a macOS runner without a local Mac or Visual Studio:
+To verify that tracked stock previews match their generator inputs:
 
-```text
-.github/workflows/ios-ipa.yml
+```powershell
+python build\scripts\generate-builtin-previews.py --check
 ```
 
-See `docs/ios-ci-distribution.md` for the required Apple signing assets,
-GitHub Secrets, first workflow run, GitHub Release publishing, GitHub Pages
-install page, and Feather/AltStore-style update source.
+Regeneration prerequisites and source mapping are documented in [docs/builtin-preview-sources.md](docs/builtin-preview-sources.md).
 
-The published install page and source feed are available at
-https://blato58.github.io/MaskApp/.
+## CI and Distribution
 
-## Migration Notes
+[`.github/workflows/ios-ipa.yml`](.github/workflows/ios-ipa.yml) restores the solution, runs core tests, and builds the mobile targets. With Apple signing secrets configured, it can publish a signed IPA, GitHub Release, install page, and AltStore-compatible feed. See [docs/ios-ci-distribution.md](docs/ios-ci-distribution.md); never commit signing assets or credentials.
 
-Microsoft support for legacy Xamarin SDKs ended on May 1, 2024. This repo now targets `.NET MAUI`, with iOS as the primary product target and Android maintained as a secondary target.
+## Contributing
 
-Use vertical feature slices in the MAUI app. Keep platform-neutral behavior in `MaskApp.Core` with tests, then wire each slice to platform services under `Platforms/iOS` and `Platforms/Android`.
-
-The goal is to improve UI/UX and functionality, not to mechanically copy the old Java structure. Each slice should preserve required behavior while making the user flow clearer, more reliable, and better aligned with iOS/MAUI conventions.
+Read [AGENTS.md](AGENTS.md) for repository structure, coding conventions, testing expectations, and pull request guidance. Keep protocol behavior in `MaskApp.Core`, platform APIs in `MaskApp.App`, and accompany behavioral changes with focused tests.
