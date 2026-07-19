@@ -3,6 +3,7 @@
     x:Class="MaskApp.App.Features.Shows.SceneEditorPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:gallery="clr-namespace:MaskApp.Core.Features.Gallery;assembly=MaskApp.Core"
     xmlns:scenes="clr-namespace:MaskApp.Core.Features.Scenes;assembly=MaskApp.Core"
     xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
     x:DataType="scenes:SceneStudioViewModel"
@@ -41,7 +42,7 @@
         </CollectionView>
         <Grid Grid.Row="4" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
             <Picker ItemsSource="{Binding StepKinds}" SelectedItem="{Binding NewStepKind, Mode=TwoWay}" MinimumHeightRequest="48" />
-            <Picker Grid.Column="1" ItemsSource="{Binding ContentOptions}" ItemDisplayBinding="{Binding Title}" SelectedItem="{Binding SelectedContentItem, Mode=TwoWay}" IsVisible="{Binding NeedsContentItem}" MinimumHeightRequest="48" />
+            <Picker Grid.Column="1" ItemsSource="{Binding ContentOptions}" ItemDisplayBinding="{Binding Title, x:DataType=gallery:GalleryItem}" SelectedItem="{Binding SelectedContentItem, Mode=TwoWay}" IsVisible="{Binding NeedsContentItem}" MinimumHeightRequest="48" />
             <Button Grid.Column="2" Text="{x:Static loc:AppText.AddStep}" Clicked="OnAddStep" MinimumHeightRequest="48" />
         </Grid>
         <Grid Grid.Row="5" RowDefinitions="Auto,Auto" RowSpacing="8">

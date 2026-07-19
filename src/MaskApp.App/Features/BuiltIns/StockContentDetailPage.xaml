@@ -26,7 +26,7 @@
                     SemanticDescription="{Binding DisplayName, StringFormat='{0} exact stock preview'}" />
                 <controls:InlineIssue
                     Title="{loc:Translate PhysicalOutput}"
-                    Detail="{loc:Translate PhysicalOutputDetail}" />
+                    Message="{loc:Translate PhysicalOutputDetail}" />
                 <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
                     <Button Text="{x:Static loc:AppText.Previous}" Command="{Binding PreviousCommand}" />
                     <Button Grid.Column="1" Text="{loc:Translate SendTest}" Command="{Binding SendCommand}" Style="{StaticResource PrimaryButtonStyle}" />

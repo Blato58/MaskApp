@@ -36,7 +36,7 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
         <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="10">
-            <Picker Title="{loc:Translate SceneToAdd}" ItemsSource="{Binding Scenes}" ItemDisplayBinding="{Binding DisplayName}" SelectedItem="{Binding SelectedCueScene, Mode=TwoWay}" MinimumHeightRequest="48" />
+            <Picker Title="{loc:Translate SceneToAdd}" ItemsSource="{Binding Scenes}" ItemDisplayBinding="{Binding DisplayName, x:DataType=scenes:PerformanceScene}" SelectedItem="{Binding SelectedCueScene, Mode=TwoWay}" MinimumHeightRequest="48" />
             <Button Grid.Column="1" Text="{x:Static loc:AppText.AddCue}" Clicked="OnAddCue" MinimumHeightRequest="48" />
         </Grid>
         <Grid Grid.Row="4" ColumnDefinitions="*,*,*" ColumnSpacing="8">

@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:connect="clr-namespace:MaskApp.Core.Features.Connect;assembly=MaskApp.Core"
     xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
+    x:DataType="connect:ConnectViewModel"
     Shell.NavBarIsVisible="False"
     BackgroundColor="{AppThemeBinding Dark={StaticResource DarkCanvasColor}, Light={StaticResource LightCanvasColor}}">
     <Grid Padding="24" RowDefinitions="*,Auto" RowSpacing="24">

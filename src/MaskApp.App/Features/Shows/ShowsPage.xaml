@@ -29,7 +29,7 @@
                     <Label Text="{Binding PositionText}" Style="{StaticResource MutedLabelStyle}" />
                 </VerticalStackLayout>
                 <Button Grid.Column="1" Text="{loc:Translate EditShow}" Clicked="OnEditShowClicked" MinimumHeightRequest="48" />
-                <controls:ReadinessCardView Grid.Row="1" Grid.ColumnSpan="2" Title="{Binding Preflight.StatusText}" Detail="{Binding Preflight.Summary}" />
+                <controls:ReadinessCardView Grid.Row="1" Grid.ColumnSpan="2" StatusText="{Binding Preflight.StatusText}" Summary="{Binding Preflight.Summary}" />
             </Grid>
         </Border>
 
@@ -41,7 +41,7 @@
 
         <CollectionView Grid.Row="3" ItemsSource="{Binding Cues}" SelectionMode="None">
             <CollectionView.EmptyView>
-                <controls:EmptyStateView Title="{loc:Translate NoShowCues}" Detail="{loc:Translate NoShowCuesDetail}" />
+                <controls:EmptyStateView Title="{loc:Translate NoShowCues}" Message="{loc:Translate NoShowCuesDetail}" />
             </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="scenes:SetlistCueRow">

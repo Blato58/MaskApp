@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentView x:Class="MaskApp.App.Controls.InlineIssue" xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" x:Name="Root">
+<ContentView x:Class="MaskApp.App.Controls.InlineIssue" xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" xmlns:controls="clr-namespace:MaskApp.App.Controls" x:DataType="controls:InlineIssue" x:Name="Root">
     <Border Padding="12" Stroke="{Binding AccentColor, Source={x:Reference Root}}" StrokeThickness="1" BackgroundColor="Transparent">
         <Border.StrokeShape><RoundRectangle CornerRadius="12" /></Border.StrokeShape>
         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">

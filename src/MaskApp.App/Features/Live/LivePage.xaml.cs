@@ -44,6 +44,14 @@ public partial class LivePage : ContentPage
         }
     }
 
+    private void OnPageSizeChanged(object? sender, EventArgs e) =>
+        ActionsLayout.Span = Width switch
+        {
+            >= 900 => 4,
+            >= 600 => 3,
+            _ => 2
+        };
+
     private async void OnTileConfirmationRequested(object? sender, EventArgs e)
     {
         if (sender is not LiveTile { Item: { } item } tile)

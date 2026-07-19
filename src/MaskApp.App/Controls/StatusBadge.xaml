@@ -3,6 +3,8 @@
     x:Class="MaskApp.App.Controls.StatusBadge"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:MaskApp.App.Controls"
+    x:DataType="controls:StatusBadge"
     x:Name="Root">
     <Border Padding="9,5" Stroke="{Binding AccentColor, Source={x:Reference Root}}" StrokeThickness="1" BackgroundColor="Transparent">
         <Border.StrokeShape><RoundRectangle CornerRadius="16" /></Border.StrokeShape>

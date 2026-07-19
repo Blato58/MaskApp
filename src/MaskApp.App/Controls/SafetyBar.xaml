@@ -3,6 +3,8 @@
     x:Class="MaskApp.App.Controls.SafetyBar"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:MaskApp.App.Controls"
+    x:DataType="controls:SafetyBar"
     x:Name="Root">
     <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Padding="0,8">
         <Button

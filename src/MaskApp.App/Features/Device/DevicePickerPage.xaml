@@ -21,7 +21,7 @@
         </Grid>
         <CollectionView Grid.Row="2" ItemsSource="{Binding DeviceRows}" SelectedItem="{Binding SelectedDeviceRow, Mode=TwoWay}" SelectionMode="Single">
             <CollectionView.EmptyView>
-                <controls:EmptyStateView Title="{loc:Translate NoNearbyMasks}" Detail="{loc:Translate NoNearbyMasksDetail}" />
+                <controls:EmptyStateView Title="{loc:Translate NoNearbyMasks}" Message="{loc:Translate NoNearbyMasksDetail}" />
             </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="connect:DevicePickerRow">
@@ -33,7 +33,7 @@
                         <Label Grid.Column="1" Text="{Binding SignalStrength, StringFormat='{}{0} dBm'}" VerticalTextAlignment="Center" />
                         <Grid Grid.Row="1" Grid.ColumnSpan="2" IsVisible="{Binding IsRetryTarget}" RowDefinitions="Auto,Auto" RowSpacing="6">
                             <Label Text="{Binding ErrorText}" TextColor="{AppThemeBinding Dark={StaticResource DarkDangerColor}, Light={StaticResource LightDangerColor}}" />
-                            <Button Grid.Row="1" Text="{loc:Translate RetryThisMask}" Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ConnectCommand}" />
+                            <Button Grid.Row="1" Text="{loc:Translate RetryThisMask}" Command="{Binding ConnectCommand, Source={RelativeSource AncestorType={x:Type connect:ConnectViewModel}}, x:DataType=connect:ConnectViewModel}" />
                         </Grid>
                     </Grid>
                 </DataTemplate>

@@ -43,7 +43,7 @@
                     <Picker
                         Title="{loc:Translate ChooseLiveDeck}"
                         ItemsSource="{Binding Pages}"
-                        ItemDisplayBinding="{Binding DisplayName}"
+                        ItemDisplayBinding="{Binding DisplayName, x:DataType=preflight:PreflightPageOption}"
                         SelectedItem="{Binding SelectedPage}" />
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
                         <Button Text="{loc:Translate CheckLiveDeck}" Command="{Binding RunSelectedPageCommand}" Style="{StaticResource PrimaryButtonStyle}" />

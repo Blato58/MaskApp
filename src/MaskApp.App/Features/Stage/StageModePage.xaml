@@ -64,7 +64,7 @@
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="stage:StageTile">
-                        <Grid Margin="5" MinimumHeightRequest="{Binding BindingContext.TileMinimumHeight, Source={x:Reference RootPage}}">
+                        <Grid Margin="5" MinimumHeightRequest="{Binding TileMinimumHeight, Source={RelativeSource AncestorType={x:Type stage:StageModeViewModel}}, x:DataType=stage:StageModeViewModel}">
                             <Border Style="{StaticResource PerformanceTileBorderStyle}" Stroke="{Binding ColorHex}">
                                 <Grid RowDefinitions="96,Auto,Auto,Auto" RowSpacing="5">
                                     <Grid>
