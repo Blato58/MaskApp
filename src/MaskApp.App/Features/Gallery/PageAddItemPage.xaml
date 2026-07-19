@@ -3,20 +3,22 @@
     x:Class="MaskApp.App.Features.Gallery.PageAddItemPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+
+    xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
     xmlns:controls="clr-namespace:MaskApp.App.Controls"
     xmlns:gallery="clr-namespace:MaskApp.Core.Features.Gallery;assembly=MaskApp.Core"
     x:DataType="gallery:PageAddItemViewModel"
-    Title="Add Shortcut"
+    Title="{loc:AppText Key=Ui020}"
     BackgroundColor="{StaticResource PageBackgroundColor}">
     <ScrollView>
         <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="14">
             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                 <VerticalStackLayout Spacing="2">
-                    <Label Text="Add Shortcut" Style="{StaticResource PageTitleLabelStyle}" />
+                    <Label Text="{loc:AppText Key=Ui020}" Style="{StaticResource PageTitleLabelStyle}" />
                     <Label Text="{Binding PageTitle}" Style="{StaticResource TinyLabelStyle}" />
                 </VerticalStackLayout>
-                <Button Grid.Column="1" Text="Cancel" Clicked="OnCancelClicked" />
-                <Button Grid.Column="2" Text="Save" IsEnabled="{Binding CanSave}" Clicked="OnSaveClicked" Style="{StaticResource PrimaryButtonStyle}" />
+                <Button Grid.Column="1" Text="{loc:AppText Key=Ui056}" Clicked="OnCancelClicked" />
+                <Button Grid.Column="2" Text="{loc:AppText Key=Ui274}" IsEnabled="{Binding CanSave}" Clicked="OnSaveClicked" Style="{StaticResource PrimaryButtonStyle}" />
             </Grid>
 
             <Border Style="{StaticResource PanelBorderStyle}" Stroke="{Binding SelectedColorHex}">
@@ -35,14 +37,14 @@
                         WidthRequest="96"
                         IsAnimationPlaying="False"
                         IsVisible="{Binding SelectedItemHasPreview}"
-                        SemanticDescription="{Binding SelectedItemTitle, StringFormat='{0} preview'}"
+                        SemanticDescription="{Binding SelectedItemTitle, StringFormat='{loc:AppText Key=Ui419}'}"
                         Source="{Binding SelectedPreviewResourceName}" />
                     <controls:FacePatternPreviewView
                         HeightRequest="96"
                         WidthRequest="96"
                         IsVisible="{Binding SelectedItemHasFacePreview}"
                         Pattern="{Binding SelectedFacePattern}"
-                        SemanticDescription="{Binding SelectedItemTitle, StringFormat='{0} face preview'}" />
+                        SemanticDescription="{Binding SelectedItemTitle, StringFormat='{loc:AppText Key=Ui417}'}" />
                     <VerticalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
                         <Label Text="{Binding SelectedItemTitle}" FontSize="20" FontAttributes="Bold" />
                         <Label Text="{Binding SelectedItemSubtitle}" Style="{StaticResource MutedLabelStyle}" />
@@ -53,14 +55,14 @@
 
             <Border Style="{StaticResource PanelBorderStyle}">
                 <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
-                    <Label Text="Gallery Item" Style="{StaticResource SectionTitleLabelStyle}" />
-                    <SearchBar Grid.Row="1" Placeholder="Search Library items" Text="{Binding SearchText, Mode=TwoWay}" />
+                    <Label Text="{loc:AppText Key=Ui124}" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <SearchBar Grid.Row="1" Placeholder="{loc:AppText Key=Ui296}" Text="{Binding SearchText, Mode=TwoWay}" />
                     <CollectionView x:Name="AvailableItemsView" Grid.Row="2" HeightRequest="280" ItemsSource="{Binding AvailableItems}" Scrolled="OnAvailableItemsScrolled" SelectionMode="None">
                         <CollectionView.ItemsLayout>
                             <GridItemsLayout Orientation="Vertical" Span="2" />
                         </CollectionView.ItemsLayout>
                         <CollectionView.EmptyView>
-                            <Label Text="No available Gallery items for this page." Style="{StaticResource MutedLabelStyle}" HorizontalTextAlignment="Center" />
+                            <Label Text="{loc:AppText Key=Ui187}" Style="{StaticResource MutedLabelStyle}" HorizontalTextAlignment="Center" />
                         </CollectionView.EmptyView>
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="gallery:PageAddItemCandidateCard">
@@ -83,14 +85,14 @@
                                             HeightRequest="104"
                                             IsAnimationPlaying="{Binding IsAnimationPlaying}"
                                             IsVisible="{Binding HasPreview}"
-                                            SemanticDescription="{Binding Title, StringFormat='{0} preview'}"
+                                            SemanticDescription="{Binding Title, StringFormat='{loc:AppText Key=Ui419}'}"
                                             Source="{Binding PreviewResourceName}" />
                                         <controls:FacePatternPreviewView
                                             Grid.Row="1"
                                             HeightRequest="104"
                                             IsVisible="{Binding HasFacePreview}"
                                             Pattern="{Binding FacePattern}"
-                                            SemanticDescription="{Binding Title, StringFormat='{0} face preview'}" />
+                                            SemanticDescription="{Binding Title, StringFormat='{loc:AppText Key=Ui417}'}" />
                                         <Button Grid.Row="2" Text="{Binding SelectionText}" Command="{Binding SelectCommand}" />
                                     </Grid>
                                 </Border>
@@ -102,14 +104,14 @@
 
             <Border Style="{StaticResource PanelBorderStyle}">
                 <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
-                    <Label Text="Text" Style="{StaticResource SectionTitleLabelStyle}" />
-                    <Entry Grid.Row="1" Placeholder="Shortcut label" Text="{Binding DraftLabel, Mode=TwoWay}" />
+                    <Label Text="{loc:AppText Key=Ui335}" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Entry Grid.Row="1" Placeholder="{loc:AppText Key=Ui311}" Text="{Binding DraftLabel, Mode=TwoWay}" />
                 </Grid>
             </Border>
 
             <Border Style="{StaticResource PanelBorderStyle}">
                 <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
-                    <Label Text="Color" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="{loc:AppText Key=Ui059}" Style="{StaticResource SectionTitleLabelStyle}" />
                     <CollectionView Grid.Row="1" HeightRequest="64" ItemsSource="{Binding Colors}" SelectionMode="None">
                         <CollectionView.ItemsLayout>
                             <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8" />
@@ -132,7 +134,7 @@
 
             <Border Style="{StaticResource PanelBorderStyle}">
                 <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
-                    <Label Text="Icon" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="{loc:AppText Key=Ui142}" Style="{StaticResource SectionTitleLabelStyle}" />
                     <CollectionView Grid.Row="1" HeightRequest="56" ItemsSource="{Binding IconPacks}" SelectionMode="None">
                         <CollectionView.ItemsLayout>
                             <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8" />

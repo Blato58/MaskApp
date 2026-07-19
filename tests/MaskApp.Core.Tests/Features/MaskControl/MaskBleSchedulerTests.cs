@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using MaskApp.Core.Features.Audio;
 using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.MaskControl;
@@ -181,7 +182,10 @@ public sealed class MaskBleSchedulerTests
         Assert.Single(transport.Commands);
         Assert.Equal(1, transport.Commands.Single().Plaintext.Span[6]);
         Assert.DoesNotContain("text:start", transport.Events);
-        Assert.Equal(2, scheduler.GetSnapshot().TotalEmergencyCancellations);
+        var snapshot = scheduler.GetSnapshot();
+        Assert.Equal(2, snapshot.TotalEmergencyCancellations);
+        Assert.Equal(0, snapshot.RetainedQueueNodeCount);
+        Assert.Equal(0, snapshot.QueuedWakeSignalCount);
         Assert.Equal(1, transport.MaxConcurrentOperations);
     }
 
@@ -208,6 +212,45 @@ public sealed class MaskBleSchedulerTests
         Assert.Contains("Stop", faceResult.Message, StringComparison.Ordinal);
         Assert.Contains("Stop", textResult.Message, StringComparison.Ordinal);
         Assert.Empty(transport.Commands);
+        var snapshot = scheduler.GetSnapshot();
+        Assert.Equal(0, snapshot.RetainedQueueNodeCount);
+        Assert.Equal(0, snapshot.QueuedWakeSignalCount);
+    }
+
+    [Fact]
+    public async Task Stop_PreemptsTextPostUploadQuietPeriod()
+    {
+        var transport = new RecordingTransport();
+        await using var scheduler = new MaskBleScheduler(transport, transport, transport, new FakeConnection());
+        var options = CreateTextOptions() with { PostUploadQuietPeriod = TimeSpan.FromSeconds(30) };
+
+        var upload = scheduler.UploadAsync(CreateTextPackage(), options);
+        await WaitUntilAsync(() => transport.Events.Contains("text:end"));
+
+        var stop = await scheduler.StopAsync().WaitAsync(TestTimeout);
+        var uploadResult = await upload.WaitAsync(TestTimeout);
+
+        Assert.True(stop.Succeeded);
+        Assert.False(uploadResult.Succeeded);
+        Assert.Contains("Stop", uploadResult.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Blackout_PreemptsFacePostUploadQuietPeriod()
+    {
+        var transport = new RecordingTransport();
+        await using var scheduler = new MaskBleScheduler(transport, transport, transport, new FakeConnection());
+        var options = CreateFaceOptions() with { PostUploadQuietPeriod = TimeSpan.FromSeconds(30) };
+
+        var upload = scheduler.UploadAsync(CreateFacePackage(), options);
+        await WaitUntilAsync(() => transport.Events.Contains("face:end"));
+
+        var blackout = await scheduler.BlackoutAsync().WaitAsync(TestTimeout);
+        var uploadResult = await upload.WaitAsync(TestTimeout);
+
+        Assert.True(blackout.Succeeded);
+        Assert.False(uploadResult.Succeeded);
+        Assert.Contains("blackout", uploadResult.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -243,6 +286,93 @@ public sealed class MaskBleSchedulerTests
         Assert.Equal(1, transport.Commands.Single().Plaintext.Span[6]);
     }
 
+    [Fact]
+    public async Task QueuedAudioFrames_CoalesceToNewestFrame()
+    {
+        var transport = new RecordingTransport
+        {
+            FaceRelease = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+        };
+        await using var scheduler = new MaskBleScheduler(
+            transport,
+            transport,
+            transport,
+            new FakeConnection(),
+            audioVisualizationTransport: transport);
+        var audioTransport = (IAudioVisualizationTransport)scheduler;
+
+        var faceUpload = scheduler.UploadAsync(CreateFacePackage(), CreateFaceOptions());
+        await transport.FaceStarted.Task.WaitAsync(TestTimeout);
+        var stale = audioTransport.SendAsync(CreateAudioPacket(1));
+        var current = audioTransport.SendAsync(CreateAudioPacket(8));
+
+        var staleResult = await stale.WaitAsync(TestTimeout);
+        Assert.False(staleResult.Succeeded);
+        Assert.Contains("superseded", staleResult.Message, StringComparison.OrdinalIgnoreCase);
+
+        transport.FaceRelease.SetResult();
+        Assert.True((await faceUpload.WaitAsync(TestTimeout)).Succeeded);
+        Assert.True((await current.WaitAsync(TestTimeout)).Succeeded);
+        Assert.Single(transport.AudioPackets);
+        Assert.Equal(0x88, transport.AudioPackets.Single().Plaintext[2]);
+    }
+
+    [Fact]
+    public async Task SustainedCoalescing_RemovesSupersededQueueNodesInsteadOfRetainingUnboundedWork()
+    {
+        var transport = new RecordingTransport
+        {
+            FaceRelease = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+        };
+        await using var scheduler = new MaskBleScheduler(
+            transport,
+            transport,
+            transport,
+            new FakeConnection(),
+            audioVisualizationTransport: transport);
+        var audioTransport = (IAudioVisualizationTransport)scheduler;
+
+        var faceUpload = scheduler.UploadAsync(CreateFacePackage(), CreateFaceOptions());
+        await transport.FaceStarted.Task.WaitAsync(TestTimeout);
+        var frames = Enumerable.Range(0, 2_000)
+            .Select(index => audioTransport.SendAsync(CreateAudioPacket((byte)(index % 10))))
+            .ToArray();
+
+        var pressureSnapshot = scheduler.GetSnapshot();
+        Assert.Equal(1, pressureSnapshot.PendingOperationCount);
+        Assert.Equal(1, pressureSnapshot.RetainedQueueNodeCount);
+        Assert.Equal(1, pressureSnapshot.QueuedWakeSignalCount);
+        Assert.Equal(1_999, pressureSnapshot.TotalSuperseded);
+
+        transport.FaceRelease.SetResult();
+        Assert.True((await faceUpload.WaitAsync(TestTimeout)).Succeeded);
+        var results = await Task.WhenAll(frames).WaitAsync(TestTimeout);
+
+        Assert.Equal(1, results.Count(result => result.Succeeded));
+        Assert.Single(transport.AudioPackets);
+        await WaitUntilAsync(() =>
+        {
+            var snapshot = scheduler.GetSnapshot();
+            return snapshot.RetainedQueueNodeCount == 0
+                && snapshot.QueuedWakeSignalCount == 0;
+        });
+    }
+
+    [Fact]
+    public async Task Stop_PublishesProducerCancellationEvenWhenQueueIsEmpty()
+    {
+        var transport = new RecordingTransport();
+        await using var scheduler = new MaskBleScheduler(transport, transport, transport, new FakeConnection());
+        VisualWorkCancelledEventArgs? cancellation = null;
+        scheduler.VisualWorkCancelled += (_, args) => cancellation = args;
+
+        var result = await scheduler.StopAsync();
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(cancellation);
+        Assert.Equal(VisualWorkCancellationReason.Stop, cancellation.Reason);
+    }
+
     private static TextUploadPackage CreateTextPackage() =>
         TextUploadProtocol.CreatePackage("TEST", new TextLedColor(1, 2, 3), mode: 2, speed: 80);
 
@@ -266,6 +396,12 @@ public sealed class MaskBleSchedulerTests
             PlayAfterUpload = false,
             PostUploadQuietPeriod = TimeSpan.Zero
         };
+
+    private static AudioVisualizationPacket CreateAudioPacket(byte level) =>
+        AudioVisualizationProtocol.BuildFromLevels(
+            AudioVisualizationPackingMode.PaletteA,
+            Enumerable.Repeat(level, 24).ToArray(),
+            AudioVisualizationFraming.LegacyAndroidLength);
 
     private static async Task<bool> ToSucceededTask(Task<FaceUploadResult> task) =>
         (await task.WaitAsync(TestTimeout)).Succeeded;
@@ -306,11 +442,13 @@ public sealed class MaskBleSchedulerTests
     private sealed class RecordingTransport :
         IMaskCommandTransport,
         ITextUploadTransport,
-        IFaceUploadTransport
+        IFaceUploadTransport,
+        IAudioVisualizationTransport
     {
         private readonly object sync = new();
         private readonly ConcurrentQueue<string> events = new();
         private readonly ConcurrentQueue<MaskCommand> commands = new();
+        private readonly ConcurrentQueue<AudioVisualizationPacket> audioPackets = new();
         private int activeOperations;
         private int maxConcurrentOperations;
 
@@ -332,6 +470,12 @@ public sealed class MaskBleSchedulerTests
             remove { }
         }
 
+        event EventHandler<AudioVisualizationTransportStateChangedEventArgs>? IAudioVisualizationTransport.StateChanged
+        {
+            add { }
+            remove { }
+        }
+
         public string TransportDisplayName => "Recording transport";
 
         public bool IsSimulated => true;
@@ -348,6 +492,9 @@ public sealed class MaskBleSchedulerTests
 
         FaceUploadTransportState IFaceUploadTransport.State => FaceUploadTransportState.Simulated;
 
+        AudioVisualizationTransportState IAudioVisualizationTransport.State =>
+            AudioVisualizationTransportState.Simulated;
+
         public string StatusText => "Ready.";
 
         public TaskCompletionSource FaceStarted { get; } =
@@ -360,6 +507,8 @@ public sealed class MaskBleSchedulerTests
         public IReadOnlyList<string> Events => events.ToArray();
 
         public IReadOnlyList<MaskCommand> Commands => commands.ToArray();
+
+        public IReadOnlyList<AudioVisualizationPacket> AudioPackets => audioPackets.ToArray();
 
         public int MaxConcurrentOperations
         {
@@ -428,6 +577,24 @@ public sealed class MaskBleSchedulerTests
 
                 events.Enqueue("face:end");
                 return FaceUploadResult.Success("Uploaded.", package.Frames.Count);
+            }
+            finally
+            {
+                Exit();
+            }
+        }
+
+        public Task<AudioVisualizationSendResult> SendAsync(
+            AudioVisualizationPacket packet,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Enter("audio:start");
+            try
+            {
+                audioPackets.Enqueue(packet);
+                events.Enqueue("audio:end");
+                return Task.FromResult(AudioVisualizationSendResult.Success("Sent."));
             }
             finally
             {

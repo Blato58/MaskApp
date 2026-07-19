@@ -1,3 +1,4 @@
+using MaskApp.Core.Features.Audio;
 using MaskApp.Core.Features.Profiles;
 
 namespace MaskApp.Core.Tests.Features.Profiles;
@@ -82,6 +83,64 @@ public sealed class JsonMaskProfileStoreCoreTests
 
             Assert.Contains("not overwritten", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(corruptContent, await File.ReadAllTextAsync(filePath));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task PreAudioProfileDocument_LoadsInPlaceWithSafeNewFieldDefaults()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"maskapp-profile-tests-{Guid.NewGuid():N}");
+        var filePath = Path.Combine(directory, "mask-profiles.json");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            const string legacyJson = """
+                {
+                  "schemaVersion": 1,
+                  "activeProfileId": "mask-legacy",
+                  "legacyGlobalSlotLedgerMigrated": true,
+                  "profiles": [
+                    {
+                      "profileId": "mask-legacy",
+                      "displayName": "Legacy Mask",
+                      "firstSeenAt": "2026-07-17T10:00:00Z",
+                      "lastSeenAt": "2026-07-17T11:00:00Z",
+                      "capabilities": {
+                        "commandWriteAvailable": true,
+                        "textUploadAvailable": true,
+                        "faceUploadAvailable": true,
+                        "acknowledgementMode": "writeOnly",
+                        "diySlotCapacity": 20,
+                        "transportName": "iOS CoreBluetooth"
+                      },
+                      "preparedSlots": [
+                        {
+                          "slot": 7,
+                          "contentFingerprint": "LEGACY-CONTENT",
+                          "verification": "acknowledged",
+                          "installedAt": "2026-07-17T10:30:00Z"
+                        }
+                      ]
+                    }
+                  ]
+                }
+                """;
+            await File.WriteAllTextAsync(filePath, legacyJson);
+
+            var loaded = await new JsonMaskProfileStoreCore(filePath).LoadAsync();
+
+            Assert.False(loaded.UsedFallback);
+            var profile = Assert.Single(loaded.Profiles);
+            Assert.Equal("mask-legacy", loaded.ActiveProfileId);
+            Assert.Single(profile.PreparedSlots);
+            Assert.False(profile.Capabilities.AudioVisualizationWriteAvailable);
+            Assert.Equal(
+                AudioVisualizationEvidenceStatus.Unknown,
+                profile.AudioVisualizationEvidence.Status);
         }
         finally
         {

@@ -3,18 +3,20 @@
     x:Class="MaskApp.App.Features.Gallery.LibraryAddPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+
+    xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
     xmlns:gallery="clr-namespace:MaskApp.Core.Features.Gallery;assembly=MaskApp.Core"
     x:DataType="gallery:GalleryViewModel"
-    Title="Add Item"
+    Title="{loc:AppText Key=Ui016}"
     BackgroundColor="{StaticResource PageBackgroundColor}">
     <ScrollView>
         <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="16">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                 <VerticalStackLayout Spacing="2">
-                    <Label Text="Add Item" Style="{StaticResource PageTitleLabelStyle}" />
-                    <Label Text="Choose what you want to create or browse." Style="{StaticResource MutedLabelStyle}" />
+                    <Label Text="{loc:AppText Key=Ui016}" Style="{StaticResource PageTitleLabelStyle}" />
+                    <Label Text="{loc:AppText Key=Ui141}" Style="{StaticResource MutedLabelStyle}" />
                 </VerticalStackLayout>
-                <Button Grid.Column="1" Text="Done" Clicked="OnDoneClicked" />
+                <Button Grid.Column="1" Text="{loc:AppText Key=Ui091}" Clicked="OnDoneClicked" />
             </Grid>
 
             <CollectionView ItemsSource="{Binding AddOptions}" SelectionMode="None">
@@ -36,7 +38,7 @@
                                 </Grid>
                                 <Button
                                     Grid.Row="2"
-                                    Text="Continue"
+                                    Text="{loc:AppText Key=Ui072}"
                                     IsEnabled="{Binding IsAvailable}"
                                     Clicked="OnAddOptionClicked"
                                     CommandParameter="{Binding .}"

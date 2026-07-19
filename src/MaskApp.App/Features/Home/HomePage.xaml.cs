@@ -1,5 +1,6 @@
 using MaskApp.Core.Features.Home;
 using MaskApp.Core.Features.QuickActions;
+using MaskApp.Core.Navigation;
 
 namespace MaskApp.App.Features.Home;
 
@@ -20,7 +21,8 @@ public partial class HomePage : ContentPage
         }
     }
 
-    private static Task OpenConnectAsync() => Shell.Current.GoToAsync("//connect");
+    private static Task OpenConnectAsync() =>
+        Shell.Current.GoToAsync(AppRouteCatalog.AbsoluteRoot(AppRouteCatalog.DeviceRoot));
 
     private static Task OpenTextAsync() => Shell.Current.GoToAsync("text");
 

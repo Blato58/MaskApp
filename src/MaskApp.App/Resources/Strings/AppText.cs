@@ -35,5 +35,5 @@ public static class AppText
     public static string AnimationStudio => Get(nameof(AnimationStudio));
     public static string Save => Get(nameof(Save));
 
-    private static string Get(string key) => ResourceManager.GetString(key, Culture) ?? key;
+    public static string Get(string key) => ResourceManager.GetString(key, Culture) ?? key;
 }

@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:controls="clr-namespace:MaskApp.App.Controls"
+    xmlns:local="clr-namespace:MaskApp.App.Features.Stage"
     xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
     xmlns:stage="clr-namespace:MaskApp.Core.Features.Stage;assembly=MaskApp.Core"
     x:Name="RootPage"
@@ -22,17 +23,17 @@
                 </VerticalStackLayout>
                 <Button
                     Grid.Column="1"
-                    Text="Hold to exit"
+                    Text="{loc:AppText Key=Ui129}"
                     Pressed="OnUnlockPressed"
                     Released="OnUnlockReleased"
                     Style="{StaticResource SecondaryButtonStyle}"
-                    SemanticProperties.Description="Hold for two seconds and release to unlock and exit Stage" />
+                    SemanticProperties.Description="{loc:AppText Key=Ui128}" />
             </Grid>
 
             <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                <Button Text="‹" Command="{Binding PreviousPageCommand}" SemanticProperties.Description="Previous cue or Page" />
+                <Button Text="‹" Command="{Binding PreviousPageCommand}" SemanticProperties.Description="{loc:AppText Key=Ui239}" />
                 <Button Grid.Column="1" Text="{Binding LayoutButtonText}" Command="{Binding CycleLayoutCommand}" Style="{StaticResource SecondaryButtonStyle}" />
-                <Button Grid.Column="2" Text="›" Command="{Binding NextPageCommand}" SemanticProperties.Description="Next cue or Page" />
+                <Button Grid.Column="2" Text="›" Command="{Binding NextPageCommand}" SemanticProperties.Description="{loc:AppText Key=Ui186}" />
             </Grid>
 
             <Border Grid.Row="2" Padding="10,8" BackgroundColor="{StaticResource SurfaceColor}" Stroke="{Binding ReadinessColorHex}" StrokeThickness="1">
@@ -41,7 +42,7 @@
                     <Label Text="{Binding ReadinessText}" TextColor="{Binding ReadinessColorHex}" FontAttributes="Bold" />
                     <Label Grid.Column="1" Text="{Binding ReadinessSummary}" Style="{StaticResource TinyLabelStyle}" MaxLines="1" />
                     <Label Grid.Column="2" Text="{Binding ConnectionStatusText}" TextColor="{Binding ConnectionState, Converter={StaticResource TransportStateColorConverter}}" FontAttributes="Bold" FontSize="11" />
-                    <Label Grid.Row="1" Grid.ColumnSpan="3" Text="Output occurs only after an explicit cue press." Style="{StaticResource TinyLabelStyle}" />
+                    <Label Grid.Row="1" Grid.ColumnSpan="3" Text="{loc:AppText Key=Ui211}" Style="{StaticResource TinyLabelStyle}" />
                 </Grid>
             </Border>
         </Grid>
@@ -54,23 +55,23 @@
 
             <CollectionView x:Name="StageTilesView" ItemsSource="{Binding Tiles}" SelectionMode="None">
                 <CollectionView.EmptyView>
-                    <controls:EmptyStateView Icon="◇" Title="No Stage cues" Message="Hold to exit, build Pages or a setlist, run Preflight, then re-enter." />
+                    <controls:EmptyStateView Icon="◇" Title="{loc:AppText Key=Ui193}" Message="{loc:AppText Key=Ui438}" />
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="stage:StageTile">
-                        <Grid Margin="5" MinimumHeightRequest="{Binding BindingContext.TileMinimumHeight, Source={x:Reference RootPage}}">
+                        <Grid Margin="5" MinimumHeightRequest="{Binding ViewModel.TileMinimumHeight, Source={x:Reference RootPage}, x:DataType=local:StageModePage}">
                             <Border Style="{StaticResource PerformanceTileBorderStyle}" Stroke="{Binding ColorHex}">
                                 <Grid RowDefinitions="96,Auto,Auto,Auto" RowSpacing="5">
                                     <Grid>
                                         <controls:BuiltInPreviewView
                                             IsVisible="{Binding HasResourcePreview}"
                                             IsAnimationPlaying="False"
-                                            SemanticDescription="{Binding Label, StringFormat='{0} preview'}"
+                                            SemanticDescription="{Binding Label, StringFormat='{loc:AppText Key=Ui419}'}"
                                             Source="{Binding PreviewResourceName}" />
                                         <controls:FacePatternPreviewView
                                             IsVisible="{Binding HasFacePreview}"
                                             Pattern="{Binding FacePattern}"
-                                            SemanticDescription="{Binding Label, StringFormat='{0} face preview'}" />
+                                            SemanticDescription="{Binding Label, StringFormat='{loc:AppText Key=Ui417}'}" />
                                         <Border IsVisible="{Binding HasAnyPreview, Converter={StaticResource InvertedBoolConverter}}" BackgroundColor="{Binding ColorHex}" Opacity="0.28" Stroke="Transparent">
                                             <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
                                             <Label Text="{Binding Subtitle}" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
@@ -95,7 +96,7 @@
                                 SemanticProperties.Description="{Binding Label}"
                                 SemanticProperties.Hint="{Binding ActionHint}" />
                             <Button
-                                Text="HOLD TO PLAY"
+                                Text="{loc:AppText Key=Ui130}"
                                 Pressed="OnHoldTilePressed"
                                 Released="OnHoldTileReleased"
                                 CommandParameter="{Binding .}"
@@ -124,9 +125,9 @@
                 <VerticalStackLayout Spacing="12" HorizontalOptions="Center" VerticalOptions="Center">
                     <Label Text="{Binding ConnectionStatusText}" TextColor="{StaticResource DangerColor}" FontSize="28" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                     <Label Text="{Binding ConnectionMessage}" FontSize="17" HorizontalTextAlignment="Center" />
-                    <Label Text="Session preserved. Reconnect never replays output automatically." Style="{StaticResource MutedLabelStyle}" HorizontalTextAlignment="Center" />
-                    <Button Text="Recover without replay" Command="{Binding RecoverCommand}" IsEnabled="{Binding CanRecover}" Style="{StaticResource NeonBlueButtonStyle}" />
-                    <Button Text="Refresh readiness" Command="{Binding RefreshReadinessCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                    <Label Text="{loc:AppText Key=Ui308}" Style="{StaticResource MutedLabelStyle}" HorizontalTextAlignment="Center" />
+                    <Button Text="{loc:AppText Key=Ui250}" Command="{Binding RecoverCommand}" IsEnabled="{Binding CanRecover}" Style="{StaticResource NeonBlueButtonStyle}" />
+                    <Button Text="{loc:AppText Key=Ui255}" Command="{Binding RefreshReadinessCommand}" Style="{StaticResource SecondaryButtonStyle}" />
                 </VerticalStackLayout>
             </Border>
         </Grid>
@@ -154,13 +155,13 @@
                 Style="{StaticResource SecondaryButtonStyle}"
                 FontSize="22"
                 MinimumHeightRequest="64"
-                SemanticProperties.Description="Stop active and queued visual work while retaining the last stable look when available" />
+                SemanticProperties.Description="{loc:AppText Key=Ui327}" />
             <Button
                 Grid.Row="3"
                 Text="{x:Static loc:AppText.Blackout}"
                 Command="{Binding BlackoutCommand}"
                 Style="{StaticResource EmergencyButtonStyle}"
-                SemanticProperties.Description="Emergency blackout. Cancel visual work and force mask brightness to protocol minimum" />
+                SemanticProperties.Description="{loc:AppText Key=Ui100}" />
         </Grid>
     </Grid>
 </ContentPage>

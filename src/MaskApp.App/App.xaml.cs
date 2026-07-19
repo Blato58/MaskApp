@@ -1,7 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
-using MaskApp.Core.Features.Animations;
-using MaskApp.Core.Features.Connect;
-using MaskApp.Core.Features.AnimationPacks;
+using MaskApp.App.Resources.Strings;
+using MaskApp.Core.Features.Lifecycle;
+using MaskApp.Core.Features.Profiles;
+using System.Globalization;
 #if IOS
 using UIKit;
 #endif
@@ -11,11 +12,24 @@ namespace MaskApp.App;
 public partial class App : Application
 {
     private readonly IServiceProvider services;
+    private readonly MaskProfileMetricsRecorder profileMetricsRecorder;
+    private readonly AppLifecycleCoordinator lifecycleCoordinator;
 
-    public App(IServiceProvider services)
+    public App(
+        IServiceProvider services,
+        MaskProfileMetricsRecorder profileMetricsRecorder,
+        AppLifecycleCoordinator lifecycleCoordinator)
     {
+        AppText.Culture = string.Equals(
+            CultureInfo.CurrentUICulture.TwoLetterISOLanguageName,
+            "cs",
+            StringComparison.OrdinalIgnoreCase)
+            ? CultureInfo.GetCultureInfo("cs-CZ")
+            : CultureInfo.GetCultureInfo("en");
         InitializeComponent();
         this.services = services;
+        this.profileMetricsRecorder = profileMetricsRecorder;
+        this.lifecycleCoordinator = lifecycleCoordinator;
     }
 
     protected override Window CreateWindow(IActivationState? activationState)
@@ -23,10 +37,10 @@ public partial class App : Application
         try
         {
             var window = new Window(services.GetRequiredService<AppShell>());
-            window.Created += (_, _) => _ = StartStartupServicesAsync();
-            window.Activated += (_, _) => _ = StartForegroundAutoConnectAsync();
-            window.Stopped += (_, _) => _ = HandOffAnimationForBackgroundAsync();
-            window.Resumed += (_, _) => _ = ResumeAnimationFromBackgroundAsync();
+            window.Created += (_, _) => _ = lifecycleCoordinator.OnCreatedAsync();
+            window.Activated += (_, _) => _ = lifecycleCoordinator.OnActivatedAsync();
+            window.Stopped += (_, _) => _ = HandleStoppedAsync();
+            window.Resumed += (_, _) => _ = lifecycleCoordinator.OnResumedAsync();
             return window;
         }
         catch (Exception ex)
@@ -35,37 +49,15 @@ public partial class App : Application
         }
     }
 
-    private async Task StartStartupServicesAsync()
+    private async Task HandleStoppedAsync()
     {
-        try
-        {
-            await services.GetRequiredService<MaskPackArchiveService>().RecoverInterruptedImportAsync();
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
-                                   or InvalidDataException or InvalidOperationException)
-        {
-        }
-
-        await StartForegroundAutoConnectAsync();
-    }
-
-    private async Task StartForegroundAutoConnectAsync()
-    {
-        try
-        {
-            await services.GetRequiredService<BleAutoConnectCoordinator>().StartForegroundAutoConnectAsync();
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
-        {
-        }
-    }
-
-    private async Task HandOffAnimationForBackgroundAsync()
-    {
+        var backgroundWorkCancellationToken = CancellationToken.None;
 #if IOS
         var iosApplication = UIApplication.SharedApplication;
         var iosBackgroundTaskId = UIApplication.BackgroundTaskInvalid;
         var iosBackgroundTaskEndRequested = 0;
+        using var backgroundWorkCancellation = new CancellationTokenSource();
+        backgroundWorkCancellationToken = backgroundWorkCancellation.Token;
 
         void EndIosBackgroundTask()
         {
@@ -79,9 +71,22 @@ public partial class App : Application
             }
         }
 
+        void ExpireIosBackgroundTask()
+        {
+            try
+            {
+                backgroundWorkCancellation.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+
+            EndIosBackgroundTask();
+        }
+
         iosBackgroundTaskId = iosApplication.BeginBackgroundTask(
             "Mask animation handoff",
-            EndIosBackgroundTask);
+            ExpireIosBackgroundTask);
         if (Volatile.Read(ref iosBackgroundTaskEndRequested) != 0)
         {
             EndIosBackgroundTask();
@@ -89,31 +94,13 @@ public partial class App : Application
 #endif
         try
         {
-            await services.GetRequiredService<PerformanceAnimationEngine>()
-                .HandOffToMaskForBackgroundAsync();
+            await lifecycleCoordinator.OnStoppedAsync(backgroundWorkCancellationToken);
         }
-        catch (Exception exception)
-        {
-            System.Diagnostics.Debug.WriteLine($"Animation background handoff failed: {exception}");
-        }
-#if IOS
         finally
         {
+#if IOS
             EndIosBackgroundTask();
-        }
 #endif
-    }
-
-    private async Task ResumeAnimationFromBackgroundAsync()
-    {
-        try
-        {
-            await services.GetRequiredService<PerformanceAnimationEngine>()
-                .ResumeFromBackgroundAsync();
-        }
-        catch (Exception exception)
-        {
-            System.Diagnostics.Debug.WriteLine($"Animation foreground resume failed: {exception}");
         }
     }
 }

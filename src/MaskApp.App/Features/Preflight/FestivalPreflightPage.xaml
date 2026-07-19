@@ -3,16 +3,18 @@
     x:Class="MaskApp.App.Features.Preflight.FestivalPreflightPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+
+    xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
     xmlns:preflight="clr-namespace:MaskApp.Core.Features.Preflight;assembly=MaskApp.Core"
     x:DataType="preflight:FestivalPreflightViewModel"
-    Title="Festival Preflight"
+    Title="{loc:AppText Key=Ui114}"
     BackgroundColor="{StaticResource PageBackgroundColor}">
     <Grid RowDefinitions="Auto,*">
         <Grid Padding="18,14" ColumnDefinitions="Auto,*" ColumnSpacing="12">
-            <Button Text="‹" Clicked="OnBackClicked" SemanticProperties.Description="Back to Pages" />
+            <Button Text="‹" Clicked="OnBackClicked" SemanticProperties.Description="{loc:AppText Key=Ui040}" />
             <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                <Label Text="Festival Preflight" Style="{StaticResource PageTitleLabelStyle}" />
-                <Label Text="Prove the selected show is ready for this physical mask." Style="{StaticResource TinyLabelStyle}" />
+                <Label Text="{loc:AppText Key=Ui114}" Style="{StaticResource PageTitleLabelStyle}" />
+                <Label Text="{loc:AppText Key=Ui240}" Style="{StaticResource TinyLabelStyle}" />
             </VerticalStackLayout>
         </Grid>
 
@@ -30,7 +32,7 @@
                 </Grid>
 
                 <VerticalStackLayout Spacing="5">
-                    <Label Text="MASK" Style="{StaticResource TinyLabelStyle}" TextColor="{StaticResource AccentBlueColor}" />
+                    <Label Text="{loc:AppText Key=Ui166}" Style="{StaticResource TinyLabelStyle}" TextColor="{StaticResource AccentBlueColor}" />
                     <Label Text="{Binding ActiveMaskText}" FontAttributes="Bold" />
                     <Label Text="{Binding LastRunText}" Style="{StaticResource TinyLabelStyle}" />
                 </VerticalStackLayout>
@@ -38,15 +40,30 @@
                 <BoxView Style="{StaticResource ListSeparatorStyle}" />
 
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="SCOPE" FontAttributes="Bold" />
-                    <Picker
-                        Title="Choose a Page"
-                        ItemsSource="{Binding Pages}"
-                        ItemDisplayBinding="{Binding DisplayName}"
-                        SelectedItem="{Binding SelectedPage}" />
+                    <Label Text="{loc:AppText Key=Ui294}" FontAttributes="Bold" />
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Pages}" Spacing="4">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="preflight:PreflightPageOption">
+                                <Grid
+                                    MinimumHeightRequest="48"
+                                    ColumnDefinitions="Auto,*"
+                                    ColumnSpacing="10"
+                                    Padding="4,2">
+                                    <CheckBox
+                                        IsChecked="{Binding IsSelected}"
+                                        SemanticProperties.Description="{Binding SelectionStatusText}"
+                                        VerticalOptions="Center" />
+                                    <Label
+                                        Grid.Column="1"
+                                        Text="{Binding DisplayName}"
+                                        VerticalOptions="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                        <Button Text="Check Page" Command="{Binding RunSelectedPageCommand}" Style="{StaticResource PrimaryButtonStyle}" />
-                        <Button Grid.Column="1" Text="Check whole show" Command="{Binding RunWholeShowCommand}" Style="{StaticResource BrightButtonStyle}" />
+                        <Button Text="{loc:AppText Key=Ui132}" Command="{Binding RunSelectedPagesCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Grid.Column="1" Text="{loc:AppText Key=Ui133}" Command="{Binding RunWholeShowCommand}" Style="{StaticResource BrightButtonStyle}" />
                     </Grid>
                     <Button
                         Text="{Binding ActiveSetlistText}"
@@ -54,7 +71,7 @@
                         IsEnabled="{Binding HasActiveSetlist}"
                         Style="{StaticResource BrightButtonStyle}" />
                     <Button
-                        Text="Prepare eligible DIY content"
+                        Text="{loc:AppText Key=Ui229}"
                         Command="{Binding PrepareDiyContentCommand}"
                         Style="{StaticResource NeonBlueButtonStyle}" />
                     <Label Text="{Binding PreparationStatusText}" Style="{StaticResource TinyLabelStyle}" />
@@ -62,26 +79,26 @@
                 </VerticalStackLayout>
 
                 <VerticalStackLayout Spacing="8">
-                    <Label Text="FLASH SAFETY" FontAttributes="Bold" />
+                    <Label Text="{loc:AppText Key=Ui120}" FontAttributes="Bold" />
                     <Label Text="{Binding FlashSafetySummary}" Style="{StaticResource MutedLabelStyle}" />
                     <Button
-                        Text="Review and acknowledge blocked revisions"
+                        Text="{loc:AppText Key=Ui266}"
                         Clicked="OnAcknowledgeFlashRiskClicked"
                         IsVisible="{Binding HasBlockedFlashSafety}"
                         BackgroundColor="#7F1D1D"
                         TextColor="White"
-                        SemanticProperties.Description="Review the photosensitivity warning and explicitly acknowledge each exact blocked animation revision" />
+                        SemanticProperties.Description="{loc:AppText Key=Ui267}" />
                     <Button
-                        Text="Revoke flash-risk overrides"
+                        Text="{loc:AppText Key=Ui270}"
                         Clicked="OnRevokeFlashRiskClicked"
                         IsVisible="{Binding HasAcknowledgedFlashSafety}"
                         Style="{StaticResource BrightButtonStyle}"
-                        SemanticProperties.Description="Revoke flash-risk acknowledgements and block those animation revisions again" />
+                        SemanticProperties.Description="{loc:AppText Key=Ui268}" />
                 </VerticalStackLayout>
 
                 <VerticalStackLayout Spacing="8">
-                    <Label Text="ISSUES AND RECOVERY" FontAttributes="Bold" />
-                    <Label Text="No issues found." IsVisible="{Binding HasNoIssues}" Style="{StaticResource MutedLabelStyle}" />
+                    <Label Text="{loc:AppText Key=Ui148}" FontAttributes="Bold" />
+                    <Label Text="{loc:AppText Key=Ui188}" IsVisible="{Binding HasNoIssues}" Style="{StaticResource MutedLabelStyle}" />
                     <VerticalStackLayout BindableLayout.ItemsSource="{Binding Issues}" Spacing="0">
                         <BindableLayout.ItemTemplate>
                             <DataTemplate x:DataType="preflight:PreflightIssue">
@@ -98,14 +115,14 @@
                 </VerticalStackLayout>
 
                 <VerticalStackLayout Spacing="8">
-                    <Label Text="ACTION READINESS" FontAttributes="Bold" />
+                    <Label Text="{loc:AppText Key=Ui011}" FontAttributes="Bold" />
                     <VerticalStackLayout BindableLayout.ItemsSource="{Binding Actions}" Spacing="0">
                         <BindableLayout.ItemTemplate>
                             <DataTemplate x:DataType="preflight:PreflightActionAssessment">
                                 <Grid Padding="0,10" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,1" RowSpacing="3">
                                     <Label Text="{Binding Title}" FontAttributes="Bold" />
                                     <Label Grid.Column="1" Text="{Binding ClassificationText}" TextColor="{Binding ColorHex}" FontAttributes="Bold" FontSize="12" />
-                                    <Label Grid.Row="1" Text="{Binding PageTitle, StringFormat='Page: {0}'}" Style="{StaticResource TinyLabelStyle}" />
+                                    <Label Grid.Row="1" Text="{Binding PageTitle, StringFormat='{loc:AppText Key=Ui426}'}" Style="{StaticResource TinyLabelStyle}" />
                                     <BoxView Grid.Row="2" Grid.ColumnSpan="2" Style="{StaticResource ListSeparatorStyle}" />
                                 </Grid>
                             </DataTemplate>

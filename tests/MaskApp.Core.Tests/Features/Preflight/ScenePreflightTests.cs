@@ -153,6 +153,7 @@ public sealed class ScenePreflightTests
         },
         ActiveProfile = profile,
         ConnectionState = BleConnectionState.Connected,
+        RuntimeSnapshot = PreflightRuntimeSnapshot.GrantedForTests,
         EvaluatedAt = Now
     };
 

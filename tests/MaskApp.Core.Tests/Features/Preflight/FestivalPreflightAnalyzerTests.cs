@@ -82,6 +82,101 @@ public sealed class FestivalPreflightAnalyzerTests
     }
 
     [Fact]
+    public void Analyze_DeniedBluetoothPermission_IsNotReadyWithRecoveryAction()
+    {
+        var face = FacePatternFactory.CreateBlank("Prepared", preferredSlot: 7);
+        var item = CreateFaceItem(face);
+        var request = CreateRequest(
+            [item],
+            [CreatePage("page-a", item.Id)],
+            CreateProfile(new MaskPreparedSlot
+            {
+                Slot = 7,
+                ContentFingerprint = FaceContentFingerprint.Compute(face),
+                SourceId = item.Id,
+                InstalledAt = Now,
+                Verification = MaskPreparedSlotVerification.Acknowledged
+            })) with
+        {
+            RuntimeSnapshot = PreflightRuntimeSnapshot.GrantedForTests with
+            {
+                BluetoothAccess = PreflightRuntimeAccessStatus.Denied,
+                BluetoothDetail = "Bluetooth permission is not granted."
+            }
+        };
+
+        var report = new FestivalPreflightAnalyzer().Analyze(request);
+
+        Assert.Equal(FestivalPreflightStatus.NotReady, report.Status);
+        var issue = Assert.Single(report.Issues, candidate => candidate.Code == "bluetooth-permission-denied");
+        Assert.Contains("settings", issue.RecoveryAction, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Analyze_MicrophonePermission_IsCheckedOnlyWhenScopeRequiresIt()
+    {
+        var face = FacePatternFactory.CreateBlank("Prepared", preferredSlot: 7);
+        var item = CreateFaceItem(face);
+        var request = CreateRequest(
+            [item],
+            [CreatePage("page-a", item.Id)],
+            CreateProfile(new MaskPreparedSlot
+            {
+                Slot = 7,
+                ContentFingerprint = FaceContentFingerprint.Compute(face),
+                SourceId = item.Id,
+                InstalledAt = Now,
+                Verification = MaskPreparedSlotVerification.Acknowledged
+            })) with
+        {
+            RuntimeSnapshot = PreflightRuntimeSnapshot.GrantedForTests with
+            {
+                MicrophoneAccess = PreflightRuntimeAccessStatus.Denied,
+                MicrophoneDetail = "Microphone permission is not granted."
+            }
+        };
+
+        var showReport = new FestivalPreflightAnalyzer().Analyze(request);
+        var audioReport = new FestivalPreflightAnalyzer().Analyze(request with
+        {
+            RequiredRuntimePermissions =
+                PreflightRuntimeRequirement.Bluetooth | PreflightRuntimeRequirement.Microphone
+        });
+
+        Assert.DoesNotContain(showReport.Issues, issue => issue.Code.StartsWith("microphone-", StringComparison.Ordinal));
+        Assert.Contains(audioReport.Issues, issue => issue.Code == "microphone-permission-denied");
+    }
+
+    [Fact]
+    public void Analyze_SelectedPages_TraversesEverySelectedPageAndNoOthers()
+    {
+        var face = FacePatternFactory.CreateBlank("Prepared", preferredSlot: 7);
+        var item = CreateFaceItem(face);
+        var request = CreateRequest(
+            [item],
+            [
+                CreatePage("page-a", item.Id),
+                CreatePage("page-b", item.Id),
+                CreatePage("page-c", item.Id)
+            ],
+            CreateProfile(new MaskPreparedSlot
+            {
+                Slot = 7,
+                ContentFingerprint = FaceContentFingerprint.Compute(face),
+                SourceId = item.Id,
+                InstalledAt = Now,
+                Verification = MaskPreparedSlotVerification.Acknowledged
+            })) with
+        {
+            SelectedPageIds = ["page-a", "page-c"]
+        };
+
+        var report = new FestivalPreflightAnalyzer().Analyze(request);
+
+        Assert.Equal(["page-a", "page-c"], report.Actions.Select(action => action.PageId));
+    }
+
+    [Fact]
     public void Analyze_TextThatMustUpload_IsDegradedNotFalselyReady()
     {
         var preset = new TextPreset
@@ -257,6 +352,7 @@ public sealed class FestivalPreflightAnalyzerTests
             Layout = new GalleryLayoutState { Pages = pages },
             ActiveProfile = profile,
             ConnectionState = BleConnectionState.Connected,
+            RuntimeSnapshot = PreflightRuntimeSnapshot.GrantedForTests,
             EvaluatedAt = Now
         };
 

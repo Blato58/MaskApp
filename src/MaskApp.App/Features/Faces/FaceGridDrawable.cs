@@ -58,6 +58,19 @@ public sealed class FaceGridDrawable : IDrawable
             var y = LastGridBounds.Y + (row * CellSize);
             canvas.DrawLine(LastGridBounds.X, y, LastGridBounds.Right, y);
         }
+
+        if (viewModel.SelectionBounds is { } selection)
+        {
+            canvas.StrokeColor = Color.FromArgb("#F59E0B");
+            canvas.StrokeSize = 2;
+            canvas.StrokeDashPattern = [4, 3];
+            canvas.DrawRectangle(
+                LastGridBounds.X + (selection.Left * CellSize),
+                LastGridBounds.Y + (selection.Top * CellSize),
+                (selection.Right - selection.Left + 1) * CellSize,
+                (selection.Bottom - selection.Top + 1) * CellSize);
+            canvas.StrokeDashPattern = null;
+        }
     }
 
     public bool TryGetCell(PointF point, out int column, out int row)

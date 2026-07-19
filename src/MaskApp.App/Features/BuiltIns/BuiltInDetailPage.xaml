@@ -3,10 +3,12 @@
     x:Class="MaskApp.App.Features.BuiltIns.BuiltInDetailPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+
+    xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
     xmlns:builtins="clr-namespace:MaskApp.Core.Features.BuiltIns;assembly=MaskApp.Core"
     xmlns:controls="clr-namespace:MaskApp.App.Controls"
     x:DataType="builtins:BuiltInsViewModel"
-    Title="Built-in detail"
+    Title="{loc:AppText Key=Ui052}"
     BackgroundColor="{StaticResource PageBackgroundColor}">
     <Grid RowDefinitions="*,Auto">
         <ScrollView>
@@ -14,7 +16,7 @@
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                     <VerticalStackLayout Spacing="2">
                         <Label Text="{Binding DisplayName}" Style="{StaticResource PageTitleLabelStyle}" />
-                        <Label Text="{Binding CurrentHexId, StringFormat='ID {0}'}" Style="{StaticResource TinyLabelStyle}" />
+                        <Label Text="{Binding CurrentHexId, StringFormat='{loc:AppText Key=Ui422}'}" Style="{StaticResource TinyLabelStyle}" />
                     </VerticalStackLayout>
                     <Button
                         Grid.Column="1"
@@ -27,43 +29,43 @@
                     x:Name="DetailPreview"
                     HeightRequest="280"
                     HorizontalOptions="Fill"
-                    SemanticDescription="{Binding DisplayName, StringFormat='{0} stock preview'}"
+                    SemanticDescription="{Binding DisplayName, StringFormat='{loc:AppText Key=Ui420}'}"
                     Source="{Binding CurrentPreviewResourceName}" />
 
                 <VerticalStackLayout Spacing="4">
                     <Label Text="{Binding CurrentPreviewBadgeText}" Style="{StaticResource SectionTitleLabelStyle}" />
-                    <Label Text="Original-app artwork; physical mask output may vary." Style="{StaticResource MutedLabelStyle}" />
+                    <Label Text="{loc:AppText Key=Ui210}" Style="{StaticResource MutedLabelStyle}" />
                 </VerticalStackLayout>
 
                 <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                    <Button Text="Previous" Command="{Binding PreviousCommand}" Style="{StaticResource SecondaryButtonStyle}" />
-                    <Button Grid.Column="1" Text="Send" Command="{Binding SendCommand}" Style="{StaticResource PrimaryButtonStyle}" />
-                    <Button Grid.Column="2" Text="Next" Command="{Binding NextCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                    <Button Text="{loc:AppText Key=Ui237}" Command="{Binding PreviousCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                    <Button Grid.Column="1" Text="{loc:AppText Key=Ui302}" Command="{Binding SendCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                    <Button Grid.Column="2" Text="{loc:AppText Key=Ui184}" Command="{Binding NextCommand}" Style="{StaticResource SecondaryButtonStyle}" />
                 </Grid>
 
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Details" Style="{StaticResource SectionTitleLabelStyle}" />
-                    <Entry Placeholder="Display name" Text="{Binding DisplayName, Mode=TwoWay}" />
-                    <Entry Placeholder="Tags, comma separated" Text="{Binding TagsText, Mode=TwoWay}" />
-                    <Editor AutoSize="TextChanges" HeightRequest="96" Placeholder="Notes" Text="{Binding Notes, Mode=TwoWay}" />
-                    <Picker ItemsSource="{Binding StatusValues}" SelectedItem="{Binding AssetStatus, Mode=TwoWay}" Title="Status" />
-                    <Button Text="Save details" Command="{Binding SaveCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                    <Label Text="{loc:AppText Key=Ui085}" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Entry Placeholder="{loc:AppText Key=Ui088}" Text="{Binding DisplayName, Mode=TwoWay}" />
+                    <Entry Placeholder="{loc:AppText Key=Ui333}" Text="{Binding TagsText, Mode=TwoWay}" />
+                    <Editor AutoSize="TextChanges" HeightRequest="96" Placeholder="{loc:AppText Key=Ui194}" Text="{Binding Notes, Mode=TwoWay}" />
+                    <Picker ItemsSource="{Binding StatusValues}" SelectedItem="{Binding AssetStatus, Mode=TwoWay}" Title="{loc:AppText Key=Ui322}" />
+                    <Button Text="{loc:AppText Key=Ui277}" Command="{Binding SaveCommand}" Style="{StaticResource PrimaryButtonStyle}" />
                 </VerticalStackLayout>
 
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Quick status" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="{loc:AppText Key=Ui242}" Style="{StaticResource SectionTitleLabelStyle}" />
                     <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                        <Button Text="Works" Command="{Binding MarkWorkingCommand}" Style="{StaticResource BrightButtonStyle}" />
-                        <Button Grid.Column="1" Text="Weird" Command="{Binding MarkWeirdCommand}" Style="{StaticResource SecondaryButtonStyle}" />
-                        <Button Grid.Column="2" Text="Bad" Command="{Binding MarkBadCommand}" Style="{StaticResource DangerButtonStyle}" />
+                        <Button Text="{loc:AppText Key=Ui367}" Command="{Binding MarkWorkingCommand}" Style="{StaticResource BrightButtonStyle}" />
+                        <Button Grid.Column="1" Text="{loc:AppText Key=Ui363}" Command="{Binding MarkWeirdCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                        <Button Grid.Column="2" Text="{loc:AppText Key=Ui041}" Command="{Binding MarkBadCommand}" Style="{StaticResource DangerButtonStyle}" />
                     </Grid>
                 </VerticalStackLayout>
 
                 <VerticalStackLayout Spacing="8">
-                    <Button x:Name="DiagnosticsToggle" Text="Show diagnostics" Clicked="OnToggleDiagnosticsClicked" Style="{StaticResource SecondaryButtonStyle}" />
+                    <Button x:Name="DiagnosticsToggle" Text="{loc:AppText Key=Ui313}" Clicked="OnToggleDiagnosticsClicked" Style="{StaticResource SecondaryButtonStyle}" />
                     <Border x:Name="DiagnosticsPanel" IsVisible="False" Style="{StaticResource PanelBorderStyle}">
                         <VerticalStackLayout Spacing="6">
-                            <Label Text="Diagnostics" Style="{StaticResource SectionTitleLabelStyle}" />
+                            <Label Text="{loc:AppText Key=Ui086}" Style="{StaticResource SectionTitleLabelStyle}" />
                             <Label Text="{Binding CurrentPreviewSourceText}" Style="{StaticResource TinyLabelStyle}" />
                             <Label Text="{Binding LastTestedText}" Style="{StaticResource TinyLabelStyle}" />
                             <Label Text="{Binding LastCommandText}" Style="{StaticResource MutedLabelStyle}" />
@@ -76,7 +78,7 @@
 
         <Grid Grid.Row="1" Padding="14" BackgroundColor="{StaticResource SurfaceColor}" ColumnDefinitions="*,Auto" ColumnSpacing="12">
             <Label Text="{Binding TransportReadinessText}" VerticalTextAlignment="Center" Style="{StaticResource MutedLabelStyle}" />
-            <Button Grid.Column="1" Text="BLACKOUT" Command="{Binding BlackoutCommand}" Style="{StaticResource DangerButtonStyle}" />
+            <Button Grid.Column="1" Text="{loc:AppText Key=Ui045}" Command="{Binding BlackoutCommand}" Style="{StaticResource DangerButtonStyle}" />
         </Grid>
     </Grid>
 </ContentPage>

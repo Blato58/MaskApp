@@ -543,7 +543,7 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
             ? ManagedItem.LastSendStatus
         : ManagedItem.CanSend
             ? "Implemented and sendable when the device transport is ready."
-            : "Labs placeholder; not sendable yet.";
+            : "Not sendable: this item failed content validation or preparation requirements. Open its editor for details.";
 
     public bool ManagedItemCanOpenEditor => ManagedItem?.CanManage ?? false;
 
@@ -688,27 +688,62 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
 
     public async Task MoveItemAsync(string itemId, int delta, CancellationToken cancellationToken = default)
     {
-        var visibleItems = Groups.SelectMany(group => group.Items).Select(card => card.Item).ToArray();
-        var currentIndex = Array.FindIndex(visibleItems, item => item.Id == itemId);
-        var targetIndex = currentIndex + delta;
-        if (currentIndex < 0 || targetIndex < 0 || targetIndex >= visibleItems.Length)
+        var group = Groups.FirstOrDefault(candidate => candidate.Items.Any(card => card.Id == itemId));
+        if (group is null)
         {
             return;
         }
 
-        var first = visibleItems[currentIndex];
-        var second = visibleItems[targetIndex];
-        var firstSort = layoutState.Order.GetItemSortIndex(first.Id, first.SortIndex);
-        var secondSort = layoutState.Order.GetItemSortIndex(second.Id, second.SortIndex);
-        layoutState = layoutState with
+        var currentIndex = group.Items.ToList().FindIndex(card => card.Id == itemId);
+        var targetIndex = currentIndex + delta;
+        if (currentIndex < 0 || targetIndex < 0 || targetIndex >= group.Items.Count)
         {
-            Order = layoutState.Order
-                .WithItemSortIndex(first.Id, secondSort)
-                .WithItemSortIndex(second.Id, firstSort)
-        };
+            return;
+        }
+
+        await MoveItemToAsync(itemId, group.Items[targetIndex].Id, cancellationToken);
+    }
+
+    public async Task<bool> MoveItemToAsync(
+        string itemId,
+        string targetItemId,
+        CancellationToken cancellationToken = default)
+    {
+        var sourceGroup = Groups.FirstOrDefault(group => group.Items.Any(card => card.Id == itemId));
+        var targetGroup = Groups.FirstOrDefault(group => group.Items.Any(card => card.Id == targetItemId));
+        if (sourceGroup is null || targetGroup is null ||
+            !string.Equals(sourceGroup.Key, targetGroup.Key, StringComparison.Ordinal))
+        {
+            StatusText = "Library items can only be reordered within their current section.";
+            return false;
+        }
+
+        var items = sourceGroup.Items.Select(card => card.Item).ToList();
+        var currentIndex = items.FindIndex(item => item.Id == itemId);
+        var targetIndex = items.FindIndex(item => item.Id == targetItemId);
+        if (currentIndex < 0 || targetIndex < 0 || currentIndex == targetIndex)
+        {
+            return false;
+        }
+
+        var sortSlots = items
+            .Select(item => layoutState.Order.GetItemSortIndex(item.Id, item.SortIndex))
+            .OrderBy(index => index)
+            .ToArray();
+        var moved = items[currentIndex];
+        items.RemoveAt(currentIndex);
+        items.Insert(targetIndex, moved);
+        var order = layoutState.Order;
+        for (var index = 0; index < items.Count; index++)
+        {
+            order = order.WithItemSortIndex(items[index].Id, sortSlots[index]);
+        }
+
+        layoutState = layoutState with { Order = order };
         await layoutStore.SaveAsync(layoutState, cancellationToken);
         await InitializeAsync(cancellationToken);
-        StatusText = "Order saved";
+        StatusText = $"Moved {moved.Title} to position {targetIndex + 1} in {sourceGroup.Title}.";
+        return true;
     }
 
     public async Task MoveGroupAsync(string groupKey, int delta, CancellationToken cancellationToken = default)

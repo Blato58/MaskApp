@@ -57,6 +57,31 @@ public sealed class PagesViewModelTests
     }
 
     [Fact]
+    public async Task DragStyleMoves_ReorderNonAdjacentShortcutsAndPages()
+    {
+        var first = CreatePreset("Drag shortcut one");
+        var second = CreatePreset("Drag shortcut two");
+        var third = CreatePreset("Drag shortcut three");
+        var store = new RecordingGalleryLayoutStore();
+        var viewModel = CreateViewModel(textPresets: [first, second, third], layoutStore: store);
+
+        await viewModel.InitializeAsync();
+        await viewModel.AddItemAsync($"text:{first.Id.Value}", "First", "txt", "#52E3FF");
+        await viewModel.AddItemAsync($"text:{second.Id.Value}", "Second", "txt", "#52E3FF");
+        await viewModel.AddItemAsync($"text:{third.Id.Value}", "Third", "txt", "#52E3FF");
+        var shortcuts = viewModel.Shortcuts.ToArray();
+
+        Assert.True(await viewModel.MoveItemToAsync(shortcuts[0].SlotId, shortcuts[2].SlotId));
+        Assert.Equal(
+            [shortcuts[1].SlotId, shortcuts[2].SlotId, shortcuts[0].SlotId],
+            viewModel.Shortcuts.Select(shortcut => shortcut.SlotId).ToArray());
+
+        var pages = viewModel.Pages.ToArray();
+        Assert.True(await viewModel.MovePageToAsync(pages[0].PageId, pages[^1].PageId));
+        Assert.Equal(pages[0].PageId, viewModel.Pages[^1].PageId);
+    }
+
+    [Fact]
     public async Task ManageModeAndSheets_ControlPageEditingSurface()
     {
         var viewModel = CreateViewModel();

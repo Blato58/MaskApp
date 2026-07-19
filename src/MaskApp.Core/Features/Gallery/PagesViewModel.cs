@@ -385,18 +385,33 @@ public sealed class PagesViewModel : INotifyPropertyChanged
             return;
         }
 
-        var first = items[currentIndex];
-        var second = items[targetIndex];
+        await MoveItemToAsync(slotId, items[targetIndex].SlotId, cancellationToken);
+    }
+
+    public async Task<bool> MoveItemToAsync(
+        string slotId,
+        string targetSlotId,
+        CancellationToken cancellationToken = default)
+    {
+        var items = SelectedPage.Items.OrderBy(item => item.SortIndex).ToList();
+        var currentIndex = items.FindIndex(item => item.SlotId == slotId);
+        var targetIndex = items.FindIndex(item => item.SlotId == targetSlotId);
+        if (currentIndex < 0 || targetIndex < 0 || currentIndex == targetIndex)
+        {
+            return false;
+        }
+
+        var sortSlots = items.Select(item => item.SortIndex).OrderBy(index => index).ToArray();
+        var moved = items[currentIndex];
+        items.RemoveAt(currentIndex);
+        items.Insert(targetIndex, moved);
         var updatedItems = items
-            .Select(item => item.SlotId == first.SlotId
-                ? item with { SortIndex = second.SortIndex }
-                : item.SlotId == second.SlotId
-                    ? item with { SortIndex = first.SortIndex }
-                    : item)
+            .Select((item, index) => item with { SortIndex = sortSlots[index] })
             .ToArray();
 
         await UpdateSelectedPageAsync(SelectedPage with { Items = updatedItems }, cancellationToken);
-        StatusText = "Shortcut order saved";
+        StatusText = $"Moved {moved.Label} to shortcut position {targetIndex + 1}.";
+        return true;
     }
 
     public async Task MovePageAsync(string pageId, int delta, CancellationToken cancellationToken = default)
@@ -409,18 +424,33 @@ public sealed class PagesViewModel : INotifyPropertyChanged
             return;
         }
 
-        var first = pages[currentIndex];
-        var second = pages[targetIndex];
+        await MovePageToAsync(pageId, pages[targetIndex].PageId, cancellationToken);
+    }
+
+    public async Task<bool> MovePageToAsync(
+        string pageId,
+        string targetPageId,
+        CancellationToken cancellationToken = default)
+    {
+        var pages = layoutState.Pages.OrderBy(page => page.SortIndex).ToList();
+        var currentIndex = pages.FindIndex(page => page.PageId == pageId);
+        var targetIndex = pages.FindIndex(page => page.PageId == targetPageId);
+        if (currentIndex < 0 || targetIndex < 0 || currentIndex == targetIndex)
+        {
+            return false;
+        }
+
+        var sortSlots = pages.Select(page => page.SortIndex).OrderBy(index => index).ToArray();
+        var moved = pages[currentIndex];
+        pages.RemoveAt(currentIndex);
+        pages.Insert(targetIndex, moved);
         var updatedPages = pages
-            .Select(page => page.PageId == first.PageId
-                ? page with { SortIndex = second.SortIndex }
-                : page.PageId == second.PageId
-                    ? page with { SortIndex = first.SortIndex }
-                    : page)
+            .Select((page, index) => page with { SortIndex = sortSlots[index] })
             .ToArray();
 
         await SaveLayoutAsync(layoutState with { Pages = updatedPages }, cancellationToken);
-        StatusText = "Page order saved";
+        StatusText = $"Moved {moved.Title} to page position {targetIndex + 1}.";
+        return true;
     }
 
     public async Task SendAsync(GalleryItem item, CancellationToken cancellationToken = default)

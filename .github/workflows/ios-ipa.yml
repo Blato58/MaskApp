@@ -91,7 +91,6 @@ jobs:
         run: dotnet test tests/MaskApp.Core.Tests/MaskApp.Core.Tests.csproj -c Release --no-restore
 
       - name: Build unsigned iOS app
-        if: github.event_name == 'pull_request'
         shell: bash
         run: >-
           dotnet build "$PROJECT_PATH"

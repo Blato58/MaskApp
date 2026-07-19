@@ -15,7 +15,7 @@
         <VerticalStackLayout Padding="16" Spacing="18">
             <VerticalStackLayout Spacing="2">
                 <Label Text="{x:Static loc:AppText.Device}" Style="{StaticResource PageTitleLabelStyle}" SemanticProperties.HeadingLevel="Level1" />
-                <Label Text="Connection, live controls, and evidence from the active mask." Style="{StaticResource TinyLabelStyle}" />
+                <Label Text="{loc:AppText Key=Ui071}" Style="{StaticResource TinyLabelStyle}" />
             </VerticalStackLayout>
 
             <Border Style="{StaticResource PanelBorderStyle}">
@@ -28,27 +28,27 @@
                                 DetailText="{Binding ConnectionDetailText}" />
                             <Label Text="{Binding DeviceNameText}" FontSize="26" FontAttributes="Bold" MaxLines="2" />
                         </VerticalStackLayout>
-                        <Image Grid.Column="1" Source="mask_neon.svg" HeightRequest="88" WidthRequest="88" SemanticProperties.Description="LED mask" />
+                        <Image Grid.Column="1" Source="mask_neon.svg" HeightRequest="88" WidthRequest="88" SemanticProperties.Description="{loc:AppText Key=Ui154}" />
                     </Grid>
                     <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Signal" Style="{StaticResource TinyLabelStyle}" />
+                            <Label Text="{loc:AppText Key=Ui317}" Style="{StaticResource TinyLabelStyle}" />
                             <Label Text="{Binding DeviceSignalText}" FontAttributes="Bold" />
                         </VerticalStackLayout>
                         <VerticalStackLayout Grid.Column="1" Spacing="2">
-                            <Label Text="Transport" Style="{StaticResource TinyLabelStyle}" />
+                            <Label Text="{loc:AppText Key=Ui345}" Style="{StaticResource TinyLabelStyle}" />
                             <Label Text="{Binding TransportText}" FontAttributes="Bold" />
                         </VerticalStackLayout>
                     </Grid>
                     <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="8">
-                        <Button Text="Reconnect" Command="{Binding StartAutoConnectCommand}" Style="{StaticResource SecondaryButtonStyle}" SemanticProperties.Description="Reconnect remembered mask" />
-                        <Button Grid.Column="1" Text="Disconnect" Command="{Binding DisconnectCommand}" IsVisible="{Binding CanDisconnect}" Style="{StaticResource DangerButtonStyle}" />
+                        <Button Text="{loc:AppText Key=Ui247}" Command="{Binding StartAutoConnectCommand}" Style="{StaticResource SecondaryButtonStyle}" SemanticProperties.Description="{loc:AppText Key=Ui249}" />
+                        <Button Grid.Column="1" Text="{loc:AppText Key=Ui087}" Command="{Binding DisconnectCommand}" IsVisible="{Binding CanDisconnect}" Style="{StaticResource DangerButtonStyle}" />
                     </Grid>
                 </Grid>
             </Border>
 
             <VerticalStackLayout Spacing="8">
-                <Label Text="Last Preflight" Style="{StaticResource SectionTitleLabelStyle}" />
+                <Label Text="{loc:AppText Key=Ui151}" Style="{StaticResource SectionTitleLabelStyle}" />
                 <controls:ReadinessCardView
                     StatusText="{Binding PreflightStatusText}"
                     Summary="{Binding PreflightSummaryText}"
@@ -61,12 +61,12 @@
                     <VerticalStackLayout Spacing="12">
                         <Grid ColumnDefinitions="*,Auto">
                             <VerticalStackLayout Spacing="2">
-                                <Label Text="Brightness" Style="{StaticResource ModeTitleLabelStyle}" />
-                                <Label Text="Applies to the connected mask." Style="{StaticResource TinyLabelStyle}" />
+                                <Label Text="{loc:AppText Key=Ui048}" Style="{StaticResource ModeTitleLabelStyle}" />
+                                <Label Text="{loc:AppText Key=Ui029}" Style="{StaticResource TinyLabelStyle}" />
                             </VerticalStackLayout>
-                            <Label Grid.Column="1" Text="{Binding Brightness, StringFormat='{}{0}%'}" Style="{StaticResource MetricLabelStyle}" VerticalTextAlignment="Center" />
+                            <Label Grid.Column="1" Text="{Binding Brightness, StringFormat='{loc:AppText Key=Ui415}'}" Style="{StaticResource MetricLabelStyle}" VerticalTextAlignment="Center" />
                         </Grid>
-                        <Slider Minimum="1" Maximum="100" Value="{Binding Brightness, Mode=TwoWay}" SemanticProperties.Description="Mask brightness percentage" />
+                        <Slider Minimum="1" Maximum="100" Value="{Binding Brightness, Mode=TwoWay}" SemanticProperties.Description="{loc:AppText Key=Ui167}" />
                         <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="6">
                             <Button Text="25%" Command="{Binding SetBrightness25Command}" Style="{StaticResource ModeButtonStyle}" />
                             <Button Grid.Column="1" Text="50%" Command="{Binding SetBrightness50Command}" Style="{StaticResource ModeButtonStyle}" />
@@ -74,9 +74,9 @@
                             <Button Grid.Column="3" Text="100%" Command="{Binding SetBrightness100Command}" Style="{StaticResource ModeButtonStyle}" />
                         </Grid>
                         <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                            <Button Text="Apply" Command="{Binding ApplyBrightnessCommand}" Style="{StaticResource PrimaryButtonStyle}" />
-                            <Button Grid.Column="1" Text="Blackout" Command="{Binding BlackoutCommand}" Style="{StaticResource DangerButtonStyle}" />
-                            <Button Grid.Column="2" Text="Restore" Command="{Binding RestoreBrightnessCommand}" Style="{StaticResource BrightButtonStyle}" />
+                            <Button Text="{loc:AppText Key=Ui030}" Command="{Binding ApplyBrightnessCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                            <Button Grid.Column="1" Text="{loc:AppText Key=Ui045}" Command="{Binding BlackoutCommand}" Style="{StaticResource DangerButtonStyle}" />
+                            <Button Grid.Column="2" Text="{loc:AppText Key=Ui264}" Command="{Binding RestoreBrightnessCommand}" Style="{StaticResource BrightButtonStyle}" />
                         </Grid>
                         <Label Text="{Binding StatusText}" Style="{StaticResource TinyLabelStyle}" />
                     </VerticalStackLayout>
@@ -86,30 +86,30 @@
                     <VerticalStackLayout Spacing="12">
                         <Grid ColumnDefinitions="*,Auto">
                             <VerticalStackLayout Spacing="2">
-                                <Label Text="Firmware mode speed" Style="{StaticResource ModeTitleLabelStyle}" />
-                                <Label Text="Affects stock text and animation SPEED modes." Style="{StaticResource TinyLabelStyle}" />
+                                <Label Text="{loc:AppText Key=Ui118}" Style="{StaticResource ModeTitleLabelStyle}" />
+                                <Label Text="{loc:AppText Key=Ui023}" Style="{StaticResource TinyLabelStyle}" />
                             </VerticalStackLayout>
                             <Label Grid.Column="1" Text="{Binding PlaybackSpeed}" Style="{StaticResource MetricLabelStyle}" VerticalTextAlignment="Center" />
                         </Grid>
-                        <Slider Minimum="1" Maximum="100" Value="{Binding PlaybackSpeed, Mode=TwoWay}" SemanticProperties.Description="Firmware mode speed" />
+                        <Slider Minimum="1" Maximum="100" Value="{Binding PlaybackSpeed, Mode=TwoWay}" SemanticProperties.Description="{loc:AppText Key=Ui118}" />
                         <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="6">
                             <Button Text="25" Command="{Binding SetPlaybackSpeed25Command}" Style="{StaticResource ModeButtonStyle}" />
                             <Button Grid.Column="1" Text="50" Command="{Binding SetPlaybackSpeed50Command}" Style="{StaticResource ModeButtonStyle}" />
                             <Button Grid.Column="2" Text="75" Command="{Binding SetPlaybackSpeed75Command}" Style="{StaticResource ModeButtonStyle}" />
                             <Button Grid.Column="3" Text="100" Command="{Binding SetPlaybackSpeed100Command}" Style="{StaticResource ModeButtonStyle}" />
                         </Grid>
-                        <Button Text="Apply speed" Command="{Binding ApplyPlaybackSpeedCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Text="{loc:AppText Key=Ui031}" Command="{Binding ApplyPlaybackSpeedCommand}" Style="{StaticResource PrimaryButtonStyle}" />
                     </VerticalStackLayout>
                 </Border>
             </VerticalStackLayout>
 
             <Border Style="{StaticResource PanelBorderStyle}">
                 <VerticalStackLayout Spacing="14">
-                    <controls:SectionHeaderView Title="{x:Static loc:AppText.Connection}" Subtitle="Scan, choose the physical mask, and connect." />
+                    <controls:SectionHeaderView Title="{x:Static loc:AppText.Connection}" Subtitle="{loc:AppText Key=Ui288}" />
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <Grid>
-                            <Button Text="Scan for masks" Command="{Binding StartScanCommand}" IsVisible="{Binding IsScanning, Converter={StaticResource InvertedBoolConverter}}" Style="{StaticResource PrimaryButtonStyle}" />
-                            <Button Text="Stop scanning" Command="{Binding StopScanCommand}" IsVisible="{Binding IsScanning}" Style="{StaticResource SecondaryButtonStyle}" />
+                            <Button Text="{loc:AppText Key=Ui287}" Command="{Binding StartScanCommand}" IsVisible="{Binding IsScanning, Converter={StaticResource InvertedBoolConverter}}" Style="{StaticResource PrimaryButtonStyle}" />
+                            <Button Text="{loc:AppText Key=Ui328}" Command="{Binding StopScanCommand}" IsVisible="{Binding IsScanning}" Style="{StaticResource SecondaryButtonStyle}" />
                         </Grid>
                         <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsScanning}" IsVisible="{Binding IsScanning}" />
                     </Grid>
@@ -120,7 +120,7 @@
                         SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
                         SelectionMode="Single">
                         <CollectionView.EmptyView>
-                            <controls:EmptyStateView Icon="◇" Title="No nearby masks" Message="Start a scan and keep the mask awake and close by." />
+                            <controls:EmptyStateView Icon="◇" Title="{loc:AppText Key=Ui190}" Message="{loc:AppText Key=Ui437}" />
                         </CollectionView.EmptyView>
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="connect:DiscoveredMaskDevice">
@@ -133,24 +133,24 @@
                                         <Image Source="mask_neon.svg" HeightRequest="44" WidthRequest="44" />
                                         <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
                                             <Label Text="{Binding Name}" FontAttributes="Bold" MaxLines="1" />
-                                            <Label Text="Nearby BLE mask" Style="{StaticResource TinyLabelStyle}" />
+                                            <Label Text="{loc:AppText Key=Ui179}" Style="{StaticResource TinyLabelStyle}" />
                                         </VerticalStackLayout>
-                                        <Label Grid.Column="2" Text="{Binding SignalStrength, StringFormat='{}{0} dBm'}" TextColor="{StaticResource ConnectedColor}" VerticalTextAlignment="Center" />
+                                        <Label Grid.Column="2" Text="{Binding SignalStrength, StringFormat='{loc:AppText Key=Ui413}'}" TextColor="{StaticResource ConnectedColor}" VerticalTextAlignment="Center" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                     </CollectionView>
-                    <Button Text="Connect selected mask" Command="{Binding ConnectCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                    <Button Text="{loc:AppText Key=Ui069}" Command="{Binding ConnectCommand}" Style="{StaticResource PrimaryButtonStyle}" />
                 </VerticalStackLayout>
             </Border>
 
             <Border Style="{StaticResource PanelBorderStyle}">
                 <VerticalStackLayout Spacing="14">
-                    <controls:SectionHeaderView Title="Reconnect behavior" Subtitle="Auto-connect runs only while MaskApp is in the foreground." />
+                    <controls:SectionHeaderView Title="{loc:AppText Key=Ui248}" Subtitle="{loc:AppText Key=Ui038}" />
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Auto-connect" FontAttributes="Bold" />
+                            <Label Text="{loc:AppText Key=Ui037}" FontAttributes="Bold" />
                             <Label Text="{Binding AutoConnectStatusText}" Style="{StaticResource TinyLabelStyle}" />
                         </VerticalStackLayout>
                         <Switch Grid.Column="1" IsToggled="{Binding AutoConnectEnabled, Mode=TwoWay}" />
@@ -158,14 +158,14 @@
                     <BoxView Style="{StaticResource FullWidthListSeparatorStyle}" />
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Remember last mask" FontAttributes="Bold" />
+                            <Label Text="{loc:AppText Key=Ui257}" FontAttributes="Bold" />
                             <Label Text="{Binding LastKnownMaskText}" Style="{StaticResource TinyLabelStyle}" />
                         </VerticalStackLayout>
                         <Switch Grid.Column="1" IsToggled="{Binding RememberLastDeviceEnabled, Mode=TwoWay}" />
                     </Grid>
-                    <Button Text="Forget remembered mask" Command="{Binding ForgetKnownMaskCommand}" IsVisible="{Binding HasKnownMask}" Style="{StaticResource QuietButtonStyle}" />
+                    <Button Text="{loc:AppText Key=Ui121}" Command="{Binding ForgetKnownMaskCommand}" IsVisible="{Binding HasKnownMask}" Style="{StaticResource QuietButtonStyle}" />
                     <VerticalStackLayout IsVisible="{Binding HasReconnectHistory}" Spacing="6">
-                        <Label Text="Recent connection activity" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Label Text="{loc:AppText Key=Ui245}" Style="{StaticResource SectionTitleLabelStyle}" />
                         <VerticalStackLayout BindableLayout.ItemsSource="{Binding ReconnectHistory}" Spacing="4">
                             <BindableLayout.ItemTemplate>
                                 <DataTemplate x:DataType="x:String">
@@ -177,32 +177,36 @@
                 </VerticalStackLayout>
             </Border>
 
-            <Button x:Name="AdvancedToggle" Text="Show diagnostics" Clicked="OnToggleAdvancedClicked" Style="{StaticResource QuietButtonStyle}" />
+            <Button x:Name="AdvancedToggle" Text="{loc:AppText Key=Ui313}" Clicked="OnToggleAdvancedClicked" Style="{StaticResource QuietButtonStyle}" />
             <Border x:Name="AdvancedPanel" IsVisible="False" Style="{StaticResource PanelBorderStyle}">
                 <VerticalStackLayout Spacing="14">
-                    <controls:SectionHeaderView Title="{x:Static loc:AppText.Diagnostics}" Subtitle="Observed values only; unavailable telemetry stays explicitly unavailable." />
+                    <controls:SectionHeaderView Title="{x:Static loc:AppText.Diagnostics}" Subtitle="{loc:AppText Key=Ui195}" />
                     <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
-                        <Label Text="Firmware" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Column="1" Text="{Binding FirmwareText}" FontAttributes="Bold" />
-                        <Label Grid.Row="1" Text="Acknowledgements" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="1" Grid.Column="1" Text="{Binding AcknowledgementText}" FontAttributes="Bold" />
-                        <Label Grid.Row="2" Text="Command write" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="2" Grid.Column="1" Text="{Binding CommandWriteText}" FontAttributes="Bold" />
-                        <Label Grid.Row="3" Text="Text / face upload" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="3" Grid.Column="1" Text="{Binding UploadCapabilitiesText}" FontAttributes="Bold" />
-                        <Label Grid.Row="4" Text="Battery" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="4" Grid.Column="1" Text="{Binding BatteryText}" FontAttributes="Bold" />
-                        <Label Grid.Row="5" Text="Prepared slots" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="5" Grid.Column="1" Text="{Binding PreparedSlotText}" FontAttributes="Bold" />
+                        <Label Text="{loc:AppText Key=Ui116}" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Column="1" Text="{Binding FirmwareText}" FontAttributes="Bold" />
+                        <Label Grid.Row="1" Text="{loc:AppText Key=Ui010}" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="1" Grid.Column="1" Text="{Binding AcknowledgementText}" FontAttributes="Bold" />
+                        <Label Grid.Row="2" Text="{loc:AppText Key=Ui062}" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="2" Grid.Column="1" Text="{Binding CommandWriteText}" FontAttributes="Bold" />
+                        <Label Grid.Row="3" Text="{loc:AppText Key=Ui336}" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="3" Grid.Column="1" Text="{Binding UploadCapabilitiesText}" FontAttributes="Bold" />
+                        <Label Grid.Row="4" Text="{loc:AppText Key=Ui042}" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="4" Grid.Column="1" Text="{Binding BatteryText}" FontAttributes="Bold" />
+                        <Label Grid.Row="5" Text="{loc:AppText Key=Ui234}" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="5" Grid.Column="1" Text="{Binding PreparedSlotText}" FontAttributes="Bold" />
                     </Grid>
                     <Label Text="{Binding PreparedSlotDetailText}" Style="{StaticResource TinyLabelStyle}" />
 
                     <BoxView Style="{StaticResource FullWidthListSeparatorStyle}" />
-                    <Label Text="Transport evidence" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="{loc:AppText Key=Ui346}" Style="{StaticResource SectionTitleLabelStyle}" />
                     <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
-                        <Label Text="Command latency" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Column="1" Text="{Binding LatencyText}" FontAttributes="Bold" />
-                        <Label Grid.Row="1" Text="Sustainable cadence" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="1" Grid.Column="1" Text="{Binding CadenceText}" FontAttributes="Bold" />
-                        <Label Grid.Row="2" Text="Scheduler" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="2" Grid.Column="1" Text="{Binding SchedulerQueueText}" FontAttributes="Bold" />
-                        <Label Grid.Row="3" Text="Last operation" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="3" Grid.Column="1" Text="{Binding SchedulerLastDurationText}" FontAttributes="Bold" />
-                        <Label Grid.Row="4" Text="Animation delivery" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="4" Grid.Column="1" Text="{Binding AnimationDeliveryText}" FontAttributes="Bold" MaxLines="2" />
+                        <Label Text="{loc:AppText Key=Ui061}" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Column="1" Text="{Binding LatencyText}" FontAttributes="Bold" />
+                        <Label Grid.Row="1" Text="{loc:AppText Key=Ui331}" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="1" Grid.Column="1" Text="{Binding CadenceText}" FontAttributes="Bold" />
+                        <Label Grid.Row="2" Text="{loc:AppText Key=Ui316}" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="2" Grid.Column="1" Text="{Binding SchedulerQueueText}" FontAttributes="Bold" />
+                        <Label Grid.Row="3" Text="{loc:AppText Key=Ui149}" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="3" Grid.Column="1" Text="{Binding SchedulerLastDurationText}" FontAttributes="Bold" />
+                        <Label Grid.Row="4" Text="{loc:AppText Key=Ui026}" Style="{StaticResource MutedLabelStyle}" /><Label Grid.Row="4" Grid.Column="1" Text="{Binding AnimationDeliveryText}" FontAttributes="Bold" MaxLines="2" />
                     </Grid>
-                    <Label Text="{Binding SchedulerErrorText, StringFormat='Last scheduler error: {0}'}" Style="{StaticResource TinyLabelStyle}" />
+                    <Label Text="{Binding SchedulerErrorText, StringFormat='{loc:AppText Key=Ui423}'}" Style="{StaticResource TinyLabelStyle}" />
+                    <BoxView Style="{StaticResource FullWidthListSeparatorStyle}" />
+                    <Label Text="{loc:AppText Key=Ui411}" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="{Binding LifecycleText}" Style="{StaticResource MutedLabelStyle}" />
+                    <Label Text="{Binding LifecycleLimitationText}" Style="{StaticResource TinyLabelStyle}" />
                     <VerticalStackLayout IsVisible="{Binding HasRecentRedactedErrors}" Spacing="5">
-                        <Label Text="Recent redacted errors" Style="{StaticResource SectionTitleLabelStyle}" />
+                        <Label Text="{loc:AppText Key=Ui246}" Style="{StaticResource SectionTitleLabelStyle}" />
                         <VerticalStackLayout BindableLayout.ItemsSource="{Binding RecentRedactedErrors}" Spacing="4">
                             <BindableLayout.ItemTemplate>
                                 <DataTemplate x:DataType="x:String">
@@ -213,16 +217,16 @@
                     </VerticalStackLayout>
 
                     <BoxView Style="{StaticResource FullWidthListSeparatorStyle}" />
-                    <Label Text="Last preflight" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="{loc:AppText Key=Ui151}" Style="{StaticResource SectionTitleLabelStyle}" />
                     <Label Text="{Binding PreflightStatusText}" TextColor="{Binding PreflightColorHex}" FontSize="22" FontAttributes="Bold" />
                     <Label Text="{Binding PreflightSummaryText}" Style="{StaticResource MutedLabelStyle}" />
 
                     <Label Text="{Binding DiagnosticsStatusText}" Style="{StaticResource TinyLabelStyle}" />
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-                        <Button Text="Refresh diagnostics" Clicked="OnRefreshDiagnosticsClicked" Style="{StaticResource SecondaryButtonStyle}" />
-                        <Button Grid.Column="1" Text="Export redacted report" Clicked="OnExportDiagnosticsClicked" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Text="{loc:AppText Key=Ui254}" Clicked="OnRefreshDiagnosticsClicked" Style="{StaticResource SecondaryButtonStyle}" />
+                        <Button Grid.Column="1" Text="{loc:AppText Key=Ui106}" Clicked="OnExportDiagnosticsClicked" Style="{StaticResource PrimaryButtonStyle}" />
                     </Grid>
-                    <Button Text="Reset prepared-slot ledger for this mask" Clicked="OnResetPreparedSlotsClicked" IsEnabled="{Binding CanResetPreparedSlots}" Style="{StaticResource DangerButtonStyle}" />
+                    <Button Text="{loc:AppText Key=Ui263}" Clicked="OnResetPreparedSlotsClicked" IsEnabled="{Binding CanResetPreparedSlots}" Style="{StaticResource DangerButtonStyle}" />
                 </VerticalStackLayout>
             </Border>
         </VerticalStackLayout>

@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.Faces;
+using MaskApp.Core.Features.Audio;
 
 namespace MaskApp.Core.Features.Profiles;
 
@@ -141,6 +142,16 @@ public sealed class MaskProfileSession
     public async Task<MaskProfile?> ObserveCapabilitiesAsync(
         MaskCapabilitySnapshot capabilities,
         CancellationToken cancellationToken = default)
+        => await ObserveCapabilitiesForProfileAsync(
+                expectedProfileId: null,
+                capabilities,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+    public async Task<MaskProfile?> ObserveCapabilitiesForProfileAsync(
+        string? expectedProfileId,
+        MaskCapabilitySnapshot capabilities,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(capabilities);
         var timestamp = getUtcNow();
@@ -152,7 +163,9 @@ public sealed class MaskProfileSession
             var state = (await profileStore.LoadAsync(cancellationToken).ConfigureAwait(false)).Normalize();
             EnsureStoreIsWritable(state);
             var profile = state.GetActiveProfile();
-            if (profile is null)
+            if (profile is null
+                || expectedProfileId is not null
+                && !string.Equals(profile.ProfileId, expectedProfileId, StringComparison.Ordinal))
             {
                 return null;
             }
@@ -224,6 +237,92 @@ public sealed class MaskProfileSession
                 PreparedStateStatus = preparedSlots.Length == 0
                     ? "No prepared slots recorded."
                     : $"{preparedSlots.Length} prepared slot(s) recorded for this mask."
+            };
+            state = state.Upsert(updatedProfile, makeActive: true);
+            await profileStore.SaveAsync(state, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            mutationGate.Release();
+        }
+
+        ActiveProfileChanged?.Invoke(this, new MaskProfileChangedEventArgs(updatedProfile));
+        return updatedProfile;
+    }
+
+    public async Task<MaskProfile?> RecordAudioVisualizationEvidenceAsync(
+        AudioVisualizationEvidence evidence,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(evidence);
+        MaskProfile? updatedProfile = null;
+
+        await mutationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var state = (await profileStore.LoadAsync(cancellationToken).ConfigureAwait(false)).Normalize();
+            EnsureStoreIsWritable(state);
+            var profile = state.GetActiveProfile();
+            if (profile is null)
+            {
+                return null;
+            }
+
+            var normalizedEvidence = evidence.Normalize();
+            updatedProfile = profile.Normalize() with
+            {
+                AudioVisualizationEvidence = normalizedEvidence,
+                SustainableCadenceHz = normalizedEvidence.EnablesLiveMicrophone
+                    ? normalizedEvidence.ObservedWriteCadenceHz
+                    : profile.SustainableCadenceHz,
+                LastSeenAt = getUtcNow()
+            };
+            state = state.Upsert(updatedProfile, makeActive: true);
+            await profileStore.SaveAsync(state, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            mutationGate.Release();
+        }
+
+        ActiveProfileChanged?.Invoke(this, new MaskProfileChangedEventArgs(updatedProfile));
+        return updatedProfile;
+    }
+
+    public async Task<MaskProfile?> RecordCommandLatencyForProfileAsync(
+        string expectedProfileId,
+        TimeSpan latency,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(expectedProfileId);
+        if (latency <= TimeSpan.Zero || !double.IsFinite(latency.TotalMilliseconds))
+        {
+            throw new ArgumentOutOfRangeException(nameof(latency), latency, "Latency must be finite and positive.");
+        }
+
+        MaskProfile? updatedProfile = null;
+        await mutationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var state = (await profileStore.LoadAsync(cancellationToken).ConfigureAwait(false)).Normalize();
+            EnsureStoreIsWritable(state);
+            var profile = state.GetActiveProfile();
+            if (profile is null
+                || !string.Equals(profile.ProfileId, expectedProfileId, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            const double latestSampleWeight = 0.2;
+            var priorAverage = profile.AverageCommandLatencyMilliseconds;
+            var average = priorAverage is > 0
+                ? (priorAverage.Value * (1 - latestSampleWeight))
+                    + (latency.TotalMilliseconds * latestSampleWeight)
+                : latency.TotalMilliseconds;
+            updatedProfile = profile.Normalize() with
+            {
+                AverageCommandLatencyMilliseconds = Math.Round(average, 3),
+                LastSeenAt = getUtcNow()
             };
             state = state.Upsert(updatedProfile, makeActive: true);
             await profileStore.SaveAsync(state, cancellationToken).ConfigureAwait(false);

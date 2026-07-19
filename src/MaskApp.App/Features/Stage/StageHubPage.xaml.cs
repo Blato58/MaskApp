@@ -1,6 +1,8 @@
+using MaskApp.App.Resources.Strings;
 using MaskApp.Core.Features.Preflight;
 using MaskApp.Core.Features.Scenes;
 using MaskApp.Core.Features.Stage;
+using MaskApp.Core.Navigation;
 
 namespace MaskApp.App.Features.Stage;
 
@@ -34,10 +36,13 @@ public partial class StageHubPage : ContentPage
         await Shell.Current.GoToAsync("pages-manage");
 
     private async void OnDeviceClicked(object? sender, EventArgs e) =>
-        await Shell.Current.GoToAsync("//device");
+        await Shell.Current.GoToAsync(AppRouteCatalog.AbsoluteRoot(AppRouteCatalog.DeviceRoot));
 
     private async void OnShowBuilderClicked(object? sender, EventArgs e) =>
         await Shell.Current.GoToAsync("scene-studio");
+
+    private async void OnAudioLabsClicked(object? sender, EventArgs e) =>
+        await Shell.Current.GoToAsync("audio-labs");
 
     private void OnAddCueClicked(object? sender, EventArgs e)
     {
@@ -100,10 +105,10 @@ public partial class StageHubPage : ContentPage
         if (viewModel.Preflight.CurrentReport?.Status == FestivalPreflightStatus.Degraded)
         {
             var proceed = await DisplayAlertAsync(
-                "Enter degraded Stage?",
-                "Preflight still has warnings. Blackout remains available, but the warnings should be reviewed before live use.",
-                "Enter Stage",
-                "Review warnings");
+                AppText.Get("Ui381"),
+                AppText.Get("Ui382"),
+                AppText.Get("Ui383"),
+                AppText.Get("Ui384"));
             if (!proceed)
             {
                 return;
@@ -116,10 +121,10 @@ public partial class StageHubPage : ContentPage
     private async void OnAcknowledgeFlashRiskClicked(object? sender, EventArgs e)
     {
         var accepted = await DisplayAlertAsync(
-            "Photosensitivity warning",
-            "These exact animation revisions exceed the conservative limit of three full flashes per second. Acknowledging does not make them safe. Keep Blackout immediately available?",
-            "Acknowledge exact revisions",
-            "Cancel");
+            AppText.Get("Ui374"),
+            AppText.Get("Ui385"),
+            AppText.Get("Ui376"),
+            AppText.Get("Ui056"));
         if (accepted)
         {
             await viewModel.Preflight.AcknowledgeBlockedFlashRiskAsync();
@@ -129,10 +134,10 @@ public partial class StageHubPage : ContentPage
     private async void OnRevokeFlashRiskClicked(object? sender, EventArgs e)
     {
         var revoke = await DisplayAlertAsync(
-            "Revoke flash-risk overrides?",
-            "The affected revisions will be blocked again until edited or explicitly acknowledged.",
-            "Revoke",
-            "Keep overrides");
+            AppText.Get("Ui377"),
+            AppText.Get("Ui386"),
+            AppText.Get("Ui379"),
+            AppText.Get("Ui380"));
         if (revoke)
         {
             await viewModel.Preflight.RevokeFlashRiskOverridesAsync();

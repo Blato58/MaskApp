@@ -1,3 +1,4 @@
+using MaskApp.App.Resources.Strings;
 using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.MaskControl;
 using Microsoft.Maui.ApplicationModel.DataTransfer;
@@ -26,7 +27,7 @@ public partial class ConnectPage : ContentPage
     private void OnToggleAdvancedClicked(object? sender, EventArgs e)
     {
         AdvancedPanel.IsVisible = !AdvancedPanel.IsVisible;
-        AdvancedToggle.Text = AdvancedPanel.IsVisible ? "Hide diagnostics" : "Show diagnostics";
+        AdvancedToggle.Text = AdvancedPanel.IsVisible ? AppText.Get("Ui387") : AppText.Get("Ui313");
         if (AdvancedPanel.IsVisible)
         {
             _ = viewModel.RefreshDiagnosticsAsync();
@@ -46,22 +47,22 @@ public partial class ConnectPage : ContentPage
                 $"maskapp-diagnostics-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}.txt");
             await File.WriteAllTextAsync(path, report);
             await Share.Default.RequestAsync(new ShareFileRequest(
-                "Share redacted MaskApp diagnostics",
+                AppText.Get("Ui388"),
                 new ShareFile(path)));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
-            await DisplayAlertAsync("Export failed", ex.Message, "OK");
+            await DisplayAlertAsync(AppText.Get("Ui389"), ex.Message, AppText.Get("Ui390"));
         }
     }
 
     private async void OnResetPreparedSlotsClicked(object? sender, EventArgs e)
     {
         var confirmed = await DisplayAlertAsync(
-            "Reset this mask's prepared-slot ledger?",
-            "This clears only MaskApp's prepared-content record for the active mask. It does not erase physical mask slots, other masks, presets, scenes, or animations.",
-            "Reset active ledger",
-            "Cancel");
+            AppText.Get("Ui391"),
+            AppText.Get("Ui392"),
+            AppText.Get("Ui393"),
+            AppText.Get("Ui056"));
         if (confirmed)
         {
             await viewModel.ResetPreparedSlotsAsync();

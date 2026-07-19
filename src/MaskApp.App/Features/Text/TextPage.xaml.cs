@@ -1,3 +1,4 @@
+using MaskApp.App.Resources.Strings;
 using MaskApp.Core.Features.Text;
 
 namespace MaskApp.App.Features.Text;
@@ -52,6 +53,6 @@ public partial class TextPage : ContentPage, IQueryAttributable
     private void OnToggleDiagnosticsClicked(object? sender, EventArgs e)
     {
         DiagnosticsPanel.IsVisible = !DiagnosticsPanel.IsVisible;
-        DiagnosticsToggle.Text = DiagnosticsPanel.IsVisible ? "Hide diagnostics" : "Show diagnostics";
+        DiagnosticsToggle.Text = DiagnosticsPanel.IsVisible ? AppText.Get("Ui387") : AppText.Get("Ui313");
     }
 }

@@ -8,6 +8,7 @@ public partial class GalleryPage : ContentPage
 {
     private readonly GalleryViewModel viewModel;
     private readonly IMotionPreference motionPreference;
+    private string? draggedItemId;
 
     public GalleryPage(GalleryViewModel viewModel, IMotionPreference motionPreference)
     {
@@ -52,6 +53,31 @@ public partial class GalleryPage : ContentPage
         if (sender is LibraryItemCardView { Item: { } card })
         {
             await OpenEditorAsync(card.Item);
+        }
+    }
+
+    private void OnLibraryItemDragStarting(object? sender, DragStartingEventArgs e)
+    {
+        draggedItemId = viewModel.IsArrangeMode &&
+            sender is DragGestureRecognizer { BindingContext: GalleryItemCard card }
+                ? card.Id
+                : null;
+        e.Cancel = draggedItemId is null;
+    }
+
+    private async void OnLibraryItemDropped(object? sender, DropEventArgs e)
+    {
+        try
+        {
+            if (draggedItemId is { } sourceId &&
+                sender is DropGestureRecognizer { BindingContext: GalleryItemCard target })
+            {
+                await viewModel.MoveItemToAsync(sourceId, target.Id);
+            }
+        }
+        finally
+        {
+            draggedItemId = null;
         }
     }
 

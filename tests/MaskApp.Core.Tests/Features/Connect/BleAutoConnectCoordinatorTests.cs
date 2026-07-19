@@ -247,6 +247,108 @@ public sealed class BleAutoConnectCoordinatorTests
     }
 
     [Fact]
+    public async Task ConnectionLostInBackground_DoesNotScanUntilExplicitForegroundReturn()
+    {
+        var store = new InMemoryBleAutoConnectSettingsStore(new BleAutoConnectSettings
+        {
+            AutoConnectEnabled = true,
+            LastKnownDevice = new KnownMaskDevice("mask-1", "Stage Mask", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow)
+        });
+        var scanner = new FakeBleScanner();
+        var connection = new FakeBleConnection();
+        var coordinator = new BleAutoConnectCoordinator(scanner, connection, store);
+
+        await coordinator.StartForegroundAutoConnectAsync();
+        scanner.Discover(new DiscoveredMaskDevice("mask-1", "Stage Mask", -42));
+        await coordinator.StopForegroundAutoConnectAsync();
+        await connection.DisconnectAsync();
+
+        Assert.False(scanner.IsScanning);
+        Assert.False(coordinator.IsAutoConnectSearching);
+        Assert.Equal(
+            "Auto-connect: paused until the app returns to foreground",
+            coordinator.AutoConnectStatusText);
+
+        await coordinator.StartForegroundAutoConnectAsync();
+        Assert.True(scanner.IsScanning);
+        Assert.True(coordinator.IsAutoConnectSearching);
+    }
+
+    [Fact]
+    public async Task BackgroundStop_WaitsForLateScanStartThenLeavesScannerStopped()
+    {
+        var store = new InMemoryBleAutoConnectSettingsStore(new BleAutoConnectSettings
+        {
+            AutoConnectEnabled = true,
+            LastKnownDevice = new KnownMaskDevice("mask-1", "Stage Mask", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow)
+        });
+        var scanner = new FakeBleScanner
+        {
+            StartRelease = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+        };
+        var coordinator = new BleAutoConnectCoordinator(scanner, new FakeBleConnection(), store);
+
+        var start = coordinator.StartForegroundAutoConnectAsync();
+        await scanner.StartEntered.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        var stop = coordinator.StopForegroundAutoConnectAsync();
+        scanner.StartRelease.SetResult();
+
+        await Task.WhenAll(start, stop).WaitAsync(TimeSpan.FromSeconds(1));
+        Assert.False(scanner.IsScanning);
+        Assert.False(coordinator.IsAutoConnectSearching);
+        Assert.Contains("paused", coordinator.AutoConnectStatusText, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task BackgroundStop_ClearsScanRequestThatHasNotStartedYet()
+    {
+        var store = new InMemoryBleAutoConnectSettingsStore(new BleAutoConnectSettings
+        {
+            AutoConnectEnabled = true,
+            LastKnownDevice = new KnownMaskDevice("mask-1", "Stage Mask", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow)
+        });
+        var scanner = new FakeBleScanner { LeaveStartPending = true };
+        var coordinator = new BleAutoConnectCoordinator(scanner, new FakeBleConnection(), store);
+
+        await coordinator.StartForegroundAutoConnectAsync();
+        Assert.False(scanner.IsScanning);
+
+        await coordinator.StopForegroundAutoConnectAsync();
+
+        Assert.Equal(1, scanner.StopCount);
+        Assert.False(coordinator.IsAutoConnectSearching);
+    }
+
+    [Fact]
+    public async Task BackgroundStop_CancelsAutoConnectThatStartedWhileForegrounded()
+    {
+        var store = new InMemoryBleAutoConnectSettingsStore(new BleAutoConnectSettings
+        {
+            AutoConnectEnabled = true,
+            LastKnownDevice = new KnownMaskDevice("mask-1", "Stage Mask", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow)
+        });
+        var scanner = new FakeBleScanner();
+        var connection = new FakeBleConnection
+        {
+            ConnectRelease = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+        };
+        var coordinator = new BleAutoConnectCoordinator(scanner, connection, store);
+
+        await coordinator.StartForegroundAutoConnectAsync();
+        scanner.Discover(new DiscoveredMaskDevice("mask-1", "Stage Mask", -42));
+        await connection.ConnectEntered.Task.WaitAsync(TimeSpan.FromSeconds(1));
+
+        var stop = coordinator.StopForegroundAutoConnectAsync();
+        connection.ConnectRelease.SetResult();
+
+        await stop.WaitAsync(TimeSpan.FromSeconds(1));
+        await WaitUntilAsync(() => connection.State == BleConnectionState.Disconnected);
+        Assert.Null(connection.ConnectedDevice);
+        Assert.False(scanner.IsScanning);
+        Assert.Contains("paused", coordinator.AutoConnectStatusText, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task DisconnectManuallyAsync_DoesNotRestartForegroundAutoConnect()
     {
         var store = new InMemoryBleAutoConnectSettingsStore(new BleAutoConnectSettings
@@ -310,15 +412,35 @@ public sealed class BleAutoConnectCoordinatorTests
 
         public bool IsScanning { get; private set; }
 
-        public Task StartScanningAsync(CancellationToken cancellationToken = default)
+        public TaskCompletionSource StartEntered { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource? StartRelease { get; init; }
+
+        public bool LeaveStartPending { get; init; }
+
+        public int StopCount { get; private set; }
+
+        public async Task StartScanningAsync(CancellationToken cancellationToken = default)
         {
+            StartEntered.TrySetResult();
+            if (StartRelease is not null)
+            {
+                await StartRelease.Task.WaitAsync(cancellationToken);
+            }
+
+            if (LeaveStartPending)
+            {
+                return;
+            }
+
             IsScanning = true;
             ScannerStateChanged?.Invoke(this, new BleScannerStateChangedEventArgs(true, "Scanning for masks..."));
-            return Task.CompletedTask;
         }
 
         public Task StopScanningAsync(CancellationToken cancellationToken = default)
         {
+            StopCount++;
             IsScanning = false;
             ScannerStateChanged?.Invoke(this, new BleScannerStateChangedEventArgs(false, "Scan stopped."));
             return Task.CompletedTask;
@@ -337,17 +459,27 @@ public sealed class BleAutoConnectCoordinatorTests
 
         public Exception? ConnectException { get; init; }
 
-        public Task ConnectAsync(DiscoveredMaskDevice device, CancellationToken cancellationToken = default)
+        public TaskCompletionSource ConnectEntered { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource? ConnectRelease { get; init; }
+
+        public async Task ConnectAsync(DiscoveredMaskDevice device, CancellationToken cancellationToken = default)
         {
             if (ConnectException is not null)
             {
-                return Task.FromException(ConnectException);
+                throw ConnectException;
+            }
+
+            ConnectEntered.TrySetResult();
+            if (ConnectRelease is not null)
+            {
+                await ConnectRelease.Task;
             }
 
             ConnectedDevice = device;
             State = BleConnectionState.Connected;
             ConnectionStateChanged?.Invoke(this, new BleConnectionStateChangedEventArgs(State, $"Connected to {device.Name}."));
-            return Task.CompletedTask;
         }
 
         public Task DisconnectAsync(CancellationToken cancellationToken = default)

@@ -29,7 +29,7 @@
                             Text="{x:Static loc:AppText.Add}"
                             Clicked="OnAddClicked"
                             Style="{StaticResource PrimaryButtonStyle}"
-                            SemanticProperties.Description="Add content to the Library" />
+                            SemanticProperties.Description="{loc:AppText Key=Ui014}" />
                     </Grid>
 
                     <controls:ConnectionStatusView
@@ -42,7 +42,7 @@
                         Placeholder="{x:Static loc:AppText.SearchLibrary}"
                         SearchButtonPressed="OnSearchDone"
                         Text="{Binding SearchText, Mode=TwoWay}"
-                        SemanticProperties.Description="Search saved mask content" />
+                        SemanticProperties.Description="{loc:AppText Key=Ui298}" />
 
                     <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
                         <HorizontalStackLayout Spacing="6">
@@ -65,7 +65,7 @@
                     </ScrollView>
 
                     <VerticalStackLayout IsVisible="{Binding HasQuickDeckItems}" Spacing="10">
-                        <controls:SectionHeaderView Title="{x:Static loc:AppText.QuickDeck}" Subtitle="Favorites kept within one tap for live use" />
+                        <controls:SectionHeaderView Title="{x:Static loc:AppText.QuickDeck}" Subtitle="{loc:AppText Key=Ui113}" />
                         <CollectionView
                             ItemsSource="{Binding QuickDeckItems}"
                             HeightRequest="340"
@@ -80,11 +80,11 @@
                     </VerticalStackLayout>
 
                     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                        <Label Text="Saved content" Style="{StaticResource SectionTitleLabelStyle}" VerticalTextAlignment="Center" />
-                        <Button Grid.Column="1" Text="Browse" Command="{Binding SetBrowseModeCommand}" Style="{StaticResource FilterButtonStyle}">
+                        <Label Text="{loc:AppText Key=Ui282}" Style="{StaticResource SectionTitleLabelStyle}" VerticalTextAlignment="Center" />
+                        <Button Grid.Column="1" Text="{loc:AppText Key=Ui049}" Command="{Binding SetBrowseModeCommand}" Style="{StaticResource FilterButtonStyle}">
                             <Button.Triggers><DataTrigger TargetType="Button" Binding="{Binding IsBrowseMode}" Value="True"><Setter Property="BackgroundColor" Value="{StaticResource SelectedSurfaceColor}" /><Setter Property="TextColor" Value="{StaticResource AccentColor}" /></DataTrigger></Button.Triggers>
                         </Button>
-                        <Button Grid.Column="2" Text="Arrange" Command="{Binding SetArrangeModeCommand}" Style="{StaticResource FilterButtonStyle}">
+                        <Button Grid.Column="2" Text="{loc:AppText Key=Ui032}" Command="{Binding SetArrangeModeCommand}" Style="{StaticResource FilterButtonStyle}">
                             <Button.Triggers><DataTrigger TargetType="Button" Binding="{Binding IsArrangeMode}" Value="True"><Setter Property="BackgroundColor" Value="{StaticResource SelectedSurfaceColor}" /><Setter Property="TextColor" Value="{StaticResource AccentColor}" /></DataTrigger></Button.Triggers>
                         </Button>
                     </Grid>
@@ -99,8 +99,18 @@
                             <Label Text="{Binding Subtitle}" Style="{StaticResource TinyLabelStyle}" />
                         </VerticalStackLayout>
                         <Grid IsVisible="{Binding IsItemRow}" ColumnDefinitions="*,*" ColumnSpacing="10">
-                            <controls:LibraryItemCardView Item="{Binding Left}" EditRequested="OnCardEditRequested" />
-                            <controls:LibraryItemCardView Grid.Column="1" Item="{Binding Right}" IsVisible="{Binding HasRight}" EditRequested="OnCardEditRequested" />
+                            <controls:LibraryItemCardView Item="{Binding Left}" EditRequested="OnCardEditRequested">
+                                <controls:LibraryItemCardView.GestureRecognizers>
+                                    <DragGestureRecognizer BindingContext="{Binding Left}" DragStarting="OnLibraryItemDragStarting" />
+                                    <DropGestureRecognizer BindingContext="{Binding Left}" AllowDrop="True" Drop="OnLibraryItemDropped" />
+                                </controls:LibraryItemCardView.GestureRecognizers>
+                            </controls:LibraryItemCardView>
+                            <controls:LibraryItemCardView Grid.Column="1" Item="{Binding Right}" IsVisible="{Binding HasRight}" EditRequested="OnCardEditRequested">
+                                <controls:LibraryItemCardView.GestureRecognizers>
+                                    <DragGestureRecognizer BindingContext="{Binding Right}" DragStarting="OnLibraryItemDragStarting" />
+                                    <DropGestureRecognizer BindingContext="{Binding Right}" AllowDrop="True" Drop="OnLibraryItemDropped" />
+                                </controls:LibraryItemCardView.GestureRecognizers>
+                            </controls:LibraryItemCardView>
                         </Grid>
                     </Grid>
                 </DataTemplate>
@@ -114,14 +124,14 @@
             WidthRequest="48"
             HorizontalOptions="Center"
             VerticalOptions="Center"
-            SemanticProperties.Description="Loading Library" />
+            SemanticProperties.Description="{loc:AppText Key=Ui159}" />
 
         <controls:EmptyStateView
             IsVisible="{Binding IsEmptyStateVisible}"
             Icon="◇"
             Title="{Binding EmptyStateTitle}"
             Message="{Binding EmptyStateMessage}"
-            ActionText="Retry"
+            ActionText="{loc:AppText Key=Ui265}"
             ActionCommand="{Binding RetryCommand}"
             ShowAction="{Binding HasLoadError}"
             BackgroundColor="{StaticResource PageBackgroundColor}" />
@@ -137,7 +147,7 @@
             <Border.StrokeShape><RoundRectangle CornerRadius="14" /></Border.StrokeShape>
             <HorizontalStackLayout Spacing="8">
                 <ActivityIndicator IsRunning="{Binding IsSending}" HeightRequest="22" WidthRequest="22" />
-                <Label Text="{Binding LastActionText, StringFormat='Sending {0}…'}" VerticalTextAlignment="Center" />
+                <Label Text="{Binding LastActionText, StringFormat='{loc:AppText Key=Ui429}'}" VerticalTextAlignment="Center" />
             </HorizontalStackLayout>
         </Border>
     </Grid>

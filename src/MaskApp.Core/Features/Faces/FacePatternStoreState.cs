@@ -6,9 +6,11 @@ public sealed record FacePatternStoreState
 {
     public const int LegacySchemaVersion = 1;
     public const int PreviousSchemaVersion = 2;
-    public const int CurrentSchemaVersion = 3;
+    public const int PaletteFreeSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
     public const int CurrentSeedVersion = 9;
     private const int HolyPriestDedicatedSlotSeedVersion = 9;
+    private const int MaxSavedPalettes = 24;
 
     public static FacePatternStoreState Seeded => new()
     {
@@ -25,6 +27,8 @@ public sealed record FacePatternStoreState
     public IReadOnlyList<FacePattern> Patterns { get; init; } = [];
 
     public IReadOnlyList<FaceSlotInstallation> SlotInstallations { get; init; } = [];
+
+    public IReadOnlyList<FaceSavedPalette> SavedPalettes { get; init; } = [];
 
     public string Status { get; init; } = "Ready.";
 
@@ -82,6 +86,13 @@ public sealed record FacePatternStoreState
                 .GroupBy(installation => installation.Slot)
                 .Select(group => group.OrderByDescending(installation => installation.InstalledAt).First())
                 .OrderBy(installation => installation.Slot)
+                .ToArray(),
+            SavedPalettes = (SavedPalettes ?? [])
+                .Select(palette => palette.Normalize())
+                .Where(palette => palette.Colors.Length > 0)
+                .GroupBy(palette => palette.Id, StringComparer.Ordinal)
+                .Select(group => group.Last())
+                .Take(MaxSavedPalettes)
                 .ToArray()
         };
     }

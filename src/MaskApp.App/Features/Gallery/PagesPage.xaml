@@ -3,11 +3,13 @@
     x:Class="MaskApp.App.Features.Gallery.PagesPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+
+    xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
     xmlns:controls="clr-namespace:MaskApp.App.Controls"
     xmlns:gallery="clr-namespace:MaskApp.Core.Features.Gallery;assembly=MaskApp.Core"
     x:Name="RootPage"
     x:DataType="gallery:PagesViewModel"
-    Title="Pages"
+    Title="{loc:AppText Key=Ui217}"
     Shell.NavBarIsVisible="False"
     BackgroundColor="{StaticResource PageBackgroundColor}">
     <Grid>
@@ -15,8 +17,8 @@
             <Grid Padding="18,16,18,8" RowDefinitions="Auto,Auto" RowSpacing="12">
                 <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
                     <VerticalStackLayout Spacing="2">
-                        <Label Text="Pages" Style="{StaticResource PageTitleLabelStyle}" />
-                        <Label Text="One-tap controls for live use. Prepare uploads before the show." Style="{StaticResource TinyLabelStyle}" />
+                        <Label Text="{loc:AppText Key=Ui217}" Style="{StaticResource PageTitleLabelStyle}" />
+                        <Label Text="{loc:AppText Key=Ui196}" Style="{StaticResource TinyLabelStyle}" />
                     </VerticalStackLayout>
                     <ActivityIndicator
                         Grid.Column="1"
@@ -25,23 +27,23 @@
                         VerticalOptions="Center" />
                     <Button
                         Grid.Column="2"
-                        Text="Stage"
+                        Text="{loc:AppText Key=Ui319}"
                         Clicked="OnStageClicked"
-                        SemanticProperties.Description="Enter locked Stage Mode"
+                        SemanticProperties.Description="{loc:AppText Key=Ui101}"
                         Style="{StaticResource NeonBlueButtonStyle}" />
                     <Button
                         Grid.Column="3"
-                        Text="Preflight"
+                        Text="{loc:AppText Key=Ui226}"
                         Clicked="OnPreflightClicked"
-                        SemanticProperties.Description="Open Festival Preflight"
+                        SemanticProperties.Description="{loc:AppText Key=Ui204}"
                         Style="{StaticResource BrightButtonStyle}" />
                 </Grid>
 
                 <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="8">
                     <Button
-                        Text="Use"
+                        Text="{loc:AppText Key=Ui353}"
                         Command="{Binding SetUseModeCommand}"
-                        SemanticProperties.Hint="Show the live shortcut grid"
+                        SemanticProperties.Hint="{loc:AppText Key=Ui315}"
                         Style="{StaticResource ModeButtonStyle}">
                         <Button.Triggers>
                             <DataTrigger TargetType="Button" Binding="{Binding IsUseMode}" Value="True">
@@ -51,9 +53,9 @@
                     </Button>
                     <Button
                         Grid.Column="1"
-                        Text="Manage"
+                        Text="{loc:AppText Key=Ui164}"
                         Command="{Binding SetManageModeCommand}"
-                        SemanticProperties.Hint="Add, prepare, reorder, or remove shortcuts"
+                        SemanticProperties.Hint="{loc:AppText Key=Ui022}"
                         Style="{StaticResource ModeButtonStyle}">
                         <Button.Triggers>
                             <DataTrigger TargetType="Button" Binding="{Binding IsManageMode}" Value="True">
@@ -80,8 +82,12 @@
                             BorderColor="{Binding ColorHex}"
                             Command="{Binding SelectCommand}"
                             Padding="16,10"
-                            SemanticProperties.Description="{Binding Title, StringFormat='Open {0} page'}"
+                            SemanticProperties.Description="{Binding Title, StringFormat='{loc:AppText Key=Ui425}'}"
                             Style="{StaticResource ModeButtonStyle}">
+                            <Button.GestureRecognizers>
+                                <DragGestureRecognizer DragStarting="OnPageDragStarting" />
+                                <DropGestureRecognizer AllowDrop="True" Drop="OnPageDropped" />
+                            </Button.GestureRecognizers>
                             <Button.Triggers>
                                 <DataTrigger TargetType="Button" Binding="{Binding IsSelected}" Value="True">
                                     <Setter Property="BackgroundColor" Value="{StaticResource SelectedSurfaceColor}" />
@@ -106,8 +112,8 @@
                     </CollectionView.ItemsLayout>
                     <CollectionView.EmptyView>
                         <VerticalStackLayout Padding="28" Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
-                            <Label Text="No shortcuts yet" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center" />
-                            <Label Text="Open Manage and add the items you want on stage." Style="{StaticResource MutedLabelStyle}" HorizontalTextAlignment="Center" />
+                            <Label Text="{loc:AppText Key=Ui192}" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                            <Label Text="{loc:AppText Key=Ui205}" Style="{StaticResource MutedLabelStyle}" HorizontalTextAlignment="Center" />
                         </VerticalStackLayout>
                     </CollectionView.EmptyView>
                     <CollectionView.ItemTemplate>
@@ -138,12 +144,12 @@
                                             <controls:BuiltInPreviewView
                                                 IsAnimationPlaying="{Binding IsAnimationPlaying}"
                                                 IsVisible="{Binding HasPreview}"
-                                                SemanticDescription="{Binding Label, StringFormat='{0} preview'}"
+                                                SemanticDescription="{Binding Label, StringFormat='{loc:AppText Key=Ui419}'}"
                                                 Source="{Binding PreviewResourceName}" />
                                             <controls:FacePatternPreviewView
                                                 IsVisible="{Binding HasFacePreview}"
                                                 Pattern="{Binding FacePattern}"
-                                                SemanticDescription="{Binding Label, StringFormat='{0} face preview'}" />
+                                                SemanticDescription="{Binding Label, StringFormat='{loc:AppText Key=Ui417}'}" />
                                         </Grid>
                                     </Border>
                                     <Label
@@ -188,13 +194,17 @@
                     </CollectionView.ItemsLayout>
                     <CollectionView.EmptyView>
                         <VerticalStackLayout Padding="28" Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
-                            <Label Text="Build this page" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center" />
-                            <Label Text="Add Library items, then prepare text, DIY faces, and app animations for instant playback." Style="{StaticResource MutedLabelStyle}" HorizontalTextAlignment="Center" />
+                            <Label Text="{loc:AppText Key=Ui051}" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                            <Label Text="{loc:AppText Key=Ui017}" Style="{StaticResource MutedLabelStyle}" HorizontalTextAlignment="Center" />
                         </VerticalStackLayout>
                     </CollectionView.EmptyView>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="gallery:GalleryPageShortcutCard">
                             <Border Style="{StaticResource ListRowBorderStyle}" Padding="4,14,4,0">
+                                <Border.GestureRecognizers>
+                                    <DragGestureRecognizer DragStarting="OnShortcutDragStarting" />
+                                    <DropGestureRecognizer AllowDrop="True" Drop="OnShortcutDropped" />
+                                </Border.GestureRecognizers>
                                 <Grid RowDefinitions="Auto,Auto,1" ColumnDefinitions="64,*" ColumnSpacing="12" RowSpacing="10">
                                     <Border BackgroundColor="{Binding ColorHex}" HeightRequest="58" WidthRequest="58" VerticalOptions="Start">
                                         <Border.StrokeShape>
@@ -212,12 +222,12 @@
                                             <controls:BuiltInPreviewView
                                                 IsAnimationPlaying="False"
                                                 IsVisible="{Binding HasPreview}"
-                                                SemanticDescription="{Binding Label, StringFormat='{0} preview'}"
+                                                SemanticDescription="{Binding Label, StringFormat='{loc:AppText Key=Ui419}'}"
                                                 Source="{Binding PreviewResourceName}" />
                                             <controls:FacePatternPreviewView
                                                 IsVisible="{Binding HasFacePreview}"
                                                 Pattern="{Binding FacePattern}"
-                                                SemanticDescription="{Binding Label, StringFormat='{0} face preview'}" />
+                                                SemanticDescription="{Binding Label, StringFormat='{loc:AppText Key=Ui417}'}" />
                                         </Grid>
                                     </Border>
 
@@ -235,14 +245,14 @@
                                             Style="{StaticResource BrightButtonStyle}"
                                             Padding="8,8" />
                                         <Button
-                                            Text="Show"
+                                            Text="{loc:AppText Key=Ui312}"
                                             Command="{Binding SendCommand}"
                                             IsVisible="{Binding IsFastSlotCapable, Converter={StaticResource InvertedBoolConverter}}"
                                             Style="{StaticResource NeonBlueButtonStyle}"
                                             Padding="8,8" />
-                                        <Button Grid.Column="1" Text="↑" Command="{Binding MoveEarlierCommand}" Padding="6,8" SemanticProperties.Description="Move earlier" />
-                                        <Button Grid.Column="2" Text="↓" Command="{Binding MoveLaterCommand}" Padding="6,8" SemanticProperties.Description="Move later" />
-                                        <Button Grid.Column="3" Text="−" Command="{Binding RemoveCommand}" Padding="6,8" Style="{StaticResource DangerButtonStyle}" SemanticProperties.Description="Remove shortcut" />
+                                        <Button Grid.Column="1" Text="↑" Command="{Binding MoveEarlierCommand}" Padding="6,8" SemanticProperties.Description="{loc:AppText Key=Ui177}" />
+                                        <Button Grid.Column="2" Text="↓" Command="{Binding MoveLaterCommand}" Padding="6,8" SemanticProperties.Description="{loc:AppText Key=Ui178}" />
+                                        <Button Grid.Column="3" Text="−" Command="{Binding RemoveCommand}" Padding="6,8" Style="{StaticResource DangerButtonStyle}" SemanticProperties.Description="{loc:AppText Key=Ui259}" />
                                     </Grid>
                                     <BoxView Grid.Row="2" Grid.ColumnSpan="2" Style="{StaticResource ListSeparatorStyle}" />
                                 </Grid>
@@ -264,15 +274,15 @@
                     </Grid>
 
                     <Grid Grid.Row="1" IsVisible="{Binding IsManageMode}" RowDefinitions="Auto,Auto" ColumnDefinitions="*,*" ColumnSpacing="8" RowSpacing="8">
-                        <Button Text="Add shortcut" Clicked="OnAddItemsClicked" Style="{StaticResource PrimaryButtonStyle}" />
-                        <Button Grid.Column="1" Text="Prepare page" Command="{Binding PreparePageCommand}" Style="{StaticResource BrightButtonStyle}" />
-                        <Button Grid.Row="1" Text="New page" Command="{Binding AddPageCommand}" />
-                        <Button Grid.Row="1" Grid.Column="1" Text="Page settings" Command="{Binding TogglePageEditorSheetCommand}" />
+                        <Button Text="{loc:AppText Key=Ui020}" Clicked="OnAddItemsClicked" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Grid.Column="1" Text="{loc:AppText Key=Ui230}" Command="{Binding PreparePageCommand}" Style="{StaticResource BrightButtonStyle}" />
+                        <Button Grid.Row="1" Text="{loc:AppText Key=Ui182}" Command="{Binding AddPageCommand}" />
+                        <Button Grid.Row="1" Grid.Column="1" Text="{loc:AppText Key=Ui216}" Command="{Binding TogglePageEditorSheetCommand}" />
                     </Grid>
                     <Label
                         Grid.Row="2"
                         IsVisible="{Binding IsManageMode}"
-                        Text="Prepared DIY slots are isolated to the active mask profile. Run Preflight after switching masks."
+                        Text="{loc:AppText Key=Ui233}"
                         Style="{StaticResource TinyLabelStyle}" />
                 </Grid>
             </Border>
@@ -283,19 +293,19 @@
                 <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
                     <Grid ColumnDefinitions="*,Auto">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Page settings" Style="{StaticResource ModeTitleLabelStyle}" />
-                            <Label Text="Rename, recolor, or reorder this page." Style="{StaticResource TinyLabelStyle}" />
+                            <Label Text="{loc:AppText Key=Ui216}" Style="{StaticResource ModeTitleLabelStyle}" />
+                            <Label Text="{loc:AppText Key=Ui260}" Style="{StaticResource TinyLabelStyle}" />
                         </VerticalStackLayout>
-                        <Button Grid.Column="1" Text="Done" Command="{Binding CloseSheetsCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                        <Button Grid.Column="1" Text="{loc:AppText Key=Ui091}" Command="{Binding CloseSheetsCommand}" Style="{StaticResource SecondaryButtonStyle}" />
                     </Grid>
-                    <Entry Grid.Row="1" Placeholder="Page name" Text="{Binding PageTitleDraft, Mode=TwoWay}" />
-                    <Button Grid.Row="2" Text="Save name" Command="{Binding SavePageTitleCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                    <Entry Grid.Row="1" Placeholder="{loc:AppText Key=Ui215}" Text="{Binding PageTitleDraft, Mode=TwoWay}" />
+                    <Button Grid.Row="2" Text="{loc:AppText Key=Ui280}" Command="{Binding SavePageTitleCommand}" Style="{StaticResource PrimaryButtonStyle}" />
                     <Grid Grid.Row="3" ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                        <Button Text="← Page" Command="{Binding MoveSelectedPageEarlierCommand}" />
-                        <Button Grid.Column="1" Text="Color" Command="{Binding CyclePageColorCommand}" />
-                        <Button Grid.Column="2" Text="Page →" Command="{Binding MoveSelectedPageLaterCommand}" />
+                        <Button Text="{loc:AppText Key=Ui001}" Command="{Binding MoveSelectedPageEarlierCommand}" />
+                        <Button Grid.Column="1" Text="{loc:AppText Key=Ui059}" Command="{Binding CyclePageColorCommand}" />
+                        <Button Grid.Column="2" Text="{loc:AppText Key=Ui214}" Command="{Binding MoveSelectedPageLaterCommand}" />
                     </Grid>
-                    <Button Grid.Row="4" Text="Delete page" Command="{Binding RemovePageCommand}" Style="{StaticResource DangerButtonStyle}" />
+                    <Button Grid.Row="4" Text="{loc:AppText Key=Ui083}" Command="{Binding RemovePageCommand}" Style="{StaticResource DangerButtonStyle}" />
                 </Grid>
             </Border>
         </Grid>
@@ -304,10 +314,10 @@
             <Border Style="{StaticResource PanelBorderStyle}" VerticalOptions="End">
                 <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
                     <Label Text="{Binding DeletePagePrompt}" FontSize="20" FontAttributes="Bold" />
-                    <Label Grid.Row="1" Text="Only the page layout is removed. Library items and mask slots stay available." Style="{StaticResource MutedLabelStyle}" />
+                    <Label Grid.Row="1" Text="{loc:AppText Key=Ui199}" Style="{StaticResource MutedLabelStyle}" />
                     <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="10">
-                        <Button Text="Cancel" Command="{Binding CloseSheetsCommand}" />
-                        <Button Grid.Column="1" Text="Delete page" Command="{Binding ConfirmRemovePageCommand}" Style="{StaticResource DangerButtonStyle}" />
+                        <Button Text="{loc:AppText Key=Ui056}" Command="{Binding CloseSheetsCommand}" />
+                        <Button Grid.Column="1" Text="{loc:AppText Key=Ui083}" Command="{Binding ConfirmRemovePageCommand}" Style="{StaticResource DangerButtonStyle}" />
                     </Grid>
                 </Grid>
             </Border>

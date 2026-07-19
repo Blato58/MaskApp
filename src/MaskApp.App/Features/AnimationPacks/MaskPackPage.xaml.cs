@@ -1,3 +1,4 @@
+using MaskApp.App.Resources.Strings;
 using MaskApp.Core.Features.AnimationPacks;
 
 namespace MaskApp.App.Features.AnimationPacks;
@@ -32,7 +33,7 @@ public partial class MaskPackPage : ContentPage
         {
             var selected = await FilePicker.Default.PickAsync(new PickOptions
             {
-                PickerTitle = "Choose a MaskPack ZIP archive"
+                PickerTitle = AppText.Get("Ui405")
             });
             if (selected is null)
             {
@@ -45,7 +46,7 @@ public partial class MaskPackPage : ContentPage
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
                                            or InvalidDataException or InvalidOperationException)
         {
-            await DisplayAlertAsync("MaskPack inspection failed", ShortMessage(exception), "OK");
+            await DisplayAlertAsync(AppText.Get("Ui406"), ShortMessage(exception), AppText.Get("Ui390"));
         }
     }
 
@@ -70,20 +71,20 @@ public partial class MaskPackPage : ContentPage
                     File.Delete(exportPath);
                 }
 
-                await DisplayAlertAsync("MaskPack export failed", result.Message, "OK");
+                await DisplayAlertAsync(AppText.Get("Ui407"), result.Message, AppText.Get("Ui390"));
                 return;
             }
 
             await Share.Default.RequestAsync(new ShareFileRequest
             {
-                Title = "Share MaskPack",
+                Title = AppText.Get("Ui408"),
                 File = new ShareFile(exportPath)
             });
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
                                            or InvalidOperationException or NotSupportedException)
         {
-            await DisplayAlertAsync("MaskPack export failed", ShortMessage(exception), "OK");
+            await DisplayAlertAsync(AppText.Get("Ui407"), ShortMessage(exception), AppText.Get("Ui390"));
         }
     }
 

@@ -312,14 +312,14 @@
                         <VerticalStackLayout Spacing="5">
                             <Label Text="Mode" Style="{StaticResource TinyLabelStyle}" />
                             <Picker
-                                ItemDisplayBinding="{Binding Label}"
+                                ItemDisplayBinding="{Binding Label, x:DataType=quick:QuickCaptionModeOption}"
                                 ItemsSource="{Binding QuickCaptionModeOptions}"
                                 SelectedItem="{Binding SelectedQuickCaptionMode, Mode=TwoWay}" />
                         </VerticalStackLayout>
                         <VerticalStackLayout Grid.Column="1" Spacing="5">
                             <Label Text="Send mode" Style="{StaticResource TinyLabelStyle}" />
                             <Picker
-                                ItemDisplayBinding="{Binding Label}"
+                                ItemDisplayBinding="{Binding Label, x:DataType=quick:QuickCaptionSendModeOption}"
                                 ItemsSource="{Binding QuickCaptionSendModeOptions}"
                                 SelectedItem="{Binding SelectedQuickCaptionSendMode, Mode=TwoWay}" />
                         </VerticalStackLayout>

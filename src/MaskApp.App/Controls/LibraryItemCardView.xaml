@@ -4,6 +4,8 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:controls="clr-namespace:MaskApp.App.Controls"
+    xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
+    x:DataType="controls:LibraryItemCardView"
     x:Name="Root">
     <Border
         Style="{StaticResource ContentCardBorderStyle}"
@@ -13,12 +15,12 @@
                 <controls:BuiltInPreviewView
                     IsAnimationPlaying="{Binding Item.IsAnimationPlaying, Source={x:Reference Root}}"
                     IsVisible="{Binding Item.HasPreview, Source={x:Reference Root}}"
-                    SemanticDescription="{Binding Item.Title, Source={x:Reference Root}, StringFormat='{0} preview'}"
+                    SemanticDescription="{Binding Item.Title, Source={x:Reference Root}, StringFormat='{loc:AppText Key=Ui419}'}"
                     Source="{Binding Item.PreviewResourceName, Source={x:Reference Root}}" />
                 <controls:FacePatternPreviewView
                     IsVisible="{Binding Item.HasFacePreview, Source={x:Reference Root}}"
                     Pattern="{Binding Item.FacePattern, Source={x:Reference Root}}"
-                    SemanticDescription="{Binding Item.Title, Source={x:Reference Root}, StringFormat='{0} face preview'}" />
+                    SemanticDescription="{Binding Item.Title, Source={x:Reference Root}, StringFormat='{loc:AppText Key=Ui417}'}" />
                 <Border
                     BackgroundColor="{Binding Item.ColorHex, Source={x:Reference Root}}"
                     IsVisible="{Binding Item.HasAnyPreview, Source={x:Reference Root}, Converter={StaticResource InvertedBoolConverter}}"
@@ -41,7 +43,7 @@
                     FontSize="20"
                     HorizontalOptions="End"
                     VerticalOptions="Start"
-                    SemanticProperties.Description="Favorite" />
+                    SemanticProperties.Description="{loc:AppText Key=Ui112}" />
                 <Border
                     Margin="8"
                     Padding="8,4"
@@ -76,23 +78,23 @@
 
             <Grid Grid.Row="4" ColumnDefinitions="*,*" ColumnSpacing="8" IsVisible="{Binding Item.IsNormalMode, Source={x:Reference Root}}">
                 <Button
-                    Text="Edit"
+                    Text="{loc:AppText Key=Ui435}"
                     Clicked="OnEditClicked"
                     IsVisible="{Binding Item.CanManage, Source={x:Reference Root}}"
                     Style="{StaticResource CompactButtonStyle}" />
                 <Button
                     Grid.Column="1"
-                    Text="Send"
+                    Text="{loc:AppText Key=Ui302}"
                     Command="{Binding Item.SendCommand, Source={x:Reference Root}}"
                     Style="{StaticResource PrimaryButtonStyle}"
-                    SemanticProperties.Description="{Binding Item.Title, Source={x:Reference Root}, StringFormat='Send {0}'}" />
+                    SemanticProperties.Description="{Binding Item.Title, Source={x:Reference Root}, StringFormat='{loc:AppText Key=Ui440}'}" />
             </Grid>
 
             <Grid Grid.Row="4" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8" IsVisible="{Binding Item.IsEditMode, Source={x:Reference Root}}">
-                <Button Text="Select" Command="{Binding Item.ToggleSelectionCommand, Source={x:Reference Root}}" Style="{StaticResource CompactButtonStyle}" />
-                <Button Grid.Column="1" Text="Edit" Clicked="OnEditClicked" Style="{StaticResource CompactButtonStyle}" />
-                <Button Grid.Row="1" Text="Earlier" Command="{Binding Item.MoveEarlierCommand, Source={x:Reference Root}}" Style="{StaticResource CompactButtonStyle}" />
-                <Button Grid.Row="1" Grid.Column="1" Text="Later" Command="{Binding Item.MoveLaterCommand, Source={x:Reference Root}}" Style="{StaticResource CompactButtonStyle}" />
+                <Button Text="{loc:AppText Key=Ui436}" Command="{Binding Item.ToggleSelectionCommand, Source={x:Reference Root}}" Style="{StaticResource CompactButtonStyle}" />
+                <Button Grid.Column="1" Text="{loc:AppText Key=Ui435}" Clicked="OnEditClicked" Style="{StaticResource CompactButtonStyle}" />
+                <Button Grid.Row="1" Text="{loc:AppText Key=Ui097}" Command="{Binding Item.MoveEarlierCommand, Source={x:Reference Root}}" Style="{StaticResource CompactButtonStyle}" />
+                <Button Grid.Row="1" Grid.Column="1" Text="{loc:AppText Key=Ui152}" Command="{Binding Item.MoveLaterCommand, Source={x:Reference Root}}" Style="{StaticResource CompactButtonStyle}" />
             </Grid>
         </Grid>
     </Border>

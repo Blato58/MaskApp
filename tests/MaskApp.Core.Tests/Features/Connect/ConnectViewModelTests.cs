@@ -1,4 +1,5 @@
 using MaskApp.Core.Features.Connect;
+using MaskApp.Core.Features.Lifecycle;
 using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.Profiles;
@@ -8,6 +9,38 @@ namespace MaskApp.Core.Tests.Features.Connect;
 
 public sealed class ConnectViewModelTests
 {
+    [Fact]
+    public async Task Diagnostics_ReportCurrentLifecycleAndForegroundLimitations()
+    {
+        var lifecycle = new AppLifecycleCoordinator(new NoOpLifecycleOperations());
+        await lifecycle.OnStoppedAsync();
+        var viewModel = new ConnectViewModel(
+            new FakeBleScanner(),
+            new FakeBleConnection(),
+            lifecycleCoordinator: lifecycle);
+
+        var report = await viewModel.BuildRedactedDiagnosticsReportAsync();
+
+        Assert.Contains("Lifecycle: Background", report, StringComparison.Ordinal);
+        Assert.Contains("rapid phone-timed playback are stopped", report, StringComparison.Ordinal);
+        Assert.Contains("Reconnect never replays output automatically", report, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Diagnostics_ObserveLifecycleTransitionsWithoutManualRefresh()
+    {
+        var lifecycle = new AppLifecycleCoordinator(new NoOpLifecycleOperations());
+        var viewModel = new ConnectViewModel(
+            new FakeBleScanner(),
+            new FakeBleConnection(),
+            lifecycleCoordinator: lifecycle);
+
+        await lifecycle.OnStoppedAsync();
+
+        Assert.StartsWith("Background", viewModel.LifecycleText, StringComparison.Ordinal);
+        Assert.Contains("backgrounded", viewModel.LifecycleLimitationText, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public async Task StartScanCommand_ClearsDevicesAndStartsScanner()
     {
@@ -224,6 +257,37 @@ public sealed class ConnectViewModelTests
         }
 
         public void Discover(DiscoveredMaskDevice device) => DeviceDiscovered?.Invoke(this, device);
+    }
+
+    private sealed class NoOpLifecycleOperations : IAppLifecycleOperations
+    {
+        public Task RecoverInterruptedImportAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task StartWatchRemoteAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public void SetWatchForeground(bool isForeground)
+        {
+        }
+
+        public void CancelSceneExecution()
+        {
+        }
+
+        public void CancelAudioDiagnostic()
+        {
+        }
+
+        public Task StartForegroundAutoConnectAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task StopForegroundAutoConnectAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task StopAudioVisualizerAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task HandOffAnimationForBackgroundAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task ResumeAnimationFromBackgroundAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task PublishWatchRemoteStateAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     private sealed class FakeBleConnection : IBleDeviceConnection

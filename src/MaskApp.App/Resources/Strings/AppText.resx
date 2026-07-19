@@ -4,27 +4,506 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
-  <data name="Library" xml:space="preserve"><value>Library</value></data>
-  <data name="Stage" xml:space="preserve"><value>Stage</value></data>
-  <data name="Device" xml:space="preserve"><value>Device</value></data>
-  <data name="SearchLibrary" xml:space="preserve"><value>Search Library</value></data>
   <data name="Add" xml:space="preserve"><value>Create</value></data>
-  <data name="QuickDeck" xml:space="preserve"><value>Quick Deck</value></data>
   <data name="All" xml:space="preserve"><value>All</value></data>
-  <data name="Faces" xml:space="preserve"><value>Faces</value></data>
-  <data name="Text" xml:space="preserve"><value>Text</value></data>
   <data name="Animations" xml:space="preserve"><value>Animations</value></data>
-  <data name="Scenes" xml:space="preserve"><value>Scenes</value></data>
+  <data name="AnimationStudio" xml:space="preserve"><value>Animation Studio</value></data>
+  <data name="Blackout" xml:space="preserve"><value>BLACKOUT</value></data>
   <data name="Build" xml:space="preserve"><value>Build</value></data>
-  <data name="Preflight" xml:space="preserve"><value>Preflight</value></data>
   <data name="Connection" xml:space="preserve"><value>Connection</value></data>
+  <data name="Device" xml:space="preserve"><value>Device</value></data>
   <data name="Diagnostics" xml:space="preserve"><value>Diagnostics</value></data>
-  <data name="ShowReady" xml:space="preserve"><value>SHOW READY</value></data>
+  <data name="EnterStage" xml:space="preserve"><value>Enter locked Stage</value></data>
+  <data name="Faces" xml:space="preserve"><value>Faces</value></data>
+  <data name="Library" xml:space="preserve"><value>Library</value></data>
+  <data name="Preflight" xml:space="preserve"><value>Preflight</value></data>
+  <data name="QuickDeck" xml:space="preserve"><value>Quick Deck</value></data>
+  <data name="Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Scenes" xml:space="preserve"><value>Scenes</value></data>
+  <data name="SearchLibrary" xml:space="preserve"><value>Search Library</value></data>
   <data name="ShowDegraded" xml:space="preserve"><value>DEGRADED</value></data>
   <data name="ShowNotReady" xml:space="preserve"><value>NOT READY</value></data>
-  <data name="EnterStage" xml:space="preserve"><value>Enter locked Stage</value></data>
+  <data name="ShowReady" xml:space="preserve"><value>SHOW READY</value></data>
+  <data name="Stage" xml:space="preserve"><value>Stage</value></data>
   <data name="Stop" xml:space="preserve"><value>STOP</value></data>
-  <data name="Blackout" xml:space="preserve"><value>BLACKOUT</value></data>
-  <data name="AnimationStudio" xml:space="preserve"><value>Animation Studio</value></data>
-  <data name="Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Text" xml:space="preserve"><value>Text</value></data>
+  <data name="Ui001" xml:space="preserve"><value>← Page</value></data>
+  <data name="Ui002" xml:space="preserve"><value>+ Frame</value></data>
+  <data name="Ui003" xml:space="preserve"><value>1 · Deterministic mask test</value></data>
+  <data name="Ui004" xml:space="preserve"><value>2 · Calibrate and tune</value></data>
+  <data name="Ui005" xml:space="preserve"><value>3 · Foreground live input</value></data>
+  <data name="Ui006" xml:space="preserve"><value>46x58 native mask canvas</value></data>
+  <data name="Ui007" xml:space="preserve"><value>ACK / write mode</value></data>
+  <data name="Ui008" xml:space="preserve"><value>Acknowledge exact blocked flash revisions</value></data>
+  <data name="Ui009" xml:space="preserve"><value>Acknowledge exact-revision flash risk</value></data>
+  <data name="Ui010" xml:space="preserve"><value>Acknowledgements</value></data>
+  <data name="Ui011" xml:space="preserve"><value>ACTION READINESS</value></data>
+  <data name="Ui012" xml:space="preserve"><value>Active set</value></data>
+  <data name="Ui013" xml:space="preserve"><value>Add after selected step</value></data>
+  <data name="Ui014" xml:space="preserve"><value>Add content to the Library</value></data>
+  <data name="Ui015" xml:space="preserve"><value>Add cue</value></data>
+  <data name="Ui016" xml:space="preserve"><value>Add Item</value></data>
+  <data name="Ui017" xml:space="preserve"><value>Add Library items, then prepare text, DIY faces, and app animations for instant playback.</value></data>
+  <data name="Ui018" xml:space="preserve"><value>Add scene to set</value></data>
+  <data name="Ui020" xml:space="preserve"><value>Add Shortcut</value></data>
+  <data name="Ui021" xml:space="preserve"><value>Add typed step</value></data>
+  <data name="Ui022" xml:space="preserve"><value>Add, prepare, reorder, or remove shortcuts</value></data>
+  <data name="Ui023" xml:space="preserve"><value>Affects stock text and animation SPEED modes.</value></data>
+  <data name="Ui024" xml:space="preserve"><value>Amber text</value></data>
+  <data name="Ui025" xml:space="preserve"><value>Animation</value></data>
+  <data name="Ui026" xml:space="preserve"><value>Animation delivery</value></data>
+  <data name="Ui027" xml:space="preserve"><value>Animation name</value></data>
+  <data name="Ui028" xml:space="preserve"><value>Animations</value></data>
+  <data name="Ui029" xml:space="preserve"><value>Applies to the connected mask.</value></data>
+  <data name="Ui030" xml:space="preserve"><value>Apply</value></data>
+  <data name="Ui031" xml:space="preserve"><value>Apply speed</value></data>
+  <data name="Ui032" xml:space="preserve"><value>Arrange</value></data>
+  <data name="Ui033" xml:space="preserve"><value>Audio Labs</value></data>
+  <data name="Ui034" xml:space="preserve"><value>Audio packet framing profile</value></data>
+  <data name="Ui035" xml:space="preserve"><value>Audio Visualizer Labs</value></data>
+  <data name="Ui036" xml:space="preserve"><value>Author</value></data>
+  <data name="Ui037" xml:space="preserve"><value>Auto-connect</value></data>
+  <data name="Ui038" xml:space="preserve"><value>Auto-connect runs only while MaskApp is in the foreground.</value></data>
+  <data name="Ui039" xml:space="preserve"><value>Back</value></data>
+  <data name="Ui040" xml:space="preserve"><value>Back to Pages</value></data>
+  <data name="Ui041" xml:space="preserve"><value>Bad</value></data>
+  <data name="Ui042" xml:space="preserve"><value>Battery</value></data>
+  <data name="Ui043" xml:space="preserve"><value>Black reset</value></data>
+  <data name="Ui045" xml:space="preserve"><value>Blackout</value></data>
+  <data name="Ui046" xml:space="preserve"><value>BLOCKERS</value></data>
+  <data name="Ui047" xml:space="preserve"><value>Bold</value></data>
+  <data name="Ui048" xml:space="preserve"><value>Brightness</value></data>
+  <data name="Ui049" xml:space="preserve"><value>Browse</value></data>
+  <data name="Ui050" xml:space="preserve"><value>Build ordered cues here; edit detailed scene steps in Show Builder.</value></data>
+  <data name="Ui051" xml:space="preserve"><value>Build this page</value></data>
+  <data name="Ui052" xml:space="preserve"><value>Built-in detail</value></data>
+  <data name="Ui053" xml:space="preserve"><value>Built-ins</value></data>
+  <data name="Ui054" xml:space="preserve"><value>Calibrate quiet room</value></data>
+  <data name="Ui055" xml:space="preserve"><value>Camera</value></data>
+  <data name="Ui056" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Ui057" xml:space="preserve"><value>Category</value></data>
+  <data name="Ui058" xml:space="preserve"><value>Clear</value></data>
+  <data name="Ui059" xml:space="preserve"><value>Color</value></data>
+  <data name="Ui060" xml:space="preserve"><value>Command</value></data>
+  <data name="Ui061" xml:space="preserve"><value>Command latency</value></data>
+  <data name="Ui062" xml:space="preserve"><value>Command write</value></data>
+  <data name="Ui063" xml:space="preserve"><value>Compose bounded typed cues, rehearse them, and order them into Stage setlists.</value></data>
+  <data name="Ui064" xml:space="preserve"><value>Confirm destructive replacement</value></data>
+  <data name="Ui065" xml:space="preserve"><value>Confirm replacement of existing content</value></data>
+  <data name="Ui066" xml:space="preserve"><value>Conflict action</value></data>
+  <data name="Ui067" xml:space="preserve"><value>Conflict import action</value></data>
+  <data name="Ui068" xml:space="preserve"><value>Conflict preview</value></data>
+  <data name="Ui069" xml:space="preserve"><value>Connect selected mask</value></data>
+  <data name="Ui070" xml:space="preserve"><value>Connection</value></data>
+  <data name="Ui071" xml:space="preserve"><value>Connection, live controls, and evidence from the active mask.</value></data>
+  <data name="Ui072" xml:space="preserve"><value>Continue</value></data>
+  <data name="Ui073" xml:space="preserve"><value>Copy</value></data>
+  <data name="Ui074" xml:space="preserve"><value>Crop or fit</value></data>
+  <data name="Ui075" xml:space="preserve"><value>CUE</value></data>
+  <data name="Ui076" xml:space="preserve"><value>Cues</value></data>
+  <data name="Ui077" xml:space="preserve"><value>Current set</value></data>
+  <data name="Ui078" xml:space="preserve"><value>Current setlist name</value></data>
+  <data name="Ui079" xml:space="preserve"><value>Cyan text</value></data>
+  <data name="Ui080" xml:space="preserve"><value>Del</value></data>
+  <data name="Ui081" xml:space="preserve"><value>Delete</value></data>
+  <data name="Ui082" xml:space="preserve"><value>Delete Loaded</value></data>
+  <data name="Ui083" xml:space="preserve"><value>Delete page</value></data>
+  <data name="Ui084" xml:space="preserve"><value>Delete palette</value></data>
+  <data name="Ui085" xml:space="preserve"><value>Details</value></data>
+  <data name="Ui086" xml:space="preserve"><value>Diagnostics</value></data>
+  <data name="Ui087" xml:space="preserve"><value>Disconnect</value></data>
+  <data name="Ui088" xml:space="preserve"><value>Display name</value></data>
+  <data name="Ui089" xml:space="preserve"><value>Dither</value></data>
+  <data name="Ui090" xml:space="preserve"><value>DIY slots used / available</value></data>
+  <data name="Ui091" xml:space="preserve"><value>Done</value></data>
+  <data name="Ui092" xml:space="preserve"><value>Drag thumbnails or use accessible move buttons.</value></data>
+  <data name="Ui093" xml:space="preserve"><value>Draw</value></data>
+  <data name="Ui094" xml:space="preserve"><value>Drawing colors</value></data>
+  <data name="Ui095" xml:space="preserve"><value>Duplicate</value></data>
+  <data name="Ui096" xml:space="preserve"><value>Duplicate Loaded</value></data>
+  <data name="Ui097" xml:space="preserve"><value>Earlier</value></data>
+  <data name="Ui098" xml:space="preserve"><value>Editable 46 by 58 animation frame with non-destructive mask and eye guides</value></data>
+  <data name="Ui099" xml:space="preserve"><value>Editable 46 by 58 face canvas</value></data>
+  <data name="Ui100" xml:space="preserve"><value>Emergency blackout. Cancel visual work and force mask brightness to protocol minimum</value></data>
+  <data name="Ui101" xml:space="preserve"><value>Enter locked Stage Mode</value></data>
+  <data name="Ui102" xml:space="preserve"><value>Erase</value></data>
+  <data name="Ui103" xml:space="preserve"><value>Experimental · foreground only · physical-mask evidence required</value></data>
+  <data name="Ui104" xml:space="preserve"><value>Export</value></data>
+  <data name="Ui105" xml:space="preserve"><value>Export and share MaskPack</value></data>
+  <data name="Ui106" xml:space="preserve"><value>Export redacted report</value></data>
+  <data name="Ui107" xml:space="preserve"><value>Export user faces, animations and timing, text presets, Pages, Scenes, setlists, and safe Library ordering.</value></data>
+  <data name="Ui108" xml:space="preserve"><value>Face name</value></data>
+  <data name="Ui109" xml:space="preserve"><value>Face Studio</value></data>
+  <data name="Ui110" xml:space="preserve"><value>Faces</value></data>
+  <data name="Ui111" xml:space="preserve"><value>Failure policy</value></data>
+  <data name="Ui112" xml:space="preserve"><value>Favorite</value></data>
+  <data name="Ui113" xml:space="preserve"><value>Favorites kept within one tap for live use</value></data>
+  <data name="Ui114" xml:space="preserve"><value>Festival Preflight</value></data>
+  <data name="Ui115" xml:space="preserve"><value>Fill</value></data>
+  <data name="Ui116" xml:space="preserve"><value>Firmware</value></data>
+  <data name="Ui117" xml:space="preserve"><value>Firmware audio packing mode</value></data>
+  <data name="Ui118" xml:space="preserve"><value>Firmware mode speed</value></data>
+  <data name="Ui119" xml:space="preserve"><value>Fix blocking items before entering Stage; warnings keep the show degraded.</value></data>
+  <data name="Ui120" xml:space="preserve"><value>FLASH SAFETY</value></data>
+  <data name="Ui121" xml:space="preserve"><value>Forget remembered mask</value></data>
+  <data name="Ui122" xml:space="preserve"><value>Frames</value></data>
+  <data name="Ui123" xml:space="preserve"><value>Framing profile</value></data>
+  <data name="Ui124" xml:space="preserve"><value>Gallery Item</value></data>
+  <data name="Ui125" xml:space="preserve"><value>GIF/video input is bounded before decode and remains a draft until saved.</value></data>
+  <data name="Ui126" xml:space="preserve"><value>Green text</value></data>
+  <data name="Ui127" xml:space="preserve"><value>Guides</value></data>
+  <data name="Ui128" xml:space="preserve"><value>Hold for two seconds and release to unlock and exit Stage</value></data>
+  <data name="Ui129" xml:space="preserve"><value>Hold to exit</value></data>
+  <data name="Ui130" xml:space="preserve"><value>HOLD TO PLAY</value></data>
+  <data name="Ui131" xml:space="preserve"><value>Check scope</value></data>
+  <data name="Ui132" xml:space="preserve"><value>Check selected Pages</value></data>
+  <data name="Ui133" xml:space="preserve"><value>Check whole show</value></data>
+  <data name="Ui134" xml:space="preserve"><value>Checking show…</value></data>
+  <data name="Ui135" xml:space="preserve"><value>Choose a result for each existing ID. Merge keeps exact matches and safely renames different content.</value></data>
+  <data name="Ui136" xml:space="preserve"><value>Choose a saved palette</value></data>
+  <data name="Ui137" xml:space="preserve"><value>Choose a scene</value></data>
+  <data name="Ui138" xml:space="preserve"><value>Choose GIF</value></data>
+  <data name="Ui139" xml:space="preserve"><value>Choose MaskPack from Files</value></data>
+  <data name="Ui140" xml:space="preserve"><value>Choose video</value></data>
+  <data name="Ui141" xml:space="preserve"><value>Choose what you want to create or browse.</value></data>
+  <data name="Ui142" xml:space="preserve"><value>Icon</value></data>
+  <data name="Ui143" xml:space="preserve"><value>Immediately dims the connected mask</value></data>
+  <data name="Ui144" xml:space="preserve"><value>Import</value></data>
+  <data name="Ui145" xml:space="preserve"><value>Import inspected package</value></data>
+  <data name="Ui146" xml:space="preserve"><value>Import media</value></data>
+  <data name="Ui148" xml:space="preserve"><value>ISSUES AND RECOVERY</value></data>
+  <data name="Ui149" xml:space="preserve"><value>Last operation</value></data>
+  <data name="Ui151" xml:space="preserve"><value>Last Preflight</value></data>
+  <data name="Ui152" xml:space="preserve"><value>Later</value></data>
+  <data name="Ui153" xml:space="preserve"><value>Layout</value></data>
+  <data name="Ui154" xml:space="preserve"><value>LED mask</value></data>
+  <data name="Ui155" xml:space="preserve"><value>LED preview</value></data>
+  <data name="Ui156" xml:space="preserve"><value>Left / right symmetry</value></data>
+  <data name="Ui157" xml:space="preserve"><value>Library content</value></data>
+  <data name="Ui158" xml:space="preserve"><value>Live evidence</value></data>
+  <data name="Ui159" xml:space="preserve"><value>Loading Library</value></data>
+  <data name="Ui160" xml:space="preserve"><value>LOL</value></data>
+  <data name="Ui161" xml:space="preserve"><value>Long-press and drag, or use the accessible Move earlier/later controls.</value></data>
+  <data name="Ui162" xml:space="preserve"><value>Loop mode</value></data>
+  <data name="Ui163" xml:space="preserve"><value>Looping, tempo, slot budget, and the exact-revision flash gate.</value></data>
+  <data name="Ui164" xml:space="preserve"><value>Manage</value></data>
+  <data name="Ui165" xml:space="preserve"><value>Manage Pages</value></data>
+  <data name="Ui166" xml:space="preserve"><value>MASK</value></data>
+  <data name="Ui167" xml:space="preserve"><value>Mask brightness percentage</value></data>
+  <data name="Ui168" xml:space="preserve"><value>Mask preview</value></data>
+  <data name="Ui169" xml:space="preserve"><value>MaskApp does not infer visible support from packet construction or a successful write-without-response. Live microphone input stays locked until this exact mask passes the finite test and you confirm the physical result.</value></data>
+  <data name="Ui170" xml:space="preserve"><value>MaskPack</value></data>
+  <data name="Ui171" xml:space="preserve"><value>Mirror</value></data>
+  <data name="Ui172" xml:space="preserve"><value>Mirror left / right</value></data>
+  <data name="Ui173" xml:space="preserve"><value>Mirror top / bottom</value></data>
+  <data name="Ui174" xml:space="preserve"><value>Missing or unstable</value></data>
+  <data name="Ui175" xml:space="preserve"><value>Mode and speed</value></data>
+  <data name="Ui176" xml:space="preserve"><value>Move an offline show package through Files, AirDrop, or the share sheet.</value></data>
+  <data name="Ui177" xml:space="preserve"><value>Move earlier</value></data>
+  <data name="Ui178" xml:space="preserve"><value>Move later</value></data>
+  <data name="Ui179" xml:space="preserve"><value>Nearby BLE mask</value></data>
+  <data name="Ui180" xml:space="preserve"><value>New</value></data>
+  <data name="Ui181" xml:space="preserve"><value>New Blank</value></data>
+  <data name="Ui182" xml:space="preserve"><value>New page</value></data>
+  <data name="Ui183" xml:space="preserve"><value>New set</value></data>
+  <data name="Ui184" xml:space="preserve"><value>Next</value></data>
+  <data name="Ui185" xml:space="preserve"><value>Next cue</value></data>
+  <data name="Ui186" xml:space="preserve"><value>Next cue or Page</value></data>
+  <data name="Ui187" xml:space="preserve"><value>No available Gallery items for this page.</value></data>
+  <data name="Ui188" xml:space="preserve"><value>No issues found.</value></data>
+  <data name="Ui189" xml:space="preserve"><value>No matching built-ins</value></data>
+  <data name="Ui190" xml:space="preserve"><value>No nearby masks</value></data>
+  <data name="Ui191" xml:space="preserve"><value>No preflight issues</value></data>
+  <data name="Ui192" xml:space="preserve"><value>No shortcuts yet</value></data>
+  <data name="Ui193" xml:space="preserve"><value>No Stage cues</value></data>
+  <data name="Ui194" xml:space="preserve"><value>Notes</value></data>
+  <data name="Ui195" xml:space="preserve"><value>Observed values only; unavailable telemetry stays explicitly unavailable.</value></data>
+  <data name="Ui196" xml:space="preserve"><value>One-tap controls for live use. Prepare uploads before the show.</value></data>
+  <data name="Ui197" xml:space="preserve"><value>Onion</value></data>
+  <data name="Ui198" xml:space="preserve"><value>Only bounded built-in step types are available; arbitrary scripts are not supported.</value></data>
+  <data name="Ui199" xml:space="preserve"><value>Only the page layout is removed. Library items and mask slots stay available.</value></data>
+  <data name="Ui200" xml:space="preserve"><value>Open</value></data>
+  <data name="Ui201" xml:space="preserve"><value>Open a preset</value></data>
+  <data name="Ui202" xml:space="preserve"><value>Open Audio Visualizer Labs</value></data>
+  <data name="Ui203" xml:space="preserve"><value>Open Device</value></data>
+  <data name="Ui204" xml:space="preserve"><value>Open Festival Preflight</value></data>
+  <data name="Ui205" xml:space="preserve"><value>Open Manage and add the items you want on stage.</value></data>
+  <data name="Ui206" xml:space="preserve"><value>Open saved animation</value></data>
+  <data name="Ui207" xml:space="preserve"><value>Open Show Builder</value></data>
+  <data name="Ui208" xml:space="preserve"><value>Opens a locked performance surface with Stop and Blackout always available</value></data>
+  <data name="Ui209" xml:space="preserve"><value>Opens experimental foreground microphone effects behind a per-mask physical test gate</value></data>
+  <data name="Ui210" xml:space="preserve"><value>Original-app artwork; physical mask output may vary.</value></data>
+  <data name="Ui211" xml:space="preserve"><value>Output occurs only after an explicit cue press.</value></data>
+  <data name="Ui212" xml:space="preserve"><value>Pack name</value></data>
+  <data name="Ui213" xml:space="preserve"><value>Packing mode</value></data>
+  <data name="Ui214" xml:space="preserve"><value>Page →</value></data>
+  <data name="Ui215" xml:space="preserve"><value>Page name</value></data>
+  <data name="Ui216" xml:space="preserve"><value>Page settings</value></data>
+  <data name="Ui217" xml:space="preserve"><value>Pages</value></data>
+  <data name="Ui218" xml:space="preserve"><value>Palette</value></data>
+  <data name="Ui219" xml:space="preserve"><value>Palette name</value></data>
+  <data name="Ui220" xml:space="preserve"><value>Payload</value></data>
+  <data name="Ui221" xml:space="preserve"><value>Photosensitivity warning: an explicit override does not make unsafe content safe.</value></data>
+  <data name="Ui222" xml:space="preserve"><value>Pick Photo</value></data>
+  <data name="Ui223" xml:space="preserve"><value>Pink text</value></data>
+  <data name="Ui224" xml:space="preserve"><value>Playback and safety</value></data>
+  <data name="Ui225" xml:space="preserve"><value>PLAYHEAD</value></data>
+  <data name="Ui226" xml:space="preserve"><value>Preflight</value></data>
+  <data name="Ui227" xml:space="preserve"><value>Preparation</value></data>
+  <data name="Ui228" xml:space="preserve"><value>Prepare</value></data>
+  <data name="Ui229" xml:space="preserve"><value>Prepare eligible DIY content</value></data>
+  <data name="Ui230" xml:space="preserve"><value>Prepare page</value></data>
+  <data name="Ui231" xml:space="preserve"><value>Prepare required DIY content</value></data>
+  <data name="Ui232" xml:space="preserve"><value>Prepare uploads unique frames once; Preview uses the production scheduler and safety gate.</value></data>
+  <data name="Ui233" xml:space="preserve"><value>Prepared DIY slots are isolated to the active mask profile. Run Preflight after switching masks.</value></data>
+  <data name="Ui234" xml:space="preserve"><value>Prepared slots</value></data>
+  <data name="Ui235" xml:space="preserve"><value>Preset name</value></data>
+  <data name="Ui236" xml:space="preserve"><value>Preview</value></data>
+  <data name="Ui237" xml:space="preserve"><value>Previous</value></data>
+  <data name="Ui238" xml:space="preserve"><value>Previous cue</value></data>
+  <data name="Ui239" xml:space="preserve"><value>Previous cue or Page</value></data>
+  <data name="Ui240" xml:space="preserve"><value>Prove the selected show is ready for this physical mask.</value></data>
+  <data name="Ui241" xml:space="preserve"><value>Purple text</value></data>
+  <data name="Ui242" xml:space="preserve"><value>Quick status</value></data>
+  <data name="Ui243" xml:space="preserve"><value>RAVE</value></data>
+  <data name="Ui244" xml:space="preserve"><value>React</value></data>
+  <data name="Ui245" xml:space="preserve"><value>Recent connection activity</value></data>
+  <data name="Ui246" xml:space="preserve"><value>Recent redacted errors</value></data>
+  <data name="Ui247" xml:space="preserve"><value>Reconnect</value></data>
+  <data name="Ui248" xml:space="preserve"><value>Reconnect behavior</value></data>
+  <data name="Ui249" xml:space="preserve"><value>Reconnect remembered mask</value></data>
+  <data name="Ui250" xml:space="preserve"><value>Recover without replay</value></data>
+  <data name="Ui251" xml:space="preserve"><value>Red text</value></data>
+  <data name="Ui252" xml:space="preserve"><value>Redo</value></data>
+  <data name="Ui253" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Ui254" xml:space="preserve"><value>Refresh diagnostics</value></data>
+  <data name="Ui255" xml:space="preserve"><value>Refresh readiness</value></data>
+  <data name="Ui256" xml:space="preserve"><value>Rehearse</value></data>
+  <data name="Ui257" xml:space="preserve"><value>Remember last mask</value></data>
+  <data name="Ui258" xml:space="preserve"><value>Remove</value></data>
+  <data name="Ui259" xml:space="preserve"><value>Remove shortcut</value></data>
+  <data name="Ui260" xml:space="preserve"><value>Rename, recolor, or reorder this page.</value></data>
+  <data name="Ui261" xml:space="preserve"><value>Repeat from earlier step</value></data>
+  <data name="Ui262" xml:space="preserve"><value>Replacement overwrites the selected local IDs. Built-in faces are never replaceable.</value></data>
+  <data name="Ui263" xml:space="preserve"><value>Reset prepared-slot ledger for this mask</value></data>
+  <data name="Ui264" xml:space="preserve"><value>Restore</value></data>
+  <data name="Ui265" xml:space="preserve"><value>Retry</value></data>
+  <data name="Ui266" xml:space="preserve"><value>Review and acknowledge blocked revisions</value></data>
+  <data name="Ui267" xml:space="preserve"><value>Review the photosensitivity warning and explicitly acknowledge each exact blocked animation revision</value></data>
+  <data name="Ui268" xml:space="preserve"><value>Revoke flash-risk acknowledgements and block those animation revisions again</value></data>
+  <data name="Ui269" xml:space="preserve"><value>Revoke flash-risk override</value></data>
+  <data name="Ui270" xml:space="preserve"><value>Revoke flash-risk overrides</value></data>
+  <data name="Ui271" xml:space="preserve"><value>Run finite test sequence</value></data>
+  <data name="Ui272" xml:space="preserve"><value>Safety</value></data>
+  <data name="Ui273" xml:space="preserve"><value>Safety boundary</value></data>
+  <data name="Ui274" xml:space="preserve"><value>Save</value></data>
+  <data name="Ui275" xml:space="preserve"><value>Save as Preset</value></data>
+  <data name="Ui276" xml:space="preserve"><value>Save Copy</value></data>
+  <data name="Ui277" xml:space="preserve"><value>Save details</value></data>
+  <data name="Ui278" xml:space="preserve"><value>Save face colors</value></data>
+  <data name="Ui279" xml:space="preserve"><value>Save Changes</value></data>
+  <data name="Ui280" xml:space="preserve"><value>Save name</value></data>
+  <data name="Ui281" xml:space="preserve"><value>Save set</value></data>
+  <data name="Ui282" xml:space="preserve"><value>Saved content</value></data>
+  <data name="Ui283" xml:space="preserve"><value>Saved faces</value></data>
+  <data name="Ui284" xml:space="preserve"><value>Saved palettes</value></data>
+  <data name="Ui285" xml:space="preserve"><value>Saved Scenes</value></data>
+  <data name="Ui286" xml:space="preserve"><value>Saved setlists</value></data>
+  <data name="Ui287" xml:space="preserve"><value>Scan for masks</value></data>
+  <data name="Ui288" xml:space="preserve"><value>Scan, choose the physical mask, and connect.</value></data>
+  <data name="Ui289" xml:space="preserve"><value>Scene</value></data>
+  <data name="Ui290" xml:space="preserve"><value>Scene for new cue</value></data>
+  <data name="Ui291" xml:space="preserve"><value>Scene name</value></data>
+  <data name="Ui292" xml:space="preserve"><value>Scene steps</value></data>
+  <data name="Ui293" xml:space="preserve"><value>Scene Studio</value></data>
+  <data name="Ui294" xml:space="preserve"><value>SCOPE</value></data>
+  <data name="Ui295" xml:space="preserve"><value>Search built-in faces and animations</value></data>
+  <data name="Ui296" xml:space="preserve"><value>Search Library items</value></data>
+  <data name="Ui297" xml:space="preserve"><value>Search name, ID, hex, or tag</value></data>
+  <data name="Ui298" xml:space="preserve"><value>Search saved mask content</value></data>
+  <data name="Ui299" xml:space="preserve"><value>Select / Move</value></data>
+  <data name="Ui300" xml:space="preserve"><value>Select and move connected face pixels</value></data>
+  <data name="Ui301" xml:space="preserve"><value>Select and move connected pixels</value></data>
+  <data name="Ui302" xml:space="preserve"><value>Send</value></data>
+  <data name="Ui303" xml:space="preserve"><value>Send Draft</value></data>
+  <data name="Ui304" xml:space="preserve"><value>Send profile</value></data>
+  <data name="Ui305" xml:space="preserve"><value>Sends a short deterministic sequence, then stops</value></data>
+  <data name="Ui306" xml:space="preserve"><value>Sends this stock item to the connected mask</value></data>
+  <data name="Ui307" xml:space="preserve"><value>Sensitivity</value></data>
+  <data name="Ui308" xml:space="preserve"><value>Session preserved. Reconnect never replays output automatically.</value></data>
+  <data name="Ui309" xml:space="preserve"><value>Setlist</value></data>
+  <data name="Ui310" xml:space="preserve"><value>Setlist name</value></data>
+  <data name="Ui311" xml:space="preserve"><value>Shortcut label</value></data>
+  <data name="Ui312" xml:space="preserve"><value>Show</value></data>
+  <data name="Ui313" xml:space="preserve"><value>Show diagnostics</value></data>
+  <data name="Ui314" xml:space="preserve"><value>Show in Control favorites</value></data>
+  <data name="Ui315" xml:space="preserve"><value>Show the live shortcut grid</value></data>
+  <data name="Ui316" xml:space="preserve"><value>Scheduler</value></data>
+  <data name="Ui317" xml:space="preserve"><value>Signal</value></data>
+  <data name="Ui318" xml:space="preserve"><value>Smoothing</value></data>
+  <data name="Ui319" xml:space="preserve"><value>Stage</value></data>
+  <data name="Ui320" xml:space="preserve"><value>Start microphone visualizer</value></data>
+  <data name="Ui321" xml:space="preserve"><value>Starting asks for microphone permission. Leaving this page, locking/backgrounding the app, an audio interruption, route change, disconnect, Stop, or Blackout ends capture; returning never restarts it.</value></data>
+  <data name="Ui322" xml:space="preserve"><value>Status</value></data>
+  <data name="Ui323" xml:space="preserve"><value>Step type</value></data>
+  <data name="Ui324" xml:space="preserve"><value>Stock previews</value></data>
+  <data name="Ui326" xml:space="preserve"><value>STOP</value></data>
+  <data name="Ui327" xml:space="preserve"><value>Stop active and queued visual work while retaining the last stable look when available</value></data>
+  <data name="Ui328" xml:space="preserve"><value>Stop scanning</value></data>
+  <data name="Ui329" xml:space="preserve"><value>Stops microphone capture and cancels queued visual work</value></data>
+  <data name="Ui330" xml:space="preserve"><value>Stops microphone capture and sends the emergency dark command</value></data>
+  <data name="Ui331" xml:space="preserve"><value>Sustainable cadence</value></data>
+  <data name="Ui332" xml:space="preserve"><value>Symmetry</value></data>
+  <data name="Ui333" xml:space="preserve"><value>Tags, comma separated</value></data>
+  <data name="Ui334" xml:space="preserve"><value>Tap</value></data>
+  <data name="Ui335" xml:space="preserve"><value>Text</value></data>
+  <data name="Ui336" xml:space="preserve"><value>Text / face upload</value></data>
+  <data name="Ui337" xml:space="preserve"><value>Text Creator</value></data>
+  <data name="Ui338" xml:space="preserve"><value>Text presets</value></data>
+  <data name="Ui339" xml:space="preserve"><value>The archive is bounded, hash-checked, and semantically validated before local content changes.</value></data>
+  <data name="Ui340" xml:space="preserve"><value>The Stage follows this exact order when the set is active.</value></data>
+  <data name="Ui341" xml:space="preserve"><value>These are the original app previews. Physical mask output can vary by hardware and firmware.</value></data>
+  <data name="Ui342" xml:space="preserve"><value>Threshold</value></data>
+  <data name="Ui343" xml:space="preserve"><value>Timeline</value></data>
+  <data name="Ui344" xml:space="preserve"><value>Top / bottom symmetry</value></data>
+  <data name="Ui345" xml:space="preserve"><value>Transport</value></data>
+  <data name="Ui346" xml:space="preserve"><value>Transport evidence</value></data>
+  <data name="Ui347" xml:space="preserve"><value>Trigger cue</value></data>
+  <data name="Ui348" xml:space="preserve"><value>Trigger current</value></data>
+  <data name="Ui349" xml:space="preserve"><value>Try a different name or ID.</value></data>
+  <data name="Ui350" xml:space="preserve"><value>Undo</value></data>
+  <data name="Ui351" xml:space="preserve"><value>Upload</value></data>
+  <data name="Ui352" xml:space="preserve"><value>Upload + Play</value></data>
+  <data name="Ui353" xml:space="preserve"><value>Use</value></data>
+  <data name="Ui354" xml:space="preserve"><value>Use Pages in Stage</value></data>
+  <data name="Ui355" xml:space="preserve"><value>Use Pages on Stage</value></data>
+  <data name="Ui356" xml:space="preserve"><value>Use this setlist in Stage</value></data>
+  <data name="Ui357" xml:space="preserve"><value>Uses microphone samples locally and sends nothing to the mask</value></data>
+  <data name="Ui358" xml:space="preserve"><value>Validation and rehearsal</value></data>
+  <data name="Ui359" xml:space="preserve"><value>VERIFIED CHECKS</value></data>
+  <data name="Ui360" xml:space="preserve"><value>Visible and stable</value></data>
+  <data name="Ui361" xml:space="preserve"><value>Visualization mode</value></data>
+  <data name="Ui362" xml:space="preserve"><value>WARNINGS</value></data>
+  <data name="Ui363" xml:space="preserve"><value>Weird</value></data>
+  <data name="Ui364" xml:space="preserve"><value>White text</value></data>
+  <data name="Ui365" xml:space="preserve"><value>Whole show</value></data>
+  <data name="Ui366" xml:space="preserve"><value>Working…</value></data>
+  <data name="Ui367" xml:space="preserve"><value>Works</value></data>
+  <data name="Ui368" xml:space="preserve"><value>Write-only</value></data>
+  <data name="Ui369" xml:space="preserve"><value>Confirm this physical mask?</value></data>
+  <data name="Ui370" xml:space="preserve"><value>Record Passed</value></data>
+  <data name="Ui371" xml:space="preserve"><value>Record test failure?</value></data>
+  <data name="Ui372" xml:space="preserve"><value>This will keep live microphone input disabled for the current mask until another finite test passes.</value></data>
+  <data name="Ui373" xml:space="preserve"><value>Record Failed</value></data>
+  <data name="Ui374" xml:space="preserve"><value>Photosensitivity warning</value></data>
+  <data name="Ui375" xml:space="preserve"><value>These exact animation revisions exceed the conservative limit of three full flashes per second. Rapid flashing may trigger seizures or other photosensitive reactions. Acknowledging does not make the content safe, and Blackout must remain immediately available. Record an explicit override for the revisions shown in this Preflight report?</value></data>
+  <data name="Ui376" xml:space="preserve"><value>Acknowledge exact revisions</value></data>
+  <data name="Ui377" xml:space="preserve"><value>Revoke flash-risk overrides?</value></data>
+  <data name="Ui378" xml:space="preserve"><value>The affected animation revisions will be blocked again until they are edited to pass safety analysis or explicitly acknowledged again.</value></data>
+  <data name="Ui379" xml:space="preserve"><value>Revoke</value></data>
+  <data name="Ui380" xml:space="preserve"><value>Keep overrides</value></data>
+  <data name="Ui381" xml:space="preserve"><value>Enter degraded Stage?</value></data>
+  <data name="Ui382" xml:space="preserve"><value>Preflight still has warnings. Blackout remains available, but the warnings should be reviewed before live use.</value></data>
+  <data name="Ui383" xml:space="preserve"><value>Enter Stage</value></data>
+  <data name="Ui384" xml:space="preserve"><value>Review warnings</value></data>
+  <data name="Ui385" xml:space="preserve"><value>These exact animation revisions exceed the conservative limit of three full flashes per second. Acknowledging does not make them safe. Keep Blackout immediately available?</value></data>
+  <data name="Ui386" xml:space="preserve"><value>The affected revisions will be blocked again until edited or explicitly acknowledged.</value></data>
+  <data name="Ui387" xml:space="preserve"><value>Hide diagnostics</value></data>
+  <data name="Ui388" xml:space="preserve"><value>Share redacted MaskApp diagnostics</value></data>
+  <data name="Ui389" xml:space="preserve"><value>Export failed</value></data>
+  <data name="Ui390" xml:space="preserve"><value>OK</value></data>
+  <data name="Ui391" xml:space="preserve"><value>Reset this mask&apos;s prepared-slot ledger?</value></data>
+  <data name="Ui392" xml:space="preserve"><value>This clears only MaskApp&apos;s prepared-content record for the active mask. It does not erase physical mask slots, other masks, presets, scenes, or animations.</value></data>
+  <data name="Ui393" xml:space="preserve"><value>Reset active ledger</value></data>
+  <data name="Ui394" xml:space="preserve"><value>Choose a face image</value></data>
+  <data name="Ui395" xml:space="preserve"><value>Import failed</value></data>
+  <data name="Ui396" xml:space="preserve"><value>Camera unavailable</value></data>
+  <data name="Ui397" xml:space="preserve"><value>This device does not report camera capture support.</value></data>
+  <data name="Ui398" xml:space="preserve"><value>Capture a face image</value></data>
+  <data name="Ui399" xml:space="preserve"><value>Camera failed</value></data>
+  <data name="Ui400" xml:space="preserve"><value>Import unavailable</value></data>
+  <data name="Ui401" xml:space="preserve"><value>Image decoding is not available on this platform build.</value></data>
+  <data name="Ui402" xml:space="preserve"><value>Choose a GIF</value></data>
+  <data name="Ui403" xml:space="preserve"><value>Choose a video</value></data>
+  <data name="Ui404" xml:space="preserve"><value>Import rejected</value></data>
+  <data name="Ui405" xml:space="preserve"><value>Choose a MaskPack ZIP archive</value></data>
+  <data name="Ui406" xml:space="preserve"><value>MaskPack inspection failed</value></data>
+  <data name="Ui407" xml:space="preserve"><value>MaskPack export failed</value></data>
+  <data name="Ui408" xml:space="preserve"><value>Share MaskPack</value></data>
+  <data name="Ui411" xml:space="preserve"><value>Connection lifecycle</value></data>
+  <data name="Ui412" xml:space="preserve"><value>{0} columns</value></data>
+  <data name="Ui413" xml:space="preserve"><value>{0} dBm</value></data>
+  <data name="Ui414" xml:space="preserve"><value>{0} frames</value></data>
+  <data name="Ui415" xml:space="preserve"><value>{0}%</value></data>
+  <data name="Ui416" xml:space="preserve"><value>{0} drawing color</value></data>
+  <data name="Ui417" xml:space="preserve"><value>{0} face preview</value></data>
+  <data name="Ui418" xml:space="preserve"><value>{0} faces</value></data>
+  <data name="Ui419" xml:space="preserve"><value>{0} preview</value></data>
+  <data name="Ui420" xml:space="preserve"><value>{0} stock preview</value></data>
+  <data name="Ui421" xml:space="preserve"><value>Frame duration {0:0} ms</value></data>
+  <data name="Ui422" xml:space="preserve"><value>ID {0}</value></data>
+  <data name="Ui423" xml:space="preserve"><value>Last scheduler error: {0}</value></data>
+  <data name="Ui424" xml:space="preserve"><value>Next: {0}</value></data>
+  <data name="Ui425" xml:space="preserve"><value>Open {0} page</value></data>
+  <data name="Ui426" xml:space="preserve"><value>Page: {0}</value></data>
+  <data name="Ui427" xml:space="preserve"><value>Sample {0:0} ms</value></data>
+  <data name="Ui428" xml:space="preserve"><value>Saved {0}</value></data>
+  <data name="Ui429" xml:space="preserve"><value>Sending {0}…</value></data>
+  <data name="Ui430" xml:space="preserve"><value>Slot {0}</value></data>
+  <data name="Ui431" xml:space="preserve"><value>Tempo {0:0.0} BPM</value></data>
+  <data name="Ui432" xml:space="preserve"><value>Total {0}×</value></data>
+  <data name="Ui433" xml:space="preserve"><value>Value {0}%</value></data>
+  <data name="Ui434" xml:space="preserve"><value>Wait {0:0} ms</value></data>
+  <data name="Ui435" xml:space="preserve"><value>Edit</value></data>
+  <data name="Ui436" xml:space="preserve"><value>Select</value></data>
+  <data name="Ui437" xml:space="preserve"><value>Start a scan and keep the mask awake and close by.</value></data>
+  <data name="Ui438" xml:space="preserve"><value>Hold to exit, build Pages or a setlist, run Preflight, then re-enter.</value></data>
+  <data name="Ui439" xml:space="preserve"><value>The checked scope has no known blockers or warnings.</value></data>
+  <data name="Ui440" xml:space="preserve"><value>Send {0}</value></data>
+  <data name="Ui441" xml:space="preserve"><value>Connect a mask and run the finite test before using microphone input.</value></data>
+  <data name="Ui442" xml:space="preserve"><value>Legacy Android client · declared length 15</value></data>
+  <data name="Ui443" xml:space="preserve"><value>Firmware-static · exact payload length</value></data>
+  <data name="Ui444" xml:space="preserve"><value>Mode 0 · palette A</value></data>
+  <data name="Ui445" xml:space="preserve"><value>Mode 1 · palette B</value></data>
+  <data name="Ui446" xml:space="preserve"><value>Mode 2 · duplicated pairs</value></data>
+  <data name="Ui447" xml:space="preserve"><value>Mode 3 · spaced pairs</value></data>
+  <data name="Ui448" xml:space="preserve"><value>Spectrum</value></data>
+  <data name="Ui449" xml:space="preserve"><value>Bass Face</value></data>
+  <data name="Ui450" xml:space="preserve"><value>Voice Mouth</value></data>
+  <data name="Ui451" xml:space="preserve"><value>Drop Detector</value></data>
+  <data name="Ui452" xml:space="preserve"><value>PHYSICALLY CONFIRMED FOR THIS MASK</value></data>
+  <data name="Ui453" xml:space="preserve"><value>AWAITING PHYSICAL CONFIRMATION</value></data>
+  <data name="Ui454" xml:space="preserve"><value>TEST FAILED</value></data>
+  <data name="Ui455" xml:space="preserve"><value>CHARACTERISTIC NOT FOUND</value></data>
+  <data name="Ui456" xml:space="preserve"><value>UNVERIFIED</value></data>
+  <data name="Ui457" xml:space="preserve"><value>Frames sent: {0} · safety-suppressed: {1} · noise floor: {2:0.000}</value></data>
+  <data name="Ui458" xml:space="preserve"><value>Drop Detector is limited to two pulses per second and the live flash gate cannot be overridden.</value></data>
+  <data name="Ui459" xml:space="preserve"><value>All modes use a non-overridable live gate that suppresses a fourth full-bright rise inside one second.</value></data>
+  <data name="Ui460" xml:space="preserve"><value>Connect to a mask before running the finite audio visualization test.</value></data>
+  <data name="Ui461" xml:space="preserve"><value>Run the finite deterministic test on a physical mask before recording a result.</value></data>
+  <data name="Ui462" xml:space="preserve"><value>The finite test ran, but no active mask profile exists; its result was not saved.</value></data>
+  <data name="Ui463" xml:space="preserve"><value>Audio Labs failed. Stop the effect and check Device diagnostics.</value></data>
+  <data name="Ui464" xml:space="preserve"><value>Record Passed only if the full deterministic sequence was visible, stable, and returned to dark on the currently connected physical mask. A BLE write alone is not proof.</value></data>
+  <data name="Ui465" xml:space="preserve"><value>No physical audio visualization evidence has been recorded for this mask.</value></data>
+  <data name="Ui466" xml:space="preserve"><value>The finite test was sent. Confirm the visible result on the physical mask.</value></data>
+  <data name="Ui467" xml:space="preserve"><value>Audio visualization was physically confirmed for this mask.</value></data>
+  <data name="Ui468" xml:space="preserve"><value>Audio visualization failed physical confirmation for this mask.</value></data>
+  <data name="Ui469" xml:space="preserve"><value>The required audio visualization characteristic is unavailable on this mask.</value></data>
+  <data name="Ui470" xml:space="preserve"><value>Audio Labs is stopped.</value></data>
+  <data name="Ui471" xml:space="preserve"><value>Calibrating room noise…</value></data>
+  <data name="Ui472" xml:space="preserve"><value>Starting foreground-only microphone capture…</value></data>
+  <data name="Ui473" xml:space="preserve"><value>Microphone visualizer is running in the foreground.</value></data>
+  <data name="Ui474" xml:space="preserve"><value>Stopping microphone capture…</value></data>
+  <data name="Ui475" xml:space="preserve"><value>Audio Labs is blocked. Check the connection, microphone permission, and physical-test gate.</value></data>
+  <data name="Ui476" xml:space="preserve"><value>Live microphone visualization started.</value></data>
+  <data name="Ui477" xml:space="preserve"><value>Audio visualization stopped.</value></data>
+  <data name="Ui478" xml:space="preserve"><value>Noise calibration completed.</value></data>
+  <data name="Ui479" xml:space="preserve"><value>Blackout sent.</value></data>
+  <data name="Ui480" xml:space="preserve"><value>The audio visualization operation could not be completed. Check the connection and microphone permission.</value></data>
+  <data name="Ui481" xml:space="preserve"><value>Audio visualization is disconnected.</value></data>
+  <data name="Ui482" xml:space="preserve"><value>Discovering audio visualization support…</value></data>
+  <data name="Ui483" xml:space="preserve"><value>Audio visualization is ready.</value></data>
+  <data name="Ui484" xml:space="preserve"><value>Audio visualization is not supported by this mask.</value></data>
+  <data name="Ui485" xml:space="preserve"><value>Audio visualization transport failed.</value></data>
+  <data name="Ui486" xml:space="preserve"><value>Audio visualization simulator is ready.</value></data>
 </root>

@@ -30,8 +30,8 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
     private readonly IAnimationProjectStore animationProjectStore;
     private readonly ISceneShowStore sceneShowStore;
     private readonly IBleDeviceConnection deviceConnection;
+    private readonly IPreflightRuntimeStateProvider runtimeStateProvider;
     private readonly PreflightStatusSession? statusSession;
-    private PreflightPageOption? selectedPage;
     private bool isBusy;
     private string statusText = "NOT READY";
     private string statusColorHex = "#FF5C54";
@@ -47,6 +47,7 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
     private string preparationStatusText = "Run Preflight before preparation.";
     private MaskProfile? analyzedProfile;
     private BleConnectionState analyzedConnectionState = BleConnectionState.Disconnected;
+    private PreflightRuntimeSnapshot? analyzedRuntimeSnapshot;
 
     public FestivalPreflightViewModel(
         ITextPresetStore textPresetStore,
@@ -61,6 +62,7 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
         IFlashSafetyAcknowledgementStore flashSafetyAcknowledgementStore,
         FlashSafetyAcknowledgementService flashSafetyAcknowledgementService,
         IBleDeviceConnection deviceConnection,
+        IPreflightRuntimeStateProvider runtimeStateProvider,
         IAnimationProjectStore? animationProjectStore = null,
         ISceneShowStore? sceneShowStore = null,
         PreflightStatusSession? statusSession = null)
@@ -77,13 +79,14 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
         this.flashSafetyAcknowledgementStore = flashSafetyAcknowledgementStore;
         this.flashSafetyAcknowledgementService = flashSafetyAcknowledgementService;
         this.deviceConnection = deviceConnection;
+        this.runtimeStateProvider = runtimeStateProvider;
         this.animationProjectStore = animationProjectStore ?? new InMemoryAnimationProjectStore();
         this.sceneShowStore = sceneShowStore ?? new InMemorySceneShowStore();
         this.statusSession = statusSession;
 
-        RunSelectedPageCommand = new AsyncRelayCommand(
-            cancellationToken => AnalyzeAsync(selectedOnly: true, cancellationToken),
-            () => !IsBusy && SelectedPage is not null);
+        RunSelectedPagesCommand = new AsyncRelayCommand(
+            RunSelectedPagesAsync,
+            () => !IsBusy && Pages.Any(page => page.IsSelected));
         RunWholeShowCommand = new AsyncRelayCommand(
             cancellationToken => AnalyzeAsync(selectedOnly: false, cancellationToken),
             () => !IsBusy);
@@ -182,25 +185,13 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
         }
     }
 
-    public AsyncRelayCommand RunSelectedPageCommand { get; }
+    public AsyncRelayCommand RunSelectedPagesCommand { get; }
 
     public AsyncRelayCommand RunWholeShowCommand { get; }
 
     public AsyncRelayCommand RunActiveSetlistCommand { get; }
 
     public AsyncRelayCommand PrepareDiyContentCommand { get; }
-
-    public PreflightPageOption? SelectedPage
-    {
-        get => selectedPage;
-        set
-        {
-            if (SetField(ref selectedPage, value))
-            {
-                RunSelectedPageCommand.RaiseCanExecuteChanged();
-            }
-        }
-    }
 
     public bool IsBusy
     {
@@ -209,7 +200,7 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
         {
             if (SetField(ref isBusy, value))
             {
-                RunSelectedPageCommand.RaiseCanExecuteChanged();
+                RunSelectedPagesCommand.RaiseCanExecuteChanged();
                 RunWholeShowCommand.RaiseCanExecuteChanged();
                 RunActiveSetlistCommand.RaiseCanExecuteChanged();
                 PrepareDiyContentCommand.RaiseCanExecuteChanged();
@@ -287,13 +278,32 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasActiveSetlist));
         OnPropertyChanged(nameof(ActiveSetlistText));
         RunActiveSetlistCommand.RaiseCanExecuteChanged();
+        var selectedPageIds = Pages
+            .Where(page => page.IsSelected)
+            .Select(page => page.PageId)
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (var page in Pages)
+        {
+            page.PropertyChanged -= HandlePageSelectionChanged;
+        }
+
         Pages.Clear();
         foreach (var page in layout.Pages)
         {
-            Pages.Add(new PreflightPageOption(page.PageId, page.Title));
+            var option = new PreflightPageOption(page.PageId, page.Title)
+            {
+                IsSelected = selectedPageIds.Contains(page.PageId)
+            };
+            option.PropertyChanged += HandlePageSelectionChanged;
+            Pages.Add(option);
         }
 
-        SelectedPage ??= Pages.FirstOrDefault();
+        if (Pages.Count > 0 && !Pages.Any(page => page.IsSelected))
+        {
+            Pages[0].IsSelected = true;
+        }
+
+        RunSelectedPagesCommand.RaiseCanExecuteChanged();
         await AnalyzeAsync(selectedOnly: false, cancellationToken);
     }
 
@@ -305,6 +315,9 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
             cancellationToken,
             activeSetlist: HasActiveSetlist);
     }
+
+    public Task RunSelectedPagesAsync(CancellationToken cancellationToken = default) =>
+        AnalyzeAsync(selectedOnly: true, cancellationToken);
 
     private async Task AnalyzeAsync(
         bool selectedOnly,
@@ -324,6 +337,7 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
             var faceState = await facePatternStore.LoadAsync(cancellationToken);
             var layout = (await galleryLayoutStore.LoadAsync(cancellationToken)).Normalize();
             var profile = await profileSession.GetActiveProfileAsync(cancellationToken);
+            var runtimeSnapshot = await runtimeStateProvider.GetSnapshotAsync(cancellationToken);
             var safetyAcknowledgements = await flashSafetyAcknowledgementStore.LoadAsync(cancellationToken);
             var animationState = await animationProjectStore.LoadAsync(cancellationToken);
             sceneState = (await sceneShowStore.LoadAsync(cancellationToken)).Normalize();
@@ -337,8 +351,8 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
             var analysisLayout = activeSetlist
                 ? CreateActiveSetlistLayout(sceneState)
                 : layout;
-            var selectedPageIds = !activeSetlist && selectedOnly && SelectedPage is not null
-                ? new[] { SelectedPage.PageId }
+            var selectedPageIds = !activeSetlist && selectedOnly
+                ? Pages.Where(page => page.IsSelected).Select(page => page.PageId).ToArray()
                 : [];
             var report = analyzer.Analyze(new FestivalPreflightRequest
             {
@@ -348,6 +362,8 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
                 ActiveProfile = profile,
                 SchedulerSnapshot = scheduler.GetSnapshot(),
                 ConnectionState = deviceConnection.State,
+                RuntimeSnapshot = runtimeSnapshot,
+                RequiredRuntimePermissions = PreflightRuntimeRequirement.Bluetooth,
                 FlashSafetyAcknowledgements = safetyAcknowledgements,
                 EvaluatedAt = DateTimeOffset.UtcNow
             });
@@ -355,6 +371,7 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
             currentReport = report;
             analyzedProfile = profile;
             analyzedConnectionState = deviceConnection.State;
+            analyzedRuntimeSnapshot = runtimeSnapshot;
             lastRunSelectedOnly = selectedOnly;
             lastRunActiveSetlist = activeSetlist;
             ApplyReport(report);
@@ -365,8 +382,10 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
                 DateTimeOffset.UtcNow));
             ScopeText = activeSetlist && HasActiveSetlist
                 ? $"Setlist · {sceneState.Setlists.First(setlist => setlist.Id == sceneState.ActiveSetlistId).DisplayName}"
-                : selectedOnly && SelectedPage is not null
-                ? SelectedPage.DisplayName
+                : selectedOnly
+                ? selectedPageIds.Length == 1
+                    ? Pages.First(page => page.PageId == selectedPageIds[0]).DisplayName
+                    : $"Selected Pages · {selectedPageIds.Length}"
                 : $"Whole show · {layout.Pages.Count} Page(s)";
             OnPropertyChanged(nameof(HasActiveSetlist));
             OnPropertyChanged(nameof(ActiveSetlistText));
@@ -408,6 +427,7 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
             currentCatalog = [];
             analyzedProfile = null;
             analyzedConnectionState = deviceConnection.State;
+            analyzedRuntimeSnapshot = null;
             NotifyReportStateChanged();
             statusSession?.Update(new PreflightStatusSnapshot(
                 FestivalPreflightStatus.NotReady,
@@ -600,6 +620,13 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
                 "The active physical mask is connected for this check."));
         }
 
+        if (analyzedRuntimeSnapshot?.BluetoothAccess == PreflightRuntimeAccessStatus.Granted)
+        {
+            VerifiedChecks.Add(new PreflightVerifiedCheck(
+                "Bluetooth access granted",
+                analyzedRuntimeSnapshot.BluetoothDetail));
+        }
+
         if (analyzedProfile?.Capabilities.CommandWriteAvailable == true)
         {
             VerifiedChecks.Add(new PreflightVerifiedCheck(
@@ -658,4 +685,12 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+    private void HandlePageSelectionChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName == nameof(PreflightPageOption.IsSelected))
+        {
+            RunSelectedPagesCommand.RaiseCanExecuteChanged();
+        }
+    }
 }

@@ -9,4 +9,6 @@ public sealed record MaskBleSchedulerOptions
     public TimeSpan TextUploadTimeout { get; init; } = TimeSpan.FromMinutes(2);
 
     public TimeSpan FaceUploadTimeout { get; init; } = TimeSpan.FromMinutes(5);
+
+    public TimeSpan AudioVisualizationTimeout { get; init; } = TimeSpan.FromSeconds(2);
 }

@@ -1,3 +1,4 @@
+using MaskApp.App.Resources.Strings;
 using MaskApp.App.Infrastructure.Accessibility;
 using MaskApp.Core.Features.BuiltIns;
 
@@ -62,6 +63,6 @@ public partial class BuiltInDetailPage : ContentPage, IQueryAttributable
     private void OnToggleDiagnosticsClicked(object? sender, EventArgs e)
     {
         DiagnosticsPanel.IsVisible = !DiagnosticsPanel.IsVisible;
-        DiagnosticsToggle.Text = DiagnosticsPanel.IsVisible ? "Hide diagnostics" : "Show diagnostics";
+        DiagnosticsToggle.Text = DiagnosticsPanel.IsVisible ? AppText.Get("Ui387") : AppText.Get("Ui313");
     }
 }
