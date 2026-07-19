@@ -90,6 +90,10 @@ jobs:
         shell: bash
         run: dotnet test tests/MaskApp.Core.Tests/MaskApp.Core.Tests.csproj -c Release --no-restore
 
+      - name: Build and test Apple Watch app
+        shell: bash
+        run: bash build/scripts/test-watch-app.sh
+
       - name: Build unsigned iOS app
         shell: bash
         run: >-
@@ -290,6 +294,7 @@ jobs:
           IOS_BUILD_CERTIFICATE_BASE64: ${{ secrets.IOS_BUILD_CERTIFICATE_BASE64 }}
           IOS_P12_PASSWORD: ${{ secrets.IOS_P12_PASSWORD }}
           IOS_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
+          WATCHOS_PROVISION_PROFILE_BASE64: ${{ secrets.WATCHOS_PROVISION_PROFILE_BASE64 }}
           IOS_KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
         run: bash build/scripts/install-ios-signing.sh
 
@@ -315,6 +320,9 @@ jobs:
             -p:RuntimeIdentifier=ios-arm64
             "-p:CodesignKey=$IOS_CODESIGN_KEY"
             "-p:CodesignProvision=$IOS_PROFILE_NAME"
+            "-p:WatchDevelopmentTeam=$IOS_TEAM_ID"
+            "-p:WatchCodesignKey=$IOS_CODESIGN_KEY"
+            "-p:WatchCodesignProvision=$WATCHOS_PROFILE_NAME"
             "-p:ApplicationDisplayVersion=$DISPLAY_VERSION"
             "-p:ApplicationVersion=$BUILD_NUMBER"
           )
@@ -332,6 +340,10 @@ jobs:
           cp "$ipa_path" "dist/ipa/$IPA_FILE_NAME"
           echo "IPA_PATH=dist/ipa/$IPA_FILE_NAME" >> "$GITHUB_ENV"
           echo "Created dist/ipa/$IPA_FILE_NAME"
+
+      - name: Verify embedded Apple Watch app
+        shell: bash
+        run: bash build/scripts/verify-watch-ipa.sh "$IPA_PATH" "$APP_BUNDLE_ID" "${APP_BUNDLE_ID}.watchkitapp"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4

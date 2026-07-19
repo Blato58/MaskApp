@@ -1,0 +1,36 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">iossimulator-arm64</RuntimeIdentifier>
+    <ApplicationDisplayVersion Condition="'$(ApplicationDisplayVersion)' == ''">1.2.6</ApplicationDisplayVersion>
+    <ApplicationVersion Condition="'$(ApplicationVersion)' == ''">126</ApplicationVersion>
+    <WatchXcodeProject>$(MSBuildThisFileDirectory)MaskApp.Watch.xcodeproj</WatchXcodeProject>
+    <WatchScheme>MaskApp Watch</WatchScheme>
+    <WatchSdk Condition="$([System.String]::Copy('$(RuntimeIdentifier)').Contains('simulator'))">watchsimulator</WatchSdk>
+    <WatchSdk Condition="'$(WatchSdk)' == ''">watchos</WatchSdk>
+    <WatchDestination Condition="'$(WatchSdk)' == 'watchsimulator'">generic/platform=watchOS Simulator</WatchDestination>
+    <WatchDestination Condition="'$(WatchDestination)' == ''">generic/platform=watchOS</WatchDestination>
+    <WatchProductSuffix Condition="'$(WatchSdk)' == 'watchsimulator'">watchsimulator</WatchProductSuffix>
+    <WatchProductSuffix Condition="'$(WatchProductSuffix)' == ''">watchos</WatchProductSuffix>
+    <WatchDerivedDataPath>$(MSBuildThisFileDirectory)obj/$(Configuration)/$(WatchSdk)</WatchDerivedDataPath>
+    <WatchAppBundle>$(WatchDerivedDataPath)/Build/Products/$(Configuration)-$(WatchProductSuffix)/MaskApp Watch.app</WatchAppBundle>
+    <WatchBuildArguments>MARKETING_VERSION=$(ApplicationDisplayVersion) CURRENT_PROJECT_VERSION=$(ApplicationVersion)</WatchBuildArguments>
+    <WatchBuildArguments Condition="'$(WatchSdk)' == 'watchsimulator'">$(WatchBuildArguments) CODE_SIGNING_ALLOWED=NO</WatchBuildArguments>
+    <WatchBuildArguments Condition="'$(WatchSdk)' == 'watchos' and '$(WatchDevelopmentTeam)' != ''">$(WatchBuildArguments) CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=$(WatchDevelopmentTeam) CODE_SIGN_IDENTITY=&quot;$(WatchCodesignKey)&quot; PROVISIONING_PROFILE_SPECIFIER=&quot;$(WatchCodesignProvision)&quot;</WatchBuildArguments>
+    <RestoreProjectStyle>None</RestoreProjectStyle>
+  </PropertyGroup>
+
+  <Target Name="Restore" />
+  <Target Name="_GenerateRestoreProjectPathWalk" />
+  <Target Name="_GenerateRestoreGraphProjectEntry" />
+
+  <Target Name="Build" Returns="@(_WatchAppOutput)">
+    <Exec Command="/usr/bin/xcodebuild -project &quot;$(WatchXcodeProject)&quot; -scheme &quot;$(WatchScheme)&quot; -configuration &quot;$(Configuration)&quot; -sdk &quot;$(WatchSdk)&quot; -destination &quot;$(WatchDestination)&quot; -derivedDataPath &quot;$(WatchDerivedDataPath)&quot; $(WatchBuildArguments) build" />
+    <Error Condition="!Exists('$(WatchAppBundle)')" Text="The Apple Watch build did not produce $(WatchAppBundle)." />
+    <ItemGroup>
+      <_WatchAppOutput Include="$(WatchAppBundle)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="GetBundleTargetPath" DependsOnTargets="Build" Returns="@(_WatchAppOutput)" />
+</Project>

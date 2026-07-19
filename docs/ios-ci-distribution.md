@@ -14,15 +14,24 @@ Feather/AltStore-style update source to GitHub Pages.
 - Paid Apple Developer account.
 - App ID / bundle identifier matching the MAUI app `ApplicationId`:
   `app.turquoise6409.green2444`.
+- Apple Watch App ID `app.turquoise6409.green2444.watchkitapp` associated with
+  the iPhone App ID.
 - iPhone UDID registered in the Apple Developer portal.
+- Paired Apple Watch UDID registered in the Apple Developer portal.
 - Ad Hoc provisioning profile for this app and device, or another profile that
   fits the chosen distribution method.
+- Ad Hoc watchOS provisioning profile for the Watch App ID and paired watch.
 - Distribution certificate exported as `.p12` with the private key.
-- `.mobileprovision` file downloaded from Apple Developer.
+- iOS and watchOS `.mobileprovision` files downloaded from Apple Developer.
 
 Use an Ad Hoc provisioning profile for the first physical iPhone install path.
 That profile must include the iPhone UDID and must be issued for
 `app.turquoise6409.green2444`.
+The watchOS profile must include the paired Apple Watch UDID, be issued for
+`app.turquoise6409.green2444.watchkitapp`, and belong to the same Apple team.
+The same distribution certificate signs both targets. If a third-party signing
+provider owns the certificate, that provider must also supply the matching
+watchOS profile; the certificate file alone cannot create one.
 
 ## GitHub Secrets
 
@@ -32,6 +41,7 @@ Create these repository or organization secrets:
 IOS_BUILD_CERTIFICATE_BASE64
 IOS_P12_PASSWORD
 IOS_PROVISION_PROFILE_BASE64
+WATCHOS_PROVISION_PROFILE_BASE64
 IOS_KEYCHAIN_PASSWORD
 IOS_CODESIGN_KEY
 NTFY_UPDATE_TOPIC_URL
@@ -40,7 +50,9 @@ NTFY_UPDATE_TOKEN
 
 `IOS_BUILD_CERTIFICATE_BASE64` is the Base64 text of the `.p12` file.
 `IOS_PROVISION_PROFILE_BASE64` is the Base64 text of the `.mobileprovision`
-file. `IOS_CODESIGN_KEY` is the full signing identity name, usually shaped like:
+file. `WATCHOS_PROVISION_PROFILE_BASE64` is the Base64 text of the watchOS
+`.mobileprovision` file. `IOS_CODESIGN_KEY` is the full signing identity name,
+usually shaped like:
 
 ```text
 Apple Distribution: Your Name (TEAMID)
@@ -64,7 +76,8 @@ Copy the `.p12` content to the clipboard:
 [Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\path\certificate.p12")) | Set-Clipboard
 ```
 
-Copy the provisioning profile content to the clipboard:
+Copy either provisioning profile content to the clipboard, then store the
+result in its matching GitHub secret:
 
 ```powershell
 [Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\path\profile.mobileprovision")) | Set-Clipboard
@@ -79,11 +92,12 @@ Every push to `master` runs `.github/workflows/ios-ipa.yml`, builds the signed
 IPA, creates or updates a GitHub Release, and updates the GitHub Pages install
 site with the release-backed IPA URL.
 
-Core tests, an unsigned iOS simulator build, and the Android build gate pull
-requests plus every push, tag, and manual distribution run. The signed
-`ios-arm64` job cannot install signing assets or publish an IPA until that
-validation job succeeds. This intentionally compiles iOS twice on distribution
-runs so a normal unsigned build is proven before signing begins.
+Core tests, native watchOS simulator tests, an unsigned iOS simulator build, and
+the Android build gate pull requests plus every push, tag, and manual
+distribution run. The signed `ios-arm64` job cannot install signing assets or
+publish an IPA until that validation job succeeds. This intentionally compiles
+iOS twice on distribution runs so a normal unsigned build is proven before
+signing begins.
 
 For `master` branch pushes, the release tag is generated as
 `ios-v<ApplicationDisplayVersion>-<GitHub run number>`.
@@ -151,9 +165,17 @@ GitHub Pages is available:
 1. Open the generated GitHub Pages install page on the iPhone.
 2. Add the source to Feather or an AltStore-style installer.
 3. Install the latest build.
-4. For updates, run the workflow again with a higher version or build number.
-5. The source JSON keeps the newest IPA first so update checks see the latest
+4. In the iPhone Watch app, confirm that automatic app installation is enabled,
+   or install Shining Mask from the Available Apps section.
+5. Open Shining Mask on the iPhone, connect the mask, and leave the app in the
+   foreground while using non-emergency watch controls.
+6. For updates, run the workflow again with a higher version or build number.
+7. The source JSON keeps the newest IPA first so update checks see the latest
    build.
+
+The workflow rejects an IPA if the watch app is missing, has the wrong bundle
+identifier, does not point back to the iPhone app, lacks its embedded
+provisioning profile, or fails code-signature verification.
 
 The Pages output contains:
 

@@ -34,6 +34,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MaskApp.Core\MaskApp.Core.csproj" />
+    <ProjectReference
+      Include="..\MaskApp.Watch\MaskApp.Watch.proj"
+      Condition="$([MSBuild]::IsOSPlatform('OSX')) And $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'"
+      IsWatchApp="true"
+      ReferenceOutputAssembly="false"
+      SkipGetTargetFrameworkProperties="true"
+      AdditionalProperties="ApplicationDisplayVersion=$(ApplicationDisplayVersion);ApplicationVersion=$(ApplicationVersion);WatchDevelopmentTeam=$(WatchDevelopmentTeam);WatchCodesignKey=$(WatchCodesignKey);WatchCodesignProvision=$(WatchCodesignProvision)" />
   </ItemGroup>
 
 </Project>
