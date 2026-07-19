@@ -1,16 +1,15 @@
-using MaskApp.App.Features.Connect;
 using MaskApp.App.Features.Animations;
 using MaskApp.App.Features.AnimationPacks;
 using MaskApp.App.Features.BuiltIns;
 using MaskApp.App.Features.Faces;
-using MaskApp.App.Features.Gallery;
-using MaskApp.App.Features.Home;
-using MaskApp.App.Features.React;
-using MaskApp.App.Features.Rave;
 using MaskApp.App.Features.Preflight;
-using MaskApp.App.Features.Scenes;
 using MaskApp.App.Features.Stage;
 using MaskApp.App.Features.Text;
+using MaskApp.App.Features.Device;
+using MaskApp.App.Features.Library;
+using MaskApp.App.Features.Live;
+using MaskApp.App.Features.Onboarding;
+using MaskApp.App.Features.Shows;
 using MaskApp.App.Infrastructure.Bluetooth;
 using MaskApp.App.Infrastructure.Accessibility;
 using MaskApp.App.Infrastructure.Media;
@@ -27,17 +26,17 @@ using MaskApp.Core.Features.AnimationPacks;
 using MaskApp.Core.Features.BuiltIns;
 using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.Gallery;
-using MaskApp.Core.Features.Home;
 using MaskApp.Core.Features.MaskControl;
 using MaskApp.Core.Features.QuickActions;
 using MaskApp.Core.Features.Profiles;
 using MaskApp.Core.Features.Preflight;
 using MaskApp.Core.Features.Stage;
-using MaskApp.Core.Features.React;
-using MaskApp.Core.Features.Rave;
 using MaskApp.Core.Features.Scenes;
 using MaskApp.Core.Features.Text;
 using MaskApp.Core.Features.TextPresets;
+using MaskApp.Core.Features.Experience;
+using MaskApp.Core.Features.Live;
+using MaskApp.Core.Features.Shows;
 using Microsoft.Extensions.Logging;
 
 namespace MaskApp.App;
@@ -51,12 +50,13 @@ public static class MauiProgram
             .UseMauiApp<App>();
 
         builder.Services.AddSingleton<AppShell>();
-        builder.Services.AddTransient<HomePage>();
-        builder.Services.AddTransient<HomeViewModel>();
-        builder.Services.AddTransient<ConnectPage>();
-        builder.Services.AddTransient<ConnectViewModel>();
+        builder.Services.AddSingleton<ConnectViewModel>();
+        builder.Services.AddTransient<DevicePage>();
+        builder.Services.AddTransient<DevicePickerPage>();
+        builder.Services.AddTransient<DiagnosticsPage>();
+        builder.Services.AddTransient<OnboardingPage>();
         builder.Services.AddTransient<BuiltInsPage>();
-        builder.Services.AddTransient<BuiltInDetailPage>();
+        builder.Services.AddTransient<StockContentDetailPage>();
         builder.Services.AddSingleton<BuiltInsViewModel>();
         builder.Services.AddTransient<FaceStudioPage>();
         builder.Services.AddTransient<FaceStudioViewModel>();
@@ -64,39 +64,36 @@ public static class MauiProgram
         builder.Services.AddTransient<AnimationStudioViewModel>();
         builder.Services.AddTransient<MaskPackPage>();
         builder.Services.AddTransient<MaskPackViewModel>();
-        builder.Services.AddTransient<SceneStudioPage>();
-        builder.Services.AddTransient<SceneStudioViewModel>();
-        builder.Services.AddTransient<GalleryPage>();
+        builder.Services.AddSingleton<SceneStudioViewModel>();
+        builder.Services.AddSingleton<ShowsViewModel>();
+        builder.Services.AddTransient<ShowsPage>();
+        builder.Services.AddTransient<ShowBuilderPage>();
+        builder.Services.AddTransient<SceneEditorPage>();
         builder.Services.AddTransient<GalleryViewModel>();
-        builder.Services.AddTransient<LibraryAddPage>();
-        builder.Services.AddTransient<PagesPage>();
-        builder.Services.AddTransient<PagesViewModel>();
-        builder.Services.AddTransient<PageAddItemPage>();
-        builder.Services.AddTransient<PageAddItemViewModel>();
+        builder.Services.AddTransient<LibraryPage>();
+        builder.Services.AddSingleton<PagesViewModel>();
+        builder.Services.AddSingleton<LiveViewModel>();
+        builder.Services.AddTransient<LivePage>();
+        builder.Services.AddTransient<DeckEditorPage>();
         builder.Services.AddTransient<MaskControlViewModel>();
         builder.Services.AddTransient<TextPage>();
         builder.Services.AddTransient<TextUploadViewModel>();
-        builder.Services.AddTransient<ReactPage>();
-        builder.Services.AddTransient<ReactViewModel>();
-        builder.Services.AddTransient<RavePage>();
-        builder.Services.AddTransient<RaveViewModel>();
         builder.Services.AddTransient<FestivalPreflightPage>();
-        builder.Services.AddTransient<FestivalPreflightViewModel>();
+        builder.Services.AddSingleton<FestivalPreflightViewModel>();
         builder.Services.AddTransient<StageModePage>();
         builder.Services.AddTransient<StageModeViewModel>();
-        builder.Services.AddTransient<StageHubPage>();
-        builder.Services.AddTransient<StageHubViewModel>();
         builder.Services.AddTransient<PagesStageShowSource>();
         builder.Services.AddTransient<IStageShowSource, PerformanceStageShowSource>();
-        builder.Services.AddTransient<IStageReadinessProvider, PreflightStageReadinessProvider>();
-        builder.Services.AddSingleton<IStageDeviceFeedback, MauiStageDeviceFeedback>();
+        builder.Services.AddSingleton<IStageReadinessProvider, PreflightStageReadinessProvider>();
+        builder.Services.AddSingleton<MauiStageDeviceFeedback>();
+        builder.Services.AddSingleton<IStageDeviceFeedback>(sp => sp.GetRequiredService<MauiStageDeviceFeedback>());
         builder.Services.AddSingleton<IStageDisplayControl, MauiStageDisplayControl>();
         builder.Services.AddSingleton<DiySlotAllocator>();
         builder.Services.AddSingleton<FlashSafetyAnalyzer>();
         builder.Services.AddSingleton<AnimationLoadAnalyzer>();
         builder.Services.AddSingleton<FestivalPreflightAnalyzer>();
         builder.Services.AddSingleton<PreflightStatusSession>();
-        builder.Services.AddTransient<FestivalShowPreparationService>();
+        builder.Services.AddSingleton<FestivalShowPreparationService>();
         builder.Services.AddSingleton<QuickActionCatalog>();
         builder.Services.AddSingleton<IQuickActionTextSettingsStore, JsonQuickActionTextSettingsStore>();
         builder.Services.AddTransient<IQuickActionDispatcher, QuickActionDispatcher>();
@@ -129,6 +126,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<IBuiltInAssetArchiveStore, JsonBuiltInAssetArchiveStore>();
         builder.Services.AddSingleton<IBleAutoConnectSettingsStore, JsonBleAutoConnectSettingsStore>();
         builder.Services.AddSingleton<IGalleryLayoutStore, JsonGalleryLayoutStore>();
+        builder.Services.AddSingleton<IAppExperienceSettingsStore, JsonAppExperienceSettingsStore>();
+        builder.Services.AddSingleton<ContentCatalogQuery>();
         builder.Services.AddSingleton<SceneValidator>();
         builder.Services.AddSingleton<MaskPackArchiveService>(sp => new MaskPackArchiveService(
             sp.GetRequiredService<ITextPresetStore>(),
@@ -142,7 +141,11 @@ public static class MauiProgram
         builder.Services.AddSingleton<ISceneItemDispatcher, GallerySceneItemDispatcher>();
 
 #if IOS
-        builder.Services.AddSingleton<IMotionPreference, IosMotionPreference>();
+        builder.Services.AddSingleton<IosMotionPreference>();
+        builder.Services.AddSingleton<ExperienceMotionPreference>(sp => new ExperienceMotionPreference(
+            sp.GetRequiredService<IosMotionPreference>(),
+            sp.GetRequiredService<IAppExperienceSettingsStore>()));
+        builder.Services.AddSingleton<IMotionPreference>(sp => sp.GetRequiredService<ExperienceMotionPreference>());
         builder.Services.AddSingleton<IosBleAdapter>();
         builder.Services.AddSingleton<IBleScanner>(sp => sp.GetRequiredService<IosBleAdapter>());
         builder.Services.AddSingleton<ProfiledBleDeviceConnection>(sp =>
@@ -173,7 +176,11 @@ public static class MauiProgram
         builder.Services.AddSingleton<IFaceImageDecoder, IosFaceImageDecoder>();
         builder.Services.AddSingleton<IAnimationMediaDecoder, IosAnimationMediaDecoder>();
 #elif ANDROID
-        builder.Services.AddSingleton<IMotionPreference, AndroidMotionPreference>();
+        builder.Services.AddSingleton<AndroidMotionPreference>();
+        builder.Services.AddSingleton<ExperienceMotionPreference>(sp => new ExperienceMotionPreference(
+            sp.GetRequiredService<AndroidMotionPreference>(),
+            sp.GetRequiredService<IAppExperienceSettingsStore>()));
+        builder.Services.AddSingleton<IMotionPreference>(sp => sp.GetRequiredService<ExperienceMotionPreference>());
         builder.Services.AddSingleton<AndroidBleAdapter>();
         builder.Services.AddSingleton<IBleScanner>(sp => sp.GetRequiredService<AndroidBleAdapter>());
         builder.Services.AddSingleton<ProfiledBleDeviceConnection>(sp =>

@@ -33,8 +33,6 @@
   <string>Shining Mask uses Bluetooth to discover and connect to your mask.</string>
   <key>NSCameraUsageDescription</key>
   <string>Shining Mask uses the camera to create custom mask images.</string>
-  <key>NSMicrophoneUsageDescription</key>
-  <string>Shining Mask uses the microphone for rhythm effects.</string>
   <key>NSPhotoLibraryUsageDescription</key>
   <string>Shining Mask imports images from your photo library for custom mask images.</string>
   <key>XSAppIconAssets</key>

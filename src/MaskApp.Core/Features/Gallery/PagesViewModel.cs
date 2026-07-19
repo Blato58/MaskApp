@@ -39,6 +39,7 @@ public sealed class PagesViewModel : INotifyPropertyChanged
     private readonly ISceneShowStore sceneShowStore;
     private readonly SceneExecutionEngine? sceneEngine;
     private readonly SceneReadinessEvaluator sceneReadinessEvaluator;
+    private readonly ContentCatalogQuery? contentCatalogQuery;
     private GalleryLayoutState layoutState = new();
     private FacePatternStoreState faceState = new();
     private IReadOnlyList<GalleryItem> allItems = [];
@@ -75,7 +76,8 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         IAnimationProjectStore? animationProjectStore = null,
         ISceneShowStore? sceneShowStore = null,
         SceneExecutionEngine? sceneEngine = null,
-        SceneReadinessEvaluator? sceneReadinessEvaluator = null)
+        SceneReadinessEvaluator? sceneReadinessEvaluator = null,
+        ContentCatalogQuery? contentCatalogQuery = null)
     {
         catalogBuilder = new GalleryCatalogBuilder(quickActionCatalog);
         this.textPresetStore = textPresetStore;
@@ -92,6 +94,7 @@ public sealed class PagesViewModel : INotifyPropertyChanged
         this.sceneShowStore = sceneShowStore ?? new InMemorySceneShowStore();
         this.sceneEngine = sceneEngine;
         this.sceneReadinessEvaluator = sceneReadinessEvaluator ?? new SceneReadinessEvaluator();
+        this.contentCatalogQuery = contentCatalogQuery;
 
         AddPageCommand = new AsyncRelayCommand(AddPageAsync);
         RemovePageCommand = new AsyncRelayCommand(OpenDeleteConfirmationAsync, () => Pages.Count > 1);
@@ -303,13 +306,23 @@ public sealed class PagesViewModel : INotifyPropertyChanged
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        layoutState = (await layoutStore.LoadAsync(cancellationToken)).Normalize();
-        var textState = await textPresetStore.LoadAsync(cancellationToken);
-        var archive = await builtInArchiveStore.LoadAsync(cancellationToken);
-        faceState = (await facePatternStore.LoadAsync(cancellationToken)).Normalize();
-        var animationState = await animationProjectStore.LoadAsync(cancellationToken);
-        var sceneState = await sceneShowStore.LoadAsync(cancellationToken);
-        allItems = catalogBuilder.Build(textState, archive, faceState, layoutState.Order, animationState, sceneState);
+        if (contentCatalogQuery is not null)
+        {
+            var snapshot = await contentCatalogQuery.LoadAsync(cancellationToken);
+            layoutState = snapshot.Layout;
+            faceState = snapshot.Faces;
+            allItems = snapshot.Items;
+        }
+        else
+        {
+            layoutState = (await layoutStore.LoadAsync(cancellationToken)).Normalize();
+            var textState = await textPresetStore.LoadAsync(cancellationToken);
+            var archive = await builtInArchiveStore.LoadAsync(cancellationToken);
+            faceState = (await facePatternStore.LoadAsync(cancellationToken)).Normalize();
+            var animationState = await animationProjectStore.LoadAsync(cancellationToken);
+            var sceneState = await sceneShowStore.LoadAsync(cancellationToken);
+            allItems = catalogBuilder.Build(textState, archive, faceState, layoutState.Order, animationState, sceneState);
+        }
         SelectedPage = layoutState.Pages.FirstOrDefault(page => page.PageId == SelectedPage.PageId)
             ?? layoutState.Pages.First();
         RebuildCards();

@@ -10,7 +10,7 @@
     x:DataType="animations:AnimationStudioViewModel"
     Title="{x:Static loc:AppText.AnimationStudio}"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="{StaticResource PageBackgroundColor}">
+    BackgroundColor="{AppThemeBinding Dark={StaticResource DarkCanvasColor}, Light={StaticResource LightCanvasColor}}">
     <Grid>
         <ScrollView>
             <VerticalStackLayout Padding="12,12,12,24" Spacing="14">

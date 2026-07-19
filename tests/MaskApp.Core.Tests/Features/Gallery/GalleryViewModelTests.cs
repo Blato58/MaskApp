@@ -214,7 +214,7 @@ public sealed class GalleryViewModelTests
         Assert.True(viewModel.IsManageSheetVisible);
         Assert.Equal("Sheet managed item", viewModel.ManagedItemTitle);
         Assert.True(viewModel.ManagedItemCanOpenEditor);
-        Assert.Equal("Open Text Composer", viewModel.ManagedItemEditorLabel);
+        Assert.Equal("Open Text Studio", viewModel.ManagedItemEditorLabel);
     }
 
     [Fact]

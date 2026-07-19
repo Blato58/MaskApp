@@ -1,5 +1,6 @@
 using MaskApp.App.Infrastructure.Accessibility;
 using MaskApp.Core.Features.BuiltIns;
+using MaskApp.Core.Features.Experience;
 
 namespace MaskApp.App.Features.BuiltIns;
 
@@ -42,6 +43,6 @@ public partial class BuiltInsPage : ContentPage
             return;
         }
 
-        await Shell.Current.GoToAsync($"built-in-detail?type={item.Type}&id={item.Id}");
+        await Shell.Current.GoToAsync(AppRoutes.ForStockDetail(item.Type.ToString(), item.Id));
     }
 }

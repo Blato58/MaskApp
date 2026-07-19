@@ -9,6 +9,7 @@ using MaskApp.Core.Features.QuickActions;
 using MaskApp.Core.Features.Scenes;
 using MaskApp.Core.Features.Text;
 using MaskApp.Core.Features.TextPresets;
+using MaskApp.Core.Features.Experience;
 
 namespace MaskApp.Core.Features.Gallery;
 
@@ -29,6 +30,7 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
     private readonly ISceneShowStore sceneShowStore;
     private readonly SceneExecutionEngine? sceneEngine;
     private readonly IBleDeviceConnection? deviceConnection;
+    private readonly ContentCatalogQuery? contentCatalogQuery;
     private readonly HashSet<string> selectedItemIds = new(StringComparer.Ordinal);
     private GalleryLayoutState layoutState = new();
     private FacePatternStoreState faceState = new();
@@ -72,7 +74,8 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         IAnimationProjectStore? animationProjectStore = null,
         ISceneShowStore? sceneShowStore = null,
         SceneExecutionEngine? sceneEngine = null,
-        IBleDeviceConnection? deviceConnection = null)
+        IBleDeviceConnection? deviceConnection = null,
+        ContentCatalogQuery? contentCatalogQuery = null)
     {
         catalogBuilder = new GalleryCatalogBuilder(quickActionCatalog);
         this.textPresetStore = textPresetStore;
@@ -89,6 +92,7 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
         this.sceneShowStore = sceneShowStore ?? new InMemorySceneShowStore();
         this.sceneEngine = sceneEngine;
         this.deviceConnection = deviceConnection;
+        this.contentCatalogQuery = contentCatalogQuery;
         connectionState = deviceConnection?.State ?? BleConnectionState.Disconnected;
         if (deviceConnection is not null)
         {
@@ -549,10 +553,11 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
 
     public string ManagedItemEditorLabel => ManagedItem?.ManageTarget switch
     {
-        "text" => "Open Text Composer",
-        "faces" => "Open Face Studio",
-        "builtins" => "Open Built-in Scanner",
-        "animation-studio" => "Open Animation Studio",
+        AppRoutes.TextStudio => "Open Text Studio",
+        AppRoutes.FaceStudio => "Open Face Studio",
+        AppRoutes.StockCatalog => "Open Stock Catalog",
+        AppRoutes.AnimationStudio => "Open Animation Studio",
+        AppRoutes.SceneEditor => "Open Scene Editor",
         _ => "Editor unavailable"
     };
 
@@ -563,13 +568,23 @@ public sealed class GalleryViewModel : INotifyPropertyChanged
             IsLoading = true;
             LoadErrorText = string.Empty;
             ConnectionState = deviceConnection?.State ?? ConnectionState;
-            layoutState = (await layoutStore.LoadAsync(cancellationToken)).Normalize();
-            var textState = await textPresetStore.LoadAsync(cancellationToken);
-            var builtIns = await builtInArchiveStore.LoadAsync(cancellationToken);
-            faceState = await facePatternStore.LoadAsync(cancellationToken);
-            var animationState = await animationProjectStore.LoadAsync(cancellationToken);
-            var sceneState = await sceneShowStore.LoadAsync(cancellationToken);
-            allItems = catalogBuilder.Build(textState, builtIns, faceState, layoutState.Order, animationState, sceneState);
+            if (contentCatalogQuery is not null)
+            {
+                var snapshot = await contentCatalogQuery.LoadAsync(cancellationToken);
+                layoutState = snapshot.Layout;
+                faceState = snapshot.Faces;
+                allItems = snapshot.Items;
+            }
+            else
+            {
+                layoutState = (await layoutStore.LoadAsync(cancellationToken)).Normalize();
+                var textState = await textPresetStore.LoadAsync(cancellationToken);
+                var builtIns = await builtInArchiveStore.LoadAsync(cancellationToken);
+                faceState = await facePatternStore.LoadAsync(cancellationToken);
+                var animationState = await animationProjectStore.LoadAsync(cancellationToken);
+                var sceneState = await sceneShowStore.LoadAsync(cancellationToken);
+                allItems = catalogBuilder.Build(textState, builtIns, faceState, layoutState.Order, animationState, sceneState);
+            }
             RebuildGroups();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

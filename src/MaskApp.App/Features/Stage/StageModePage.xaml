@@ -20,19 +20,25 @@
                     <Label Text="{Binding PageTitle}" FontSize="28" FontAttributes="Bold" LineBreakMode="TailTruncation" MaxLines="1" />
                     <Label Text="{Binding PagePositionText}" Style="{StaticResource TinyLabelStyle}" />
                 </VerticalStackLayout>
-                <Button
-                    Grid.Column="1"
-                    Text="Hold to exit"
-                    Pressed="OnUnlockPressed"
-                    Released="OnUnlockReleased"
-                    Style="{StaticResource SecondaryButtonStyle}"
-                    SemanticProperties.Description="Hold for two seconds and release to unlock and exit Stage" />
+                <VerticalStackLayout Grid.Column="1" Spacing="4">
+                    <Button
+                        Text="{loc:Translate HoldToExit}"
+                        Pressed="OnUnlockPressed"
+                        Released="OnUnlockReleased"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        SemanticProperties.Description="{loc:Translate HoldToExitDescription}" />
+                    <Button
+                        Text="{loc:Translate ExitEllipsis}"
+                        Clicked="OnAccessibleExitClicked"
+                        Style="{StaticResource QuietButtonStyle}"
+                        SemanticProperties.Description="{loc:Translate AccessibleExitDescription}" />
+                </VerticalStackLayout>
             </Grid>
 
             <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                <Button Text="‹" Command="{Binding PreviousPageCommand}" SemanticProperties.Description="Previous cue or Page" />
+                <Button Text="‹" Command="{Binding PreviousPageCommand}" SemanticProperties.Description="{loc:Translate PreviousCueDeck}" />
                 <Button Grid.Column="1" Text="{Binding LayoutButtonText}" Command="{Binding CycleLayoutCommand}" Style="{StaticResource SecondaryButtonStyle}" />
-                <Button Grid.Column="2" Text="›" Command="{Binding NextPageCommand}" SemanticProperties.Description="Next cue or Page" />
+                <Button Grid.Column="2" Text="›" Command="{Binding NextPageCommand}" SemanticProperties.Description="{loc:Translate NextCueDeck}" />
             </Grid>
 
             <Border Grid.Row="2" Padding="10,8" BackgroundColor="{StaticResource SurfaceColor}" Stroke="{Binding ReadinessColorHex}" StrokeThickness="1">
@@ -41,7 +47,7 @@
                     <Label Text="{Binding ReadinessText}" TextColor="{Binding ReadinessColorHex}" FontAttributes="Bold" />
                     <Label Grid.Column="1" Text="{Binding ReadinessSummary}" Style="{StaticResource TinyLabelStyle}" MaxLines="1" />
                     <Label Grid.Column="2" Text="{Binding ConnectionStatusText}" TextColor="{Binding ConnectionState, Converter={StaticResource TransportStateColorConverter}}" FontAttributes="Bold" FontSize="11" />
-                    <Label Grid.Row="1" Grid.ColumnSpan="3" Text="Output occurs only after an explicit cue press." Style="{StaticResource TinyLabelStyle}" />
+                    <Label Grid.Row="1" Grid.ColumnSpan="3" Text="{loc:Translate OutputExplicitOnly}" Style="{StaticResource TinyLabelStyle}" />
                 </Grid>
             </Border>
         </Grid>
@@ -54,7 +60,7 @@
 
             <CollectionView x:Name="StageTilesView" ItemsSource="{Binding Tiles}" SelectionMode="None">
                 <CollectionView.EmptyView>
-                    <controls:EmptyStateView Icon="◇" Title="No Stage cues" Message="Hold to exit, build Pages or a setlist, run Preflight, then re-enter." />
+                    <controls:EmptyStateView Icon="◇" Title="{loc:Translate NoStageCues}" Message="{loc:Translate NoStageCuesDetail}" />
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="stage:StageTile">
@@ -95,7 +101,7 @@
                                 SemanticProperties.Description="{Binding Label}"
                                 SemanticProperties.Hint="{Binding ActionHint}" />
                             <Button
-                                Text="HOLD TO PLAY"
+                                Text="{loc:Translate HoldToPlay}"
                                 Pressed="OnHoldTilePressed"
                                 Released="OnHoldTileReleased"
                                 CommandParameter="{Binding .}"
@@ -108,6 +114,17 @@
                                 VerticalOptions="End"
                                 SemanticProperties.Description="{Binding Label}"
                                 SemanticProperties.Hint="{Binding ActionHint}" />
+                            <Button
+                                Text="{loc:Translate PlayEllipsis}"
+                                Clicked="OnAccessibleHoldTileClicked"
+                                CommandParameter="{Binding .}"
+                                IsVisible="{Binding IsHoldAction}"
+                                HorizontalOptions="End"
+                                VerticalOptions="Start"
+                                MinimumHeightRequest="48"
+                                ZIndex="3"
+                                SemanticProperties.Description="{loc:Translate AccessibleHoldAction}"
+                                SemanticProperties.Hint="{loc:Translate AccessibleHoldHint}" />
                         </Grid>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
@@ -124,9 +141,19 @@
                 <VerticalStackLayout Spacing="12" HorizontalOptions="Center" VerticalOptions="Center">
                     <Label Text="{Binding ConnectionStatusText}" TextColor="{StaticResource DangerColor}" FontSize="28" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                     <Label Text="{Binding ConnectionMessage}" FontSize="17" HorizontalTextAlignment="Center" />
-                    <Label Text="Session preserved. Reconnect never replays output automatically." Style="{StaticResource MutedLabelStyle}" HorizontalTextAlignment="Center" />
-                    <Button Text="Recover without replay" Command="{Binding RecoverCommand}" IsEnabled="{Binding CanRecover}" Style="{StaticResource NeonBlueButtonStyle}" />
-                    <Button Text="Refresh readiness" Command="{Binding RefreshReadinessCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                    <Label Text="{loc:Translate SessionPreservedNoReplay}" Style="{StaticResource MutedLabelStyle}" HorizontalTextAlignment="Center" />
+                    <Button Text="{loc:Translate RecoverWithoutReplay}" Command="{Binding RecoverCommand}" IsEnabled="{Binding CanRecover}" Style="{StaticResource NeonBlueButtonStyle}" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <Button Text="{x:Static loc:AppText.Reconnect}" Clicked="OnReconnectClicked" />
+                        <Button Grid.Column="1" Text="{x:Static loc:AppText.OpenDevice}" Clicked="OnOpenDeviceClicked" />
+                    </Grid>
+                    <Button Text="{loc:Translate RefreshReadiness}" Command="{Binding RefreshReadinessCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                    <Button
+                        Text="{loc:Translate HoldToExitStage}"
+                        Pressed="OnUnlockPressed"
+                        Released="OnUnlockReleased"
+                        Style="{StaticResource DangerButtonStyle}"
+                        SemanticProperties.Description="{loc:Translate HoldToExitDescription}" />
                 </VerticalStackLayout>
             </Border>
         </Grid>
@@ -154,13 +181,13 @@
                 Style="{StaticResource SecondaryButtonStyle}"
                 FontSize="22"
                 MinimumHeightRequest="64"
-                SemanticProperties.Description="Stop active and queued visual work while retaining the last stable look when available" />
+                SemanticProperties.Description="{loc:Translate StopDescription}" />
             <Button
                 Grid.Row="3"
                 Text="{x:Static loc:AppText.Blackout}"
                 Command="{Binding BlackoutCommand}"
                 Style="{StaticResource EmergencyButtonStyle}"
-                SemanticProperties.Description="Emergency blackout. Cancel visual work and force mask brightness to protocol minimum" />
+                SemanticProperties.Description="{loc:Translate BlackoutDescription}" />
         </Grid>
     </Grid>
 </ContentPage>

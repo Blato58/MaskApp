@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using MaskApp.Core.Features.Animations;
+using MaskApp.Core.Features.Experience;
 using Microsoft.Maui.Storage;
 
 namespace MaskApp.App.Features.Animations;
@@ -89,7 +90,7 @@ public partial class AnimationStudioPage : ContentPage, IQueryAttributable
         FrameCanvas.Invalidate();
     }
 
-    private async void OnBackClicked(object? sender, EventArgs e) => await Shell.Current.GoToAsync("..");
+    private async void OnBackClicked(object? sender, EventArgs e) => await Shell.Current.GoToAsync(AppRoutes.Back);
 
     private void OnProjectSelected(object? sender, EventArgs e)
     {

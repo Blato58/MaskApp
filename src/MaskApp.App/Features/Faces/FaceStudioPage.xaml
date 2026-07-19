@@ -7,7 +7,7 @@
     xmlns:faces="clr-namespace:MaskApp.Core.Features.Faces;assembly=MaskApp.Core"
     x:DataType="faces:FaceStudioViewModel"
     Title="Face Studio"
-    BackgroundColor="{StaticResource PageBackgroundColor}">
+    BackgroundColor="{AppThemeBinding Dark={StaticResource DarkCanvasColor}, Light={StaticResource LightCanvasColor}}">
     <ScrollView>
         <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="16">
             <Border Style="{StaticResource PanelBorderStyle}">
@@ -27,7 +27,7 @@
                         Placeholder="Face name"
                         Text="{Binding FaceName, Mode=TwoWay}" />
 
-                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
                         <Slider
                             Minimum="1"
                             Maximum="20"
@@ -37,6 +37,7 @@
                             Text="{Binding SelectedSlot, StringFormat='Slot {0}'}"
                             Style="{StaticResource MetricLabelStyle}"
                             VerticalTextAlignment="Center" />
+                        <Button Grid.Column="2" Text="Auto" Command="{Binding UseAutoSlotCommand}" SemanticProperties.Hint="Choose the next safe unreserved DIY slot" />
                     </Grid>
 
                     <Grid Grid.Row="3" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">

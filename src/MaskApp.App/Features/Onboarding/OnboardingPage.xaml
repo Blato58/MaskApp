@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="MaskApp.App.Features.Onboarding.OnboardingPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:connect="clr-namespace:MaskApp.Core.Features.Connect;assembly=MaskApp.Core"
+    xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{AppThemeBinding Dark={StaticResource DarkCanvasColor}, Light={StaticResource LightCanvasColor}}">
+    <Grid Padding="24" RowDefinitions="*,Auto" RowSpacing="24">
+        <Grid>
+            <VerticalStackLayout x:Name="WelcomePanel" Spacing="20" VerticalOptions="Center">
+                <Image Source="mask_neon.svg" HeightRequest="128" WidthRequest="128" SemanticProperties.Description="{loc:Translate MaskIllustrationDescription}" />
+                <Label Text="{loc:Translate WelcomeTitle}" FontSize="32" LineHeight="1.25" FontAttributes="Bold" HorizontalTextAlignment="Center" SemanticProperties.HeadingLevel="Level1" />
+                <Label Text="{loc:Translate WelcomeDetail}" FontSize="16" HorizontalTextAlignment="Center" Style="{StaticResource MutedLabelStyle}" />
+                <Button Text="{x:Static loc:AppText.Continue}" Clicked="OnContinueClicked" Style="{StaticResource PrimaryButtonStyle}" MinimumHeightRequest="56" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout x:Name="BluetoothPanel" IsVisible="False" Spacing="20" VerticalOptions="Center">
+                <Label Text="{loc:Translate ConnectReadyTitle}" FontSize="32" LineHeight="1.25" FontAttributes="Bold" HorizontalTextAlignment="Center" SemanticProperties.HeadingLevel="Level1" />
+                <Label Text="{loc:Translate BluetoothLocalDetail}" FontSize="16" HorizontalTextAlignment="Center" Style="{StaticResource MutedLabelStyle}" />
+                <Label x:Name="LocationRationale" IsVisible="False" Text="{loc:Translate AndroidLocationRationale}" FontSize="14" HorizontalTextAlignment="Center" Style="{StaticResource MutedLabelStyle}" />
+                <Button Text="{x:Static loc:AppText.AllowBluetooth}" Clicked="OnAllowBluetoothClicked" Style="{StaticResource PrimaryButtonStyle}" MinimumHeightRequest="56" />
+                <Button Text="{x:Static loc:AppText.ExploreWithoutMask}" Clicked="OnSkipClicked" MinimumHeightRequest="56" />
+                <Button Text="{loc:Translate OpenSettings}" Clicked="OnOpenSettingsClicked" MinimumHeightRequest="48" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout x:Name="ChoosePanel" IsVisible="False" Spacing="14">
+                <Label Text="{x:Static loc:AppText.ChooseMask}" FontSize="32" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level1" />
+                <Label Text="{loc:Translate ChooseMaskDetail}" Style="{StaticResource MutedLabelStyle}" />
+                <CollectionView ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice, Mode=TwoWay}" SelectionMode="Single">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="connect:DiscoveredMaskDevice">
+                            <Grid Padding="12" ColumnDefinitions="*,Auto" MinimumHeightRequest="72">
+                                <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="17" VerticalTextAlignment="Center" />
+                                <Label Grid.Column="1" Text="{Binding SignalStrength, StringFormat='{}{0} dBm'}" VerticalTextAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <Label Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
+                <Button Text="{loc:Translate ConnectSelectedMask}" Clicked="OnConnectClicked" Style="{StaticResource PrimaryButtonStyle}" MinimumHeightRequest="56" />
+                <Button Text="{x:Static loc:AppText.SkipForNow}" Clicked="OnSkipClicked" MinimumHeightRequest="56" />
+                <Button Text="{loc:Translate OpenSettings}" Clicked="OnOpenSettingsClicked" MinimumHeightRequest="48" />
+            </VerticalStackLayout>
+        </Grid>
+        <Label Grid.Row="1" Text="{loc:Translate OfflineNoAccount}" Style="{StaticResource TinyLabelStyle}" HorizontalTextAlignment="Center" />
+    </Grid>
+</ContentPage>

@@ -5,6 +5,8 @@
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
   <data name="Library" xml:space="preserve"><value>Library</value></data>
+  <data name="Live" xml:space="preserve"><value>Live</value></data>
+  <data name="Shows" xml:space="preserve"><value>Shows</value></data>
   <data name="Stage" xml:space="preserve"><value>Stage</value></data>
   <data name="Device" xml:space="preserve"><value>Device</value></data>
   <data name="SearchLibrary" xml:space="preserve"><value>Search Library</value></data>
@@ -27,4 +29,247 @@
   <data name="Blackout" xml:space="preserve"><value>BLACKOUT</value></data>
   <data name="AnimationStudio" xml:space="preserve"><value>Animation Studio</value></data>
   <data name="Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Create" xml:space="preserve"><value>Create</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Done" xml:space="preserve"><value>Done</value></data>
+  <data name="EditDeck" xml:space="preserve"><value>Edit deck</value></data>
+  <data name="AddFromLibrary" xml:space="preserve"><value>Add from Library</value></data>
+  <data name="RequireHoldForActions" xml:space="preserve"><value>Require hold for actions</value></data>
+  <data name="DeleteDeck" xml:space="preserve"><value>Delete deck</value></data>
+  <data name="Reconnect" xml:space="preserve"><value>Reconnect</value></data>
+  <data name="ChooseMask" xml:space="preserve"><value>Choose a mask</value></data>
+  <data name="MaskConnected" xml:space="preserve"><value>Mask connected</value></data>
+  <data name="Disconnected" xml:space="preserve"><value>Disconnected</value></data>
+  <data name="Sending" xml:space="preserve"><value>Sending</value></data>
+  <data name="Written" xml:space="preserve"><value>Written</value></data>
+  <data name="Confirmed" xml:space="preserve"><value>Confirmed</value></data>
+  <data name="Failed" xml:space="preserve"><value>Failed</value></data>
+  <data name="Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="TextStudio" xml:space="preserve"><value>Text Studio</value></data>
+  <data name="FaceStudio" xml:space="preserve"><value>Face Studio</value></data>
+  <data name="StockCatalog" xml:space="preserve"><value>Stock catalog</value></data>
+  <data name="ShowBuilder" xml:space="preserve"><value>Show Builder</value></data>
+  <data name="SceneEditor" xml:space="preserve"><value>Scene Editor</value></data>
+  <data name="ImportMaskPack" xml:space="preserve"><value>Import MaskPack</value></data>
+  <data name="ExportMaskPack" xml:space="preserve"><value>Export MaskPack</value></data>
+  <data name="GetStarted" xml:space="preserve"><value>Get started</value></data>
+  <data name="ExploreWithoutMask" xml:space="preserve"><value>Explore without a mask</value></data>
+  <data name="ConnectNearby" xml:space="preserve"><value>Connect nearby</value></data>
+  <data name="AllowBluetooth" xml:space="preserve"><value>Allow Bluetooth</value></data>
+  <data name="NotNow" xml:space="preserve"><value>Not now</value></data>
+  <data name="SkipForNow" xml:space="preserve"><value>Skip for now</value></data>
+  <data name="ScanAgain" xml:space="preserve"><value>Scan again</value></data>
+  <data name="NoMaskFound" xml:space="preserve"><value>No mask found</value></data>
+  <data name="Continue" xml:space="preserve"><value>Continue</value></data>
+  <data name="NoMatchingContent" xml:space="preserve"><value>No matching content</value></data>
+  <data name="ClearFilters" xml:space="preserve"><value>Clear filters</value></data>
+  <data name="BrowseStock" xml:space="preserve"><value>Browse stock</value></data>
+  <data name="Import" xml:space="preserve"><value>Import</value></data>
+  <data name="Export" xml:space="preserve"><value>Export</value></data>
+  <data name="NewShow" xml:space="preserve"><value>New show</value></data>
+  <data name="AddCue" xml:space="preserve"><value>Add cue</value></data>
+  <data name="AddStep" xml:space="preserve"><value>Add step</value></data>
+  <data name="RunPreflight" xml:space="preserve"><value>Run Preflight</value></data>
+  <data name="OpenDevice" xml:space="preserve"><value>Open Device</value></data>
+  <data name="Previous" xml:space="preserve"><value>Previous</value></data>
+  <data name="Next" xml:space="preserve"><value>Next</value></data>
+  <data name="Retry" xml:space="preserve"><value>Retry</value></data>
+  <data name="Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Appearance" xml:space="preserve"><value>Appearance</value></data>
+  <data name="Language" xml:space="preserve"><value>Language</value></data>
+  <data name="ReducedMotion" xml:space="preserve"><value>Reduced motion</value></data>
+  <data name="Haptics" xml:space="preserve"><value>Haptics</value></data>
+  <data name="DeviceSubtitle" xml:space="preserve"><value>Routine connection and mask controls</value></data>
+  <data name="Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Mask" xml:space="preserve"><value>Mask</value></data>
+  <data name="Battery" xml:space="preserve"><value>Battery</value></data>
+  <data name="BatteryUnavailable" xml:space="preserve"><value>Not reported by this mask</value></data>
+  <data name="Disconnect" xml:space="preserve"><value>Disconnect</value></data>
+  <data name="Brightness" xml:space="preserve"><value>Brightness</value></data>
+  <data name="AppliesConnectedMask" xml:space="preserve"><value>Applies to the connected mask</value></data>
+  <data name="Apply" xml:space="preserve"><value>Apply</value></data>
+  <data name="Restore" xml:space="preserve"><value>Restore</value></data>
+  <data name="FirmwareModeSpeed" xml:space="preserve"><value>Firmware mode speed</value></data>
+  <data name="FirmwareModeSpeedDetail" xml:space="preserve"><value>Affects stock text and animation modes</value></data>
+  <data name="ApplySpeed" xml:space="preserve"><value>Apply speed</value></data>
+  <data name="ConnectionPreferences" xml:space="preserve"><value>Connection preferences</value></data>
+  <data name="AutoConnect" xml:space="preserve"><value>Auto-connect</value></data>
+  <data name="ForegroundNoReplay" xml:space="preserve"><value>Foreground only; never replays an action</value></data>
+  <data name="RememberLastMask" xml:space="preserve"><value>Remember last mask</value></data>
+  <data name="Experience" xml:space="preserve"><value>Experience</value></data>
+  <data name="ReduceMotionDetail" xml:space="preserve"><value>Stops automatic preview playback; explicit Play remains available.</value></data>
+  <data name="StageHaptics" xml:space="preserve"><value>Stage haptics</value></data>
+  <data name="ShowFirstRunAgain" xml:space="preserve"><value>Show first-run guide again</value></data>
+  <data name="BluetoothPickerDetail" xml:space="preserve"><value>Bluetooth is used only to find and control a nearby Shining Mask. Your content stays on this device.</value></data>
+  <data name="ScanForMasks" xml:space="preserve"><value>Scan for masks</value></data>
+  <data name="StopScanning" xml:space="preserve"><value>Stop scanning</value></data>
+  <data name="RecognizedNearbyMask" xml:space="preserve"><value>Recognized nearby mask</value></data>
+  <data name="RetryThisMask" xml:space="preserve"><value>Retry this mask</value></data>
+  <data name="ContinueOffline" xml:space="preserve"><value>Continue offline</value></data>
+  <data name="ConnectSelected" xml:space="preserve"><value>Connect selected</value></data>
+  <data name="OpenSettings" xml:space="preserve"><value>Open Settings</value></data>
+  <data name="DiagnosticsPrivacyDetail" xml:space="preserve"><value>Observed facts only. Reports redact device identifiers and do not include Library content.</value></data>
+  <data name="TransportObservations" xml:space="preserve"><value>Transport observations</value></data>
+  <data name="ShareRedactedReport" xml:space="preserve"><value>Share redacted report</value></data>
+  <data name="ResetPreparedLedger" xml:space="preserve"><value>Reset prepared-slot ledger</value></data>
+  <data name="LibrarySubtitle" xml:space="preserve"><value>Create, inspect and organize local content</value></data>
+  <data name="Arrange" xml:space="preserve"><value>Arrange</value></data>
+  <data name="ContentInheritsAppearance" xml:space="preserve"><value>Items keep their label, icon and color.</value></data>
+  <data name="NoDeckActions" xml:space="preserve"><value>No actions yet. Add reusable content from the Library.</value></data>
+  <data name="Prepare" xml:space="preserve"><value>Prepare</value></data>
+  <data name="Remove" xml:space="preserve"><value>Remove</value></data>
+  <data name="LiveHoldStageUnchanged" xml:space="preserve"><value>Live only. Stage hold/release behavior is unchanged.</value></data>
+  <data name="PrepareDeck" xml:space="preserve"><value>Prepare Deck</value></data>
+  <data name="DeckSettings" xml:space="preserve"><value>Deck settings</value></data>
+  <data name="LiveSubtitle" xml:space="preserve"><value>One-tap actions from reusable Decks</value></data>
+  <data name="WelcomeTitle" xml:space="preserve"><value>Make the mask yours</value></data>
+  <data name="WelcomeDetail" xml:space="preserve"><value>Create text, faces, animations and Shows. MaskApp works offline and keeps your content on this device.</value></data>
+  <data name="ConnectReadyTitle" xml:space="preserve"><value>Connect when you are ready</value></data>
+  <data name="BluetoothLocalDetail" xml:space="preserve"><value>Bluetooth lets MaskApp find and control a nearby Shining Mask. Your content and device history stay local.</value></data>
+  <data name="AndroidLocationRationale" xml:space="preserve"><value>On Android 11 and older, the OS also requires Location permission for Bluetooth scanning. MaskApp does not use your location.</value></data>
+  <data name="ChooseMaskDetail" xml:space="preserve"><value>Recognized masks are listed by name and signal. Device identifiers stay hidden.</value></data>
+  <data name="ConnectSelectedMask" xml:space="preserve"><value>Connect selected mask</value></data>
+  <data name="OfflineNoAccount" xml:space="preserve"><value>No account, cloud sync, or internet connection is required.</value></data>
+  <data name="SceneBoundsDetail" xml:space="preserve"><value>Up to 32 typed, bounded steps</value></data>
+  <data name="NewScene" xml:space="preserve"><value>New Scene</value></data>
+  <data name="OnFailure" xml:space="preserve"><value>On failure</value></data>
+  <data name="Rehearse" xml:space="preserve"><value>Rehearse</value></data>
+  <data name="BrokenReferences" xml:space="preserve"><value>Broken references</value></data>
+  <data name="BrokenReferencesDetail" xml:space="preserve"><value>Select the broken step and a compatible Library item, then Replace; or remove the step.</value></data>
+  <data name="ReplaceSelected" xml:space="preserve"><value>Replace selected</value></data>
+  <data name="RemoveSelected" xml:space="preserve"><value>Remove selected</value></data>
+  <data name="ShowBuilderDetail" xml:space="preserve"><value>Ordered cues, active Show and preparation entry</value></data>
+  <data name="MakeActive" xml:space="preserve"><value>Make active</value></data>
+  <data name="ShowsSubtitle" xml:space="preserve"><value>Build, prepare and run an ordered performance</value></data>
+  <data name="ActiveShow" xml:space="preserve"><value>Active Show</value></data>
+  <data name="EditShow" xml:space="preserve"><value>Edit Show</value></data>
+  <data name="PlayCue" xml:space="preserve"><value>Play cue</value></data>
+  <data name="Current" xml:space="preserve"><value>Current</value></data>
+  <data name="SendTest" xml:space="preserve"><value>Send test</value></data>
+  <data name="TestMetadata" xml:space="preserve"><value>Test metadata</value></data>
+  <data name="SaveMetadata" xml:space="preserve"><value>Save metadata</value></data>
+  <data name="NoNearbyMasks" xml:space="preserve"><value>No nearby masks</value></data>
+  <data name="NoNearbyMasksDetail" xml:space="preserve"><value>Start a scan and keep the mask awake and close by. You can continue creating content offline.</value></data>
+  <data name="DeckEditorTitle" xml:space="preserve"><value>Deck Editor</value></data>
+  <data name="DeckName" xml:space="preserve"><value>Deck name</value></data>
+  <data name="SaveName" xml:space="preserve"><value>Save name</value></data>
+  <data name="Earlier" xml:space="preserve"><value>Earlier</value></data>
+  <data name="Color" xml:space="preserve"><value>Color</value></data>
+  <data name="Later" xml:space="preserve"><value>Later</value></data>
+  <data name="ChooseDeck" xml:space="preserve"><value>Choose Deck</value></data>
+  <data name="EmptyDeck" xml:space="preserve"><value>This Deck is empty</value></data>
+  <data name="EmptyDeckDetail" xml:space="preserve"><value>Edit the Deck to add Library content.</value></data>
+  <data name="SceneName" xml:space="preserve"><value>Scene name</value></data>
+  <data name="ShowName" xml:space="preserve"><value>Show name</value></data>
+  <data name="SceneToAdd" xml:space="preserve"><value>Scene to add</value></data>
+  <data name="NoShowCues" xml:space="preserve"><value>No cues in this Show</value></data>
+  <data name="NoShowCuesDetail" xml:space="preserve"><value>Edit the Show to add Scenes as ordered cues.</value></data>
+  <data name="StockContent" xml:space="preserve"><value>Stock Content</value></data>
+  <data name="PhysicalOutput" xml:space="preserve"><value>Physical output</value></data>
+  <data name="PhysicalOutputDetail" xml:space="preserve"><value>This is exact original-app preview artwork. LED appearance can vary on the physical mask.</value></data>
+  <data name="DisplayName" xml:space="preserve"><value>Display name</value></data>
+  <data name="TagsCommaSeparated" xml:space="preserve"><value>Tags, comma separated</value></data>
+  <data name="Notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="ObservedStatus" xml:space="preserve"><value>Observed status</value></data>
+  <data name="Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="MoveEarlier" xml:space="preserve"><value>Move earlier</value></data>
+  <data name="MoveLater" xml:space="preserve"><value>Move later</value></data>
+  <data name="PreparationNoPlay" xml:space="preserve"><value>Preparation uploads content but does not play it.</value></data>
+  <data name="HoldToSendHint" xml:space="preserve"><value>Hold to send; tap for accessible confirmation</value></data>
+  <data name="TapToSendHint" xml:space="preserve"><value>Tap to send</value></data>
+  <data name="MaskIllustrationDescription" xml:space="preserve"><value>Shining LED mask</value></data>
+  <data name="DeckHoldDescription" xml:space="preserve"><value>Require hold for this Deck's Live actions</value></data>
+  <data name="CurrentLiveDeckDescription" xml:space="preserve"><value>Current Live Deck</value></data>
+  <data name="BrightnessDescription" xml:space="preserve"><value>Mask brightness percentage</value></data>
+  <data name="PlaybackSpeedDescription" xml:space="preserve"><value>Firmware mode speed</value></data>
+  <data name="SendNow" xml:space="preserve"><value>Send now</value></data>
+  <data name="OpenDetails" xml:space="preserve"><value>Open details</value></data>
+  <data name="Send" xml:space="preserve"><value>Send</value></data>
+  <data name="SendActionTitle" xml:space="preserve"><value>Send action?</value></data>
+  <data name="SendActionMessage" xml:space="preserve"><value>Send {0} now?</value></data>
+  <data name="EnterStageModeTitle" xml:space="preserve"><value>Enter Stage Mode?</value></data>
+  <data name="EnterStageModeDetail" xml:space="preserve"><value>Stage locks normal navigation and keeps the display awake. Not Ready blocks entry; named degraded risks must be reviewed. Hold Exit for two seconds to leave.</value></data>
+  <data name="KeepOneDeckTitle" xml:space="preserve"><value>Keep one Deck</value></data>
+  <data name="KeepOneDeckDetail" xml:space="preserve"><value>MaskApp must keep at least one Live Deck.</value></data>
+  <data name="DeleteDeckTitle" xml:space="preserve"><value>Delete Deck?</value></data>
+  <data name="DeleteDeckDetail" xml:space="preserve"><value>Only this Deck layout is removed. Source content and prepared mask slots remain available.</value></data>
+  <data name="Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="ShareDiagnostics" xml:space="preserve"><value>Share redacted MaskApp diagnostics</value></data>
+  <data name="ExportFailed" xml:space="preserve"><value>Export failed</value></data>
+  <data name="ResetLedgerTitle" xml:space="preserve"><value>Reset prepared-slot ledger?</value></data>
+  <data name="ResetLedgerDetail" xml:space="preserve"><value>This clears MaskApp's record for the active mask. It does not erase physical slots or source content.</value></data>
+  <data name="ResetLedger" xml:space="preserve"><value>Reset ledger</value></data>
+  <data name="StartHoldTitle" xml:space="preserve"><value>Start hold action?</value></data>
+  <data name="StartHoldMessage" xml:space="preserve"><value>Play {0} until you choose Stop?</value></data>
+  <data name="Start" xml:space="preserve"><value>Start</value></data>
+  <data name="HoldActionPlaying" xml:space="preserve"><value>Hold action playing</value></data>
+  <data name="HoldActionPlayingDetail" xml:space="preserve"><value>Choose Stop to restore the prior stable mask state.</value></data>
+  <data name="ExitStageTitle" xml:space="preserve"><value>Exit Stage?</value></data>
+  <data name="ExitStageDetail" xml:space="preserve"><value>Stage navigation will unlock and display-awake mode will end.</value></data>
+  <data name="ConfirmExit" xml:space="preserve"><value>Confirm exit</value></data>
+  <data name="NoReplayExitDetail" xml:space="preserve"><value>No mask action will be replayed. Exit Stage now?</value></data>
+  <data name="ExitStage" xml:space="preserve"><value>Exit Stage</value></data>
+  <data name="Stay" xml:space="preserve"><value>Stay</value></data>
+  <data name="HoldToExit" xml:space="preserve"><value>Hold to exit</value></data>
+  <data name="HoldToExitDescription" xml:space="preserve"><value>Hold for two seconds and release to unlock and exit Stage</value></data>
+  <data name="ExitEllipsis" xml:space="preserve"><value>Exit…</value></data>
+  <data name="AccessibleExitDescription" xml:space="preserve"><value>Accessible two-step alternative to the two-second exit hold</value></data>
+  <data name="PreviousCueDeck" xml:space="preserve"><value>Previous cue or Deck</value></data>
+  <data name="NextCueDeck" xml:space="preserve"><value>Next cue or Deck</value></data>
+  <data name="OutputExplicitOnly" xml:space="preserve"><value>Output occurs only after an explicit cue press.</value></data>
+  <data name="NoStageCues" xml:space="preserve"><value>No Stage cues</value></data>
+  <data name="NoStageCuesDetail" xml:space="preserve"><value>Hold to exit, build a Deck or Show, run Preflight, then re-enter.</value></data>
+  <data name="HoldToPlay" xml:space="preserve"><value>HOLD TO PLAY</value></data>
+  <data name="PlayEllipsis" xml:space="preserve"><value>Play…</value></data>
+  <data name="AccessibleHoldAction" xml:space="preserve"><value>Accessible hold action</value></data>
+  <data name="AccessibleHoldHint" xml:space="preserve"><value>Opens Start and Stop confirmations instead of requiring a sustained press</value></data>
+  <data name="SessionPreservedNoReplay" xml:space="preserve"><value>Session preserved. Reconnect never replays output automatically.</value></data>
+  <data name="RecoverWithoutReplay" xml:space="preserve"><value>Recover without replay</value></data>
+  <data name="RefreshReadiness" xml:space="preserve"><value>Refresh readiness</value></data>
+  <data name="HoldToExitStage" xml:space="preserve"><value>Hold to exit Stage</value></data>
+  <data name="StopDescription" xml:space="preserve"><value>Stop active and queued visual work while retaining the last stable look when available</value></data>
+  <data name="BlackoutDescription" xml:space="preserve"><value>Emergency blackout. Cancel visual work and force mask brightness to protocol minimum</value></data>
+  <data name="Back" xml:space="preserve"><value>Back</value></data>
+  <data name="PreflightSubtitle" xml:space="preserve"><value>Prove the selected show is ready for this physical mask.</value></data>
+  <data name="MaskUpper" xml:space="preserve"><value>MASK</value></data>
+  <data name="ScopeUpper" xml:space="preserve"><value>SCOPE</value></data>
+  <data name="ChooseLiveDeck" xml:space="preserve"><value>Choose a Live Deck</value></data>
+  <data name="CheckLiveDeck" xml:space="preserve"><value>Check Live Deck</value></data>
+  <data name="CheckWholeShow" xml:space="preserve"><value>Check whole show</value></data>
+  <data name="PrepareEligibleContent" xml:space="preserve"><value>Prepare eligible DIY content</value></data>
+  <data name="FlashSafetyUpper" xml:space="preserve"><value>FLASH SAFETY</value></data>
+  <data name="ReviewBlockedRevisions" xml:space="preserve"><value>Review and acknowledge blocked revisions</value></data>
+  <data name="ReviewBlockedRevisionsDescription" xml:space="preserve"><value>Review the photosensitivity warning and explicitly acknowledge each exact blocked animation revision</value></data>
+  <data name="RevokeFlashOverrides" xml:space="preserve"><value>Revoke flash-risk overrides</value></data>
+  <data name="RevokeFlashOverridesDescription" xml:space="preserve"><value>Revoke flash-risk acknowledgements and block those animation revisions again</value></data>
+  <data name="IssuesRecoveryUpper" xml:space="preserve"><value>ISSUES AND RECOVERY</value></data>
+  <data name="NoIssuesFound" xml:space="preserve"><value>No issues found.</value></data>
+  <data name="ActionReadinessUpper" xml:space="preserve"><value>ACTION READINESS</value></data>
+  <data name="MaskPack" xml:space="preserve"><value>MaskPack</value></data>
+  <data name="MaskPackSubtitle" xml:space="preserve"><value>Move an offline show package through Files, AirDrop, or the share sheet.</value></data>
+  <data name="ImportValidationDetail" xml:space="preserve"><value>The archive is bounded, hash-checked, and semantically validated before local content changes.</value></data>
+  <data name="ChooseMaskPack" xml:space="preserve"><value>Choose MaskPack from Files</value></data>
+  <data name="ConflictPreview" xml:space="preserve"><value>Conflict preview</value></data>
+  <data name="ConflictPreviewDetail" xml:space="preserve"><value>Choose a result for each existing ID. Merge keeps exact matches and safely renames different content.</value></data>
+  <data name="ConflictAction" xml:space="preserve"><value>Conflict action</value></data>
+  <data name="ConflictActionDescription" xml:space="preserve"><value>Conflict import action</value></data>
+  <data name="ConfirmReplacement" xml:space="preserve"><value>Confirm destructive replacement</value></data>
+  <data name="ConfirmReplacementDetail" xml:space="preserve"><value>Replacement overwrites the selected local IDs. Built-in faces are never replaceable.</value></data>
+  <data name="ConfirmReplacementDescription" xml:space="preserve"><value>Confirm replacement of existing content</value></data>
+  <data name="ImportInspectedPackage" xml:space="preserve"><value>Import inspected package</value></data>
+  <data name="ExportMaskPackDetail" xml:space="preserve"><value>Export user faces, animations and timing, text presets, Decks, Scenes, Shows, and safe Library ordering.</value></data>
+  <data name="PackName" xml:space="preserve"><value>Pack name</value></data>
+  <data name="Author" xml:space="preserve"><value>Author</value></data>
+  <data name="ExportShareMaskPack" xml:space="preserve"><value>Export and share MaskPack</value></data>
+  <data name="ChooseMaskPackArchive" xml:space="preserve"><value>Choose a MaskPack ZIP archive</value></data>
+  <data name="MaskPackInspectionFailed" xml:space="preserve"><value>MaskPack inspection failed</value></data>
+  <data name="MaskPackExportFailed" xml:space="preserve"><value>MaskPack export failed</value></data>
+  <data name="ShareMaskPack" xml:space="preserve"><value>Share MaskPack</value></data>
+  <data name="PhotosensitivityWarning" xml:space="preserve"><value>Photosensitivity warning</value></data>
+  <data name="PhotosensitivityWarningDetail" xml:space="preserve"><value>These exact animation revisions exceed the conservative limit of three full flashes per second. Rapid flashing may trigger seizures or other photosensitive reactions. Acknowledging does not make the content safe, and Blackout must remain immediately available. Record an explicit override for the revisions shown in this Preflight report?</value></data>
+  <data name="AcknowledgeExactRevisions" xml:space="preserve"><value>Acknowledge exact revisions</value></data>
+  <data name="RevokeFlashOverridesTitle" xml:space="preserve"><value>Revoke flash-risk overrides?</value></data>
+  <data name="RevokeFlashOverridesDetail" xml:space="preserve"><value>The affected animation revisions will be blocked again until they are edited to pass safety analysis or explicitly acknowledged again.</value></data>
+  <data name="Revoke" xml:space="preserve"><value>Revoke</value></data>
+  <data name="KeepOverrides" xml:space="preserve"><value>Keep overrides</value></data>
 </root>

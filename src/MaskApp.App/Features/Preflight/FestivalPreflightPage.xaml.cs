@@ -1,10 +1,14 @@
 using MaskApp.Core.Features.Preflight;
+using MaskApp.Core.Features.Experience;
+using MaskApp.App.Resources.Strings;
 
 namespace MaskApp.App.Features.Preflight;
 
-public partial class FestivalPreflightPage : ContentPage
+public partial class FestivalPreflightPage : ContentPage, IQueryAttributable
 {
     private readonly FestivalPreflightViewModel viewModel;
+    private string scope = "whole-show";
+    private string? sourceId;
 
     public FestivalPreflightPage(FestivalPreflightViewModel viewModel)
     {
@@ -13,22 +17,35 @@ public partial class FestivalPreflightPage : ContentPage
         BindingContext = viewModel;
     }
 
+    public void ApplyQueryAttributes(IDictionary<string, object> query)
+    {
+        if (query.TryGetValue("scope", out var scopeValue))
+        {
+            scope = Uri.UnescapeDataString(scopeValue?.ToString() ?? "whole-show");
+        }
+
+        if (query.TryGetValue("sourceId", out var sourceValue))
+        {
+            sourceId = Uri.UnescapeDataString(sourceValue?.ToString() ?? string.Empty);
+        }
+    }
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await viewModel.InitializeAsync();
+        await viewModel.InitializeAsync(scope, sourceId);
     }
 
     private async void OnBackClicked(object? sender, EventArgs args) =>
-        await Shell.Current.GoToAsync("..");
+        await Shell.Current.GoToAsync(AppRoutes.Back);
 
     private async void OnAcknowledgeFlashRiskClicked(object? sender, EventArgs args)
     {
         var accepted = await DisplayAlertAsync(
-            "Photosensitivity warning",
-            "These exact animation revisions exceed the conservative limit of three full flashes per second. Rapid flashing may trigger seizures or other photosensitive reactions. Acknowledging does not make the content safe, and Blackout must remain immediately available. Record an explicit override for the revisions shown in this Preflight report?",
-            "Acknowledge exact revisions",
-            "Cancel");
+            AppText.Get("PhotosensitivityWarning"),
+            AppText.Get("PhotosensitivityWarningDetail"),
+            AppText.Get("AcknowledgeExactRevisions"),
+            AppText.Cancel);
         if (accepted)
         {
             await viewModel.AcknowledgeBlockedFlashRiskAsync();
@@ -38,10 +55,10 @@ public partial class FestivalPreflightPage : ContentPage
     private async void OnRevokeFlashRiskClicked(object? sender, EventArgs args)
     {
         var revoke = await DisplayAlertAsync(
-            "Revoke flash-risk overrides?",
-            "The affected animation revisions will be blocked again until they are edited to pass safety analysis or explicitly acknowledged again.",
-            "Revoke",
-            "Keep overrides");
+            AppText.Get("RevokeFlashOverridesTitle"),
+            AppText.Get("RevokeFlashOverridesDetail"),
+            AppText.Get("Revoke"),
+            AppText.Get("KeepOverrides"));
         if (revoke)
         {
             await viewModel.RevokeFlashRiskOverridesAsync();

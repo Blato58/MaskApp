@@ -10,6 +10,15 @@ using MaskApp.Core.Features.Profiles;
 
 namespace MaskApp.Core.Features.Connect;
 
+public sealed record DevicePickerRow(
+    DiscoveredMaskDevice Device,
+    bool IsRetryTarget,
+    string ErrorText)
+{
+    public string Name => Device.Name;
+    public int SignalStrength => Device.SignalStrength;
+}
+
 public sealed class ConnectViewModel : INotifyPropertyChanged
 {
     private readonly IBleScanner scanner;
@@ -30,6 +39,9 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
     private string diagnosticsStatusText = "Diagnostics use observed state only.";
     private IReadOnlyList<string> reconnectHistory = [];
     private IReadOnlyList<string> recentSchedulerErrors = [];
+    private string failedDeviceId = string.Empty;
+    private string connectionErrorText = string.Empty;
+    private DevicePickerRow? selectedDeviceRow;
 
     public ConnectViewModel(
         IBleScanner scanner,
@@ -84,6 +96,8 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
 
     public ObservableCollection<DiscoveredMaskDevice> Devices { get; } = [];
 
+    public ObservableCollection<DevicePickerRow> DeviceRows { get; } = [];
+
     public IReadOnlyList<string> ReconnectHistory
     {
         get => reconnectHistory;
@@ -128,6 +142,18 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(SchedulerErrorText));
                 OnPropertyChanged(nameof(RecentRedactedErrors));
                 RaiseCommandStates();
+            }
+        }
+    }
+
+    public DevicePickerRow? SelectedDeviceRow
+    {
+        get => selectedDeviceRow;
+        set
+        {
+            if (SetField(ref selectedDeviceRow, value))
+            {
+                SelectedDevice = value?.Device;
             }
         }
     }
@@ -262,7 +288,7 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
         ? $"{cadence:0.##} Hz observed"
         : "Unavailable (not measured)";
 
-    public string BatteryText => "Unavailable (not reported)";
+    public string BatteryText => "Not reported by this mask.";
 
     public string SchedulerQueueText => schedulerSnapshot is null
         ? "Unavailable"
@@ -388,6 +414,8 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
     private async Task StartScanAsync(CancellationToken cancellationToken)
     {
         Devices.Clear();
+        SelectedDevice = null;
+        RebuildDeviceRows();
         StatusText = "Scanning for masks...";
         await scanner.StartScanningAsync(cancellationToken);
     }
@@ -401,6 +429,9 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
             return Task.CompletedTask;
         }
 
+        failedDeviceId = string.Empty;
+        connectionErrorText = string.Empty;
+        RebuildDeviceRows();
         return autoConnectCoordinator.ConnectManuallyAsync(SelectedDevice, cancellationToken);
     }
 
@@ -409,13 +440,46 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
 
     private void OnDeviceDiscovered(object? sender, DiscoveredMaskDevice device)
     {
-        if (Devices.Any(existing => existing.Id == device.Id))
+        var current = Devices.ToList();
+        var existingIndex = current.FindIndex(existing => existing.Id == device.Id);
+        if (existingIndex >= 0)
         {
-            return;
+            current[existingIndex] = device;
+        }
+        else
+        {
+            current.Add(device);
         }
 
-        Devices.Add(device);
+        var selectedId = SelectedDevice?.Id;
+        var ordered = OrderDevices(current, autoConnectCoordinator.LastKnownDevice).ToArray();
+        Devices.Clear();
+        foreach (var item in ordered)
+        {
+            Devices.Add(item);
+        }
+
+        SelectedDevice = string.IsNullOrWhiteSpace(selectedId)
+            ? ordered.FirstOrDefault()
+            : ordered.FirstOrDefault(item => item.Id == selectedId) ?? ordered.FirstOrDefault();
+        RebuildDeviceRows();
         StatusText = $"{Devices.Count} mask device(s) found.";
+    }
+
+    public static IReadOnlyList<DiscoveredMaskDevice> OrderDevices(
+        IEnumerable<DiscoveredMaskDevice> devices,
+        KnownMaskDevice? rememberedDevice)
+    {
+        ArgumentNullException.ThrowIfNull(devices);
+        return devices
+            .GroupBy(device => device.Id, StringComparer.Ordinal)
+            .Select(group => group.OrderByDescending(device => device.SignalStrength).First())
+            .OrderByDescending(device => rememberedDevice is not null &&
+                (string.Equals(device.Id, rememberedDevice.Id, StringComparison.Ordinal) ||
+                 string.Equals(device.Name, rememberedDevice.Name, StringComparison.Ordinal)))
+            .ThenByDescending(device => device.SignalStrength)
+            .ThenBy(device => device.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 
     private void OnScannerStateChanged(object? sender, BleScannerStateChangedEventArgs e)
@@ -428,11 +492,39 @@ public sealed class ConnectViewModel : INotifyPropertyChanged
     {
         ConnectionState = e.State;
         StatusText = e.Message;
+        if (e.State == BleConnectionState.Failed && SelectedDevice is not null)
+        {
+            failedDeviceId = SelectedDevice.Id;
+            connectionErrorText = e.Message;
+        }
+        else if (e.State == BleConnectionState.Connected)
+        {
+            failedDeviceId = string.Empty;
+            connectionErrorText = string.Empty;
+        }
+
+        RebuildDeviceRows();
         AddReconnectHistory($"{e.State}: {e.Message}");
         if (e.State is BleConnectionState.Connected or BleConnectionState.Disconnected or BleConnectionState.Failed)
         {
             _ = RefreshDiagnosticsAsync();
         }
+    }
+
+    private void RebuildDeviceRows()
+    {
+        var selectedId = SelectedDevice?.Id;
+        DeviceRows.Clear();
+        foreach (var device in Devices)
+        {
+            DeviceRows.Add(new DevicePickerRow(
+                device,
+                string.Equals(device.Id, failedDeviceId, StringComparison.Ordinal),
+                string.Equals(device.Id, failedDeviceId, StringComparison.Ordinal) ? connectionErrorText : string.Empty));
+        }
+
+        selectedDeviceRow = DeviceRows.FirstOrDefault(row => row.Device.Id == selectedId);
+        OnPropertyChanged(nameof(SelectedDeviceRow));
     }
 
     private async Task StartAutoConnectAsync(CancellationToken cancellationToken)

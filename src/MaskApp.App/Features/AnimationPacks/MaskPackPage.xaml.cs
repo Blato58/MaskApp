@@ -1,17 +1,27 @@
 using MaskApp.Core.Features.AnimationPacks;
+using MaskApp.App.Resources.Strings;
 
 namespace MaskApp.App.Features.AnimationPacks;
 
-public partial class MaskPackPage : ContentPage
+public partial class MaskPackPage : ContentPage, IQueryAttributable
 {
     private readonly MaskPackViewModel viewModel;
     private bool initialized;
+    private string mode = "import";
 
     public MaskPackPage(MaskPackViewModel viewModel)
     {
         InitializeComponent();
         this.viewModel = viewModel;
         BindingContext = viewModel;
+    }
+
+    public void ApplyQueryAttributes(IDictionary<string, object> query)
+    {
+        if (query.TryGetValue("mode", out var value))
+        {
+            mode = Uri.UnescapeDataString(value?.ToString() ?? "import");
+        }
     }
 
     protected override async void OnAppearing()
@@ -24,6 +34,10 @@ public partial class MaskPackPage : ContentPage
 
         initialized = true;
         await viewModel.InitializeAsync();
+        if (string.Equals(mode, "export", StringComparison.OrdinalIgnoreCase))
+        {
+            await TransferScroll.ScrollToAsync(ExportSection, ScrollToPosition.Start, false);
+        }
     }
 
     private async void OnChoosePackClicked(object? sender, EventArgs e)
@@ -32,7 +46,7 @@ public partial class MaskPackPage : ContentPage
         {
             var selected = await FilePicker.Default.PickAsync(new PickOptions
             {
-                PickerTitle = "Choose a MaskPack ZIP archive"
+                PickerTitle = AppText.Get("ChooseMaskPackArchive")
             });
             if (selected is null)
             {
@@ -45,7 +59,7 @@ public partial class MaskPackPage : ContentPage
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
                                            or InvalidDataException or InvalidOperationException)
         {
-            await DisplayAlertAsync("MaskPack inspection failed", ShortMessage(exception), "OK");
+            await DisplayAlertAsync(AppText.Get("MaskPackInspectionFailed"), ShortMessage(exception), AppText.Get("Ok"));
         }
     }
 
@@ -70,20 +84,20 @@ public partial class MaskPackPage : ContentPage
                     File.Delete(exportPath);
                 }
 
-                await DisplayAlertAsync("MaskPack export failed", result.Message, "OK");
+                await DisplayAlertAsync(AppText.Get("MaskPackExportFailed"), result.Message, AppText.Get("Ok"));
                 return;
             }
 
             await Share.Default.RequestAsync(new ShareFileRequest
             {
-                Title = "Share MaskPack",
+                Title = AppText.Get("ShareMaskPack"),
                 File = new ShareFile(exportPath)
             });
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
                                            or InvalidOperationException or NotSupportedException)
         {
-            await DisplayAlertAsync("MaskPack export failed", ShortMessage(exception), "OK");
+            await DisplayAlertAsync(AppText.Get("MaskPackExportFailed"), ShortMessage(exception), AppText.Get("Ok"));
         }
     }
 

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="MaskApp.App.Features.Shows.ShowBuilderPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:scenes="clr-namespace:MaskApp.Core.Features.Scenes;assembly=MaskApp.Core"
+    xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
+    x:DataType="scenes:SceneStudioViewModel"
+    Title="{x:Static loc:AppText.ShowBuilder}"
+    BackgroundColor="{AppThemeBinding Dark={StaticResource DarkCanvasColor}, Light={StaticResource LightCanvasColor}}">
+    <Grid Padding="16" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="12">
+        <Grid ColumnDefinitions="*,Auto">
+            <VerticalStackLayout Spacing="2">
+            <Label Text="{x:Static loc:AppText.ShowBuilder}" Style="{StaticResource PageTitleLabelStyle}" SemanticProperties.HeadingLevel="Level1" />
+            <Label Text="{loc:Translate ShowBuilderDetail}" Style="{StaticResource MutedLabelStyle}" />
+            </VerticalStackLayout>
+            <Button Grid.Column="1" Text="{x:Static loc:AppText.NewShow}" Command="{Binding NewSetlistCommand}" MinimumHeightRequest="48" />
+        </Grid>
+        <Entry Grid.Row="1" Placeholder="{loc:Translate ShowName}" Text="{Binding SetlistName, Mode=TwoWay}" MinimumHeightRequest="48" />
+        <CollectionView Grid.Row="2" ItemsSource="{Binding CueRows}" SelectionMode="Single" SelectionChanged="OnCueSelected">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="scenes:SetlistCueRow">
+                    <Grid Padding="0,10" RowDefinitions="Auto,Auto" ColumnDefinitions="48,*" ColumnSpacing="8" RowSpacing="8" MinimumHeightRequest="112">
+                        <Label Text="{Binding DisplayIndex}" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                            <Label Text="{Binding Cue.Label}" FontAttributes="Bold" />
+                            <Label Text="{Binding SceneName}" Style="{StaticResource MutedLabelStyle}" />
+                        </VerticalStackLayout>
+                        <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="*,*,2*" ColumnSpacing="8">
+                            <Button Text="↑" Clicked="OnMoveCueEarlier" MinimumHeightRequest="48" SemanticProperties.Description="{loc:Translate MoveEarlier}" />
+                            <Button Grid.Column="1" Text="↓" Clicked="OnMoveCueLater" MinimumHeightRequest="48" SemanticProperties.Description="{loc:Translate MoveLater}" />
+                            <Button Grid.Column="2" Text="{loc:Translate Remove}" Clicked="OnRemoveCue" Style="{StaticResource DangerButtonStyle}" MinimumHeightRequest="48" />
+                        </Grid>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+        <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <Picker Title="{loc:Translate SceneToAdd}" ItemsSource="{Binding Scenes}" ItemDisplayBinding="{Binding DisplayName}" SelectedItem="{Binding SelectedCueScene, Mode=TwoWay}" MinimumHeightRequest="48" />
+            <Button Grid.Column="1" Text="{x:Static loc:AppText.AddCue}" Clicked="OnAddCue" MinimumHeightRequest="48" />
+        </Grid>
+        <Grid Grid.Row="4" ColumnDefinitions="*,*,*" ColumnSpacing="8">
+            <Button Text="{x:Static loc:AppText.Save}" Command="{Binding SaveSetlistCommand}" />
+            <Button Grid.Column="1" Text="{loc:Translate MakeActive}" Command="{Binding ActivateSetlistCommand}" />
+            <Button Grid.Column="2" Text="{x:Static loc:AppText.Preflight}" Clicked="OnPreflightClicked" Style="{StaticResource PrimaryButtonStyle}" />
+        </Grid>
+    </Grid>
+</ContentPage>

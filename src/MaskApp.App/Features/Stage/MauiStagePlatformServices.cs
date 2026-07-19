@@ -1,15 +1,33 @@
 using MaskApp.Core.Features.Stage;
 using Microsoft.Maui.Devices;
+using MaskApp.Core.Features.Experience;
 
 namespace MaskApp.App.Features.Stage;
 
 public sealed class MauiStageDeviceFeedback : IStageDeviceFeedback
 {
-    public void Success() => Perform(HapticFeedbackType.Click);
+    private bool enabled;
 
-    public void Failure() => Perform(HapticFeedbackType.LongPress);
+    public MauiStageDeviceFeedback(IAppExperienceSettingsStore settingsStore)
+    {
+        enabled = settingsStore.LoadAsync().GetAwaiter().GetResult().HapticsEnabled;
+    }
 
-    public void Warning() => Perform(HapticFeedbackType.Click);
+    public void Success() => PerformIfEnabled(HapticFeedbackType.Click);
+
+    public void Failure() => PerformIfEnabled(HapticFeedbackType.LongPress);
+
+    public void Warning() => PerformIfEnabled(HapticFeedbackType.Click);
+
+    public void SetEnabled(bool value) => enabled = value;
+
+    private void PerformIfEnabled(HapticFeedbackType type)
+    {
+        if (enabled)
+        {
+            Perform(type);
+        }
+    }
 
     private static void Perform(HapticFeedbackType type)
     {

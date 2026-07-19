@@ -1,18 +1,24 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using MaskApp.Core.Features.Stage;
+using MaskApp.Core.Features.Experience;
+using MaskApp.App.Features.Device;
+using MaskApp.App.Resources.Strings;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MaskApp.App.Features.Stage;
 
 public partial class StageModePage : ContentPage
 {
     private readonly StageModeViewModel viewModel;
+    private readonly IServiceProvider services;
     private long? unlockPressedAt;
 
-    public StageModePage(StageModeViewModel viewModel)
+    public StageModePage(StageModeViewModel viewModel, IServiceProvider services)
     {
         InitializeComponent();
         this.viewModel = viewModel;
+        this.services = services;
         BindingContext = viewModel;
     }
 
@@ -55,6 +61,27 @@ public partial class StageModePage : ContentPage
         }
     }
 
+    private async void OnAccessibleHoldTileClicked(object? sender, EventArgs args)
+    {
+        if (sender is not Button { CommandParameter: StageTile tile })
+        {
+            return;
+        }
+
+        if (!await DisplayAlertAsync(
+            AppText.Get("StartHoldTitle"),
+            string.Format(AppText.Get("StartHoldMessage"), tile.Label),
+            AppText.Get("Start"),
+            AppText.Cancel))
+        {
+            return;
+        }
+
+        await viewModel.BeginHoldAsync(tile);
+        await DisplayAlertAsync(AppText.Get("HoldActionPlaying"), AppText.Get("HoldActionPlayingDetail"), AppText.Stop);
+        await viewModel.EndHoldAsync(tile);
+    }
+
     private void OnUnlockPressed(object? sender, EventArgs args) =>
         unlockPressedAt = Stopwatch.GetTimestamp();
 
@@ -68,7 +95,21 @@ public partial class StageModePage : ContentPage
         unlockPressedAt = null;
         if (viewModel.TryUnlock(Stopwatch.GetElapsedTime(startedAt)))
         {
-            await Shell.Current.GoToAsync("..");
+            await Shell.Current.GoToAsync(AppRoutes.Back);
+        }
+    }
+
+    private async void OnAccessibleExitClicked(object? sender, EventArgs args)
+    {
+        if (!await DisplayAlertAsync(AppText.Get("ExitStageTitle"), AppText.Get("ExitStageDetail"), AppText.Continue, AppText.Cancel) ||
+            !await DisplayAlertAsync(AppText.Get("ConfirmExit"), AppText.Get("NoReplayExitDetail"), AppText.Get("ExitStage"), AppText.Get("Stay")))
+        {
+            return;
+        }
+
+        if (viewModel.TryUnlock(TimeSpan.FromSeconds(2)))
+        {
+            await Shell.Current.GoToAsync(AppRoutes.Back);
         }
     }
 
@@ -102,4 +143,10 @@ public partial class StageModePage : ContentPage
             VerticalItemSpacing = 6
         };
     }
+
+    private async void OnReconnectClicked(object? sender, EventArgs e) =>
+        await Shell.Current.GoToAsync(AppRoutes.DevicePicker);
+
+    private async void OnOpenDeviceClicked(object? sender, EventArgs e) =>
+        await Navigation.PushModalAsync(services.GetRequiredService<DevicePage>());
 }

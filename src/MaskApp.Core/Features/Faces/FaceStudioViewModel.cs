@@ -52,6 +52,12 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
             Mirror();
             return Task.CompletedTask;
         });
+        UseAutoSlotCommand = new AsyncRelayCommand(_ =>
+        {
+            SelectedSlot = GetNextCustomSlot();
+            StatusText = $"Auto selected DIY slot {SelectedSlot}; reserved animation slots were skipped.";
+            return Task.CompletedTask;
+        });
         SaveCommand = new AsyncRelayCommand(SaveAsync, CanSave);
         SaveAsCopyCommand = new AsyncRelayCommand(SaveAsCopyAsync, CanSave);
         UploadCommand = new AsyncRelayCommand(UploadAsync, CanUpload);
@@ -69,6 +75,8 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
     public AsyncRelayCommand ClearCommand { get; }
 
     public AsyncRelayCommand MirrorCommand { get; }
+
+    public AsyncRelayCommand UseAutoSlotCommand { get; }
 
     public AsyncRelayCommand SaveCommand { get; }
 
@@ -293,6 +301,18 @@ public sealed class FaceStudioViewModel : INotifyPropertyChanged
         var selected = Patterns.FirstOrDefault(pattern => pattern.Id == CurrentPattern.Id)
             ?? Patterns.First();
         ApplyPattern(selected);
+    }
+
+    public bool SelectPattern(string faceId)
+    {
+        var pattern = Patterns.FirstOrDefault(item => string.Equals(item.Id, faceId, StringComparison.Ordinal));
+        if (pattern is null)
+        {
+            return false;
+        }
+
+        ApplyPattern(pattern);
+        return true;
     }
 
     public void SelectColor(string colorName)

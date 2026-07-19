@@ -6,12 +6,12 @@
     xmlns:builtins="clr-namespace:MaskApp.Core.Features.BuiltIns;assembly=MaskApp.Core"
     xmlns:controls="clr-namespace:MaskApp.App.Controls"
     x:DataType="builtins:BuiltInsViewModel"
-    Title="Built-ins"
-    BackgroundColor="{StaticResource PageBackgroundColor}">
+    Title="Stock Catalog"
+    BackgroundColor="{AppThemeBinding Dark={StaticResource DarkCanvasColor}, Light={StaticResource LightCanvasColor}}">
     <Grid RowDefinitions="Auto,Auto,*" Padding="18,14,18,0" RowSpacing="12">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
             <VerticalStackLayout Spacing="2">
-                <Label Text="Built-ins" Style="{StaticResource PageTitleLabelStyle}" />
+                <Label Text="Stock Catalog" Style="{StaticResource PageTitleLabelStyle}" />
                 <Label Text="{Binding CatalogSummaryText}" Style="{StaticResource TinyLabelStyle}" />
             </VerticalStackLayout>
             <Button

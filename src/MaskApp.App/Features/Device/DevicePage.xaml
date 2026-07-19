@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="MaskApp.App.Features.Device.DevicePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:MaskApp.App.Controls"
+    xmlns:connect="clr-namespace:MaskApp.Core.Features.Connect;assembly=MaskApp.Core"
+    xmlns:mask="clr-namespace:MaskApp.Core.Features.MaskControl;assembly=MaskApp.Core"
+    xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
+    x:DataType="connect:ConnectViewModel"
+    Title="{x:Static loc:AppText.Device}"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{AppThemeBinding Dark={StaticResource DarkCanvasColor}, Light={StaticResource LightCanvasColor}}">
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="16">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="{x:Static loc:AppText.Device}" Style="{StaticResource PageTitleLabelStyle}" SemanticProperties.HeadingLevel="Level1" />
+                    <Label Text="{loc:Translate DeviceSubtitle}" Style="{StaticResource MutedLabelStyle}" />
+                </VerticalStackLayout>
+                <Button Grid.Column="1" Text="{x:Static loc:AppText.Diagnostics}" Clicked="OnDiagnosticsClicked" MinimumHeightRequest="48" />
+                <Button x:Name="CloseButton" Grid.Column="2" Text="{loc:Translate Close}" Clicked="OnCloseClicked" IsVisible="False" MinimumHeightRequest="48" />
+            </Grid>
+
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Dark={StaticResource DarkRaisedColor}, Light={StaticResource LightRaisedColor}}">
+                <Border.StrokeShape><RoundRectangle CornerRadius="20" /></Border.StrokeShape>
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
+                    <controls:ConnectionStatusView State="{Binding ConnectionState}" StateText="{Binding ConnectionHeadline}" DetailText="{Binding ConnectionDetailText}" />
+                    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="{loc:Translate Mask}" Style="{StaticResource TinyLabelStyle}" />
+                            <Label Text="{Binding DeviceNameText}" FontAttributes="Bold" FontSize="18" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                            <Label Text="{loc:Translate Battery}" Style="{StaticResource TinyLabelStyle}" />
+                            <Label Text="{loc:Translate BatteryUnavailable}" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+                    </Grid>
+                    <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button Text="{x:Static loc:AppText.ChooseMask}" Clicked="OnChooseMaskClicked" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Grid.Column="1" Text="{loc:Translate Disconnect}" Command="{Binding DisconnectCommand}" IsVisible="{Binding CanDisconnect}" Style="{StaticResource DangerButtonStyle}" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <VerticalStackLayout x:Name="MaskControls" x:DataType="mask:MaskControlViewModel" Spacing="16">
+                <Border Style="{StaticResource PanelBorderStyle}">
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="{loc:Translate Brightness}" Style="{StaticResource SectionTitleLabelStyle}" />
+                                <Label Text="{loc:Translate AppliesConnectedMask}" Style="{StaticResource TinyLabelStyle}" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1" Text="{Binding Brightness, StringFormat='{}{0}%'}" FontSize="24" FontAttributes="Bold" />
+                        </Grid>
+                        <Slider Minimum="1" Maximum="100" Value="{Binding Brightness, Mode=TwoWay}" SemanticProperties.Description="{loc:Translate BrightnessDescription}" />
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                            <Button Text="{loc:Translate Apply}" Command="{Binding ApplyBrightnessCommand}" />
+                            <Button Grid.Column="1" Text="{loc:Translate Restore}" Command="{Binding RestoreBrightnessCommand}" />
+                            <Button Grid.Column="2" Text="{x:Static loc:AppText.Blackout}" Command="{Binding BlackoutCommand}" Style="{StaticResource DangerButtonStyle}" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource PanelBorderStyle}">
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="{loc:Translate FirmwareModeSpeed}" Style="{StaticResource SectionTitleLabelStyle}" />
+                                <Label Text="{loc:Translate FirmwareModeSpeedDetail}" Style="{StaticResource TinyLabelStyle}" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1" Text="{Binding PlaybackSpeed}" FontSize="24" FontAttributes="Bold" />
+                        </Grid>
+                        <Slider Minimum="1" Maximum="100" Value="{Binding PlaybackSpeed, Mode=TwoWay}" SemanticProperties.Description="{loc:Translate PlaybackSpeedDescription}" />
+                        <Button Text="{loc:Translate ApplySpeed}" Command="{Binding ApplyPlaybackSpeedCommand}" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="{loc:Translate ConnectionPreferences}" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="{loc:Translate AutoConnect}" FontAttributes="Bold" />
+                            <Label Text="{loc:Translate ForegroundNoReplay}" Style="{StaticResource TinyLabelStyle}" />
+                        </VerticalStackLayout>
+                        <Switch Grid.Column="1" IsToggled="{Binding AutoConnectEnabled, Mode=TwoWay}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="{loc:Translate RememberLastMask}" FontAttributes="Bold" />
+                            <Label Text="{Binding LastKnownMaskText}" Style="{StaticResource TinyLabelStyle}" />
+                        </VerticalStackLayout>
+                        <Switch Grid.Column="1" IsToggled="{Binding RememberLastDeviceEnabled, Mode=TwoWay}" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="{loc:Translate Experience}" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <Label Text="{x:Static loc:AppText.Appearance}" VerticalTextAlignment="Center" />
+                        <Picker x:Name="AppearancePicker" Grid.Column="1" WidthRequest="160" SelectedIndexChanged="OnAppearanceChanged" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <Label Text="{x:Static loc:AppText.Language}" VerticalTextAlignment="Center" />
+                        <Picker x:Name="LanguagePicker" Grid.Column="1" WidthRequest="160" SelectedIndexChanged="OnLanguageChanged" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="{x:Static loc:AppText.ReducedMotion}" FontAttributes="Bold" />
+                            <Label Text="{loc:Translate ReduceMotionDetail}" Style="{StaticResource TinyLabelStyle}" />
+                        </VerticalStackLayout>
+                        <Switch x:Name="ReduceMotionSwitch" Grid.Column="1" Toggled="OnReduceMotionToggled" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <Label Text="{loc:Translate StageHaptics}" VerticalTextAlignment="Center" />
+                        <Switch x:Name="HapticsSwitch" Grid.Column="1" Toggled="OnHapticsToggled" />
+                    </Grid>
+                    <Button Text="{loc:Translate ShowFirstRunAgain}" Clicked="OnResetOnboardingClicked" />
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

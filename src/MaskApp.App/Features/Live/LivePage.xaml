@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="MaskApp.App.Features.Live.LivePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:MaskApp.App.Controls"
+    xmlns:live="clr-namespace:MaskApp.Core.Features.Live;assembly=MaskApp.Core"
+    xmlns:gallery="clr-namespace:MaskApp.Core.Features.Gallery;assembly=MaskApp.Core"
+    xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
+    x:Name="RootPage"
+    x:DataType="live:LiveViewModel"
+    Title="{x:Static loc:AppText.Live}"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{AppThemeBinding Dark={StaticResource DarkCanvasColor}, Light={StaticResource LightCanvasColor}}">
+    <VisualStateManager.VisualStateGroups>
+        <VisualStateGroup x:Name="WindowWidthStates">
+            <VisualState x:Name="Compact" />
+            <VisualState x:Name="Medium">
+                <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="600" /></VisualState.StateTriggers>
+                <VisualState.Setters>
+                    <Setter TargetName="PageGrid" Property="Padding" Value="24" />
+                    <Setter TargetName="ActionsLayout" Property="Span" Value="3" />
+                </VisualState.Setters>
+            </VisualState>
+            <VisualState x:Name="Expanded">
+                <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="900" /></VisualState.StateTriggers>
+                <VisualState.Setters>
+                    <Setter TargetName="PageGrid" Property="Padding" Value="32" />
+                    <Setter TargetName="ActionsLayout" Property="Span" Value="4" />
+                </VisualState.Setters>
+            </VisualState>
+        </VisualStateGroup>
+    </VisualStateManager.VisualStateGroups>
+    <Grid x:Name="PageGrid" Padding="16,16,16,12" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <VerticalStackLayout Spacing="2">
+                <Label Text="{x:Static loc:AppText.Live}" Style="{StaticResource PageTitleLabelStyle}" SemanticProperties.HeadingLevel="Level1" />
+                <Label Text="{loc:Translate LiveSubtitle}" Style="{StaticResource MutedLabelStyle}" />
+            </VerticalStackLayout>
+            <controls:ConnectionPill
+                Grid.Column="1"
+                State="{Binding ConnectionState}"
+                Text="{Binding ConnectionText}"
+                Clicked="OnConnectionClicked" />
+        </Grid>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <Picker
+                Title="{loc:Translate ChooseDeck}"
+                ItemsSource="{Binding Decks}"
+                ItemDisplayBinding="{Binding Title}"
+                SelectedItem="{Binding SelectedDeckTab, Mode=OneWay}"
+                SelectedIndexChanged="OnDeckChanged"
+                MinimumHeightRequest="48"
+                SemanticProperties.Description="{loc:Translate CurrentLiveDeckDescription}" />
+            <Button
+                Grid.Column="1"
+                Text="{x:Static loc:AppText.EditDeck}"
+                Clicked="OnEditDeckClicked"
+                MinimumHeightRequest="48"
+                SemanticProperties.Hint="Edit the selected Deck" />
+        </Grid>
+
+        <CollectionView
+            Grid.Row="2"
+            x:Name="ActionsView"
+            ItemsSource="{Binding Actions}"
+            SelectionMode="None">
+            <CollectionView.ItemsLayout>
+                <GridItemsLayout x:Name="ActionsLayout" Orientation="Vertical" Span="2" HorizontalItemSpacing="12" VerticalItemSpacing="12" />
+            </CollectionView.ItemsLayout>
+            <CollectionView.EmptyView>
+                <controls:EmptyStateView Title="{loc:Translate EmptyDeck}" Detail="{loc:Translate EmptyDeckDetail}" />
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="gallery:GalleryPageShortcutCard">
+                    <controls:LiveTile
+                        Item="{Binding .}"
+                        RequiresHold="{Binding Source={x:Reference RootPage}, Path=BindingContext.RequireHoldForActions}"
+                        ConfirmationRequested="OnTileConfirmationRequested" />
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Grid Grid.Row="3" RowDefinitions="Auto,Auto" RowSpacing="10">
+            <controls:DeliveryStatus
+                State="{Binding Delivery.State}"
+                Label="{Binding Delivery.Label}"
+                Detail="{Binding Delivery.Detail}" />
+            <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="12">
+                <Button
+                    Text="{x:Static loc:AppText.Stop}"
+                    Command="{Binding StopCommand}"
+                    MinimumHeightRequest="64"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    SemanticProperties.Description="{x:Static loc:AppText.Stop}" />
+                <Button
+                    Grid.Column="1"
+                    Text="{x:Static loc:AppText.Blackout}"
+                    Command="{Binding BlackoutCommand}"
+                    MinimumHeightRequest="64"
+                    Style="{StaticResource DangerButtonStyle}"
+                    SemanticProperties.Description="{x:Static loc:AppText.Blackout}" />
+            </Grid>
+        </Grid>
+    </Grid>
+</ContentPage>

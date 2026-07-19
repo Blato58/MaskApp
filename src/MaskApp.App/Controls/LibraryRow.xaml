@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="MaskApp.App.Controls.LibraryRow"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:MaskApp.App.Controls"
+    xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
+    x:Name="Root">
+    <Grid Padding="0,12" ColumnDefinitions="64,*,Auto" ColumnSpacing="12" MinimumHeightRequest="84">
+        <Border
+            HeightRequest="58"
+            WidthRequest="58"
+            BackgroundColor="{Binding Item.ColorHex, Source={x:Reference Root}}">
+            <Border.StrokeShape><RoundRectangle CornerRadius="12" /></Border.StrokeShape>
+            <Grid Padding="5">
+                <Label
+                    Text="{Binding Item.IconKey, Source={x:Reference Root}}"
+                    FontSize="11"
+                    FontAttributes="Bold"
+                    HorizontalTextAlignment="Center"
+                    VerticalTextAlignment="Center"
+                    IsVisible="{Binding Item.HasAnyPreview, Source={x:Reference Root}, Converter={StaticResource InvertedBoolConverter}}" />
+                <controls:BuiltInPreviewView
+                    Source="{Binding Item.PreviewResourceName, Source={x:Reference Root}}"
+                    IsAnimationPlaying="{Binding Item.IsAnimationPlaying, Source={x:Reference Root}}"
+                    IsVisible="{Binding Item.HasPreview, Source={x:Reference Root}}" />
+                <controls:FacePatternPreviewView
+                    Pattern="{Binding Item.FacePattern, Source={x:Reference Root}}"
+                    IsVisible="{Binding Item.HasFacePreview, Source={x:Reference Root}}" />
+            </Grid>
+        </Border>
+        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+            <Label Text="{Binding Item.Title, Source={x:Reference Root}}" FontSize="16" FontAttributes="Bold" MaxLines="1" />
+            <Label Text="{Binding Item.Subtitle, Source={x:Reference Root}}" Style="{StaticResource MutedLabelStyle}" MaxLines="1" />
+            <HorizontalStackLayout Spacing="6">
+                <Label Text="{Binding Item.OperationalStatusIcon, Source={x:Reference Root}}" TextColor="{Binding Item.OperationalStatusColorHex, Source={x:Reference Root}}" />
+                <Label Text="{Binding Item.OperationalStatusText, Source={x:Reference Root}}" Style="{StaticResource TinyLabelStyle}" />
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+        <Button
+            Grid.Column="2"
+            Text="{loc:Translate Actions}"
+            Clicked="OnActionsClicked"
+            VerticalOptions="Center"
+            IsVisible="{Binding Item.IsNormalMode, Source={x:Reference Root}}"
+            MinimumHeightRequest="48"
+            SemanticProperties.Description="{loc:Translate Actions}" />
+        <HorizontalStackLayout Grid.Column="2" Spacing="4" IsVisible="{Binding Item.IsEditMode, Source={x:Reference Root}}">
+            <Button Text="↑" Command="{Binding Item.MoveEarlierCommand, Source={x:Reference Root}}" MinimumHeightRequest="48" MinimumWidthRequest="48" SemanticProperties.Description="{loc:Translate MoveEarlier}" />
+            <Button Text="↓" Command="{Binding Item.MoveLaterCommand, Source={x:Reference Root}}" MinimumHeightRequest="48" MinimumWidthRequest="48" SemanticProperties.Description="{loc:Translate MoveLater}" />
+        </HorizontalStackLayout>
+        <BoxView Grid.ColumnSpan="3" HeightRequest="1" VerticalOptions="End" BackgroundColor="{AppThemeBinding Dark={StaticResource DarkBorderColor}, Light={StaticResource LightBorderColor}}" />
+    </Grid>
+</ContentView>

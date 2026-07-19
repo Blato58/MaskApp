@@ -7,14 +7,14 @@
     xmlns:text="clr-namespace:MaskApp.Core.Features.Text;assembly=MaskApp.Core"
     x:DataType="text:TextUploadViewModel"
     Title="Text"
-    BackgroundColor="{StaticResource PageBackgroundColor}">
+    BackgroundColor="{AppThemeBinding Dark={StaticResource DarkCanvasColor}, Light={StaticResource LightCanvasColor}}">
     <ScrollView>
         <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="16">
             <Border Style="{StaticResource PanelBorderStyle}">
                 <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="Text Creator" Style="{StaticResource PageTitleLabelStyle}" />
+                            <Label Text="Text Studio" Style="{StaticResource PageTitleLabelStyle}" />
                             <Label Text="{Binding StatusText}" Style="{StaticResource MutedLabelStyle}" />
                         </VerticalStackLayout>
                         <Border Grid.Column="1" Style="{StaticResource StatusPillBorderStyle}">

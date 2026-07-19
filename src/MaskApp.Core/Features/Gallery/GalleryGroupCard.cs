@@ -1,8 +1,10 @@
 using MaskApp.Core.Features.Connect;
 
+using System.Collections;
+
 namespace MaskApp.Core.Features.Gallery;
 
-public sealed class GalleryGroupCard
+public sealed class GalleryGroupCard : IReadOnlyList<GalleryItemCard>
 {
     public GalleryGroupCard(
         string key,
@@ -30,7 +32,13 @@ public sealed class GalleryGroupCard
 
     public int Count => Items.Count;
 
+    public GalleryItemCard this[int index] => Items[index];
+
     public AsyncRelayCommand MoveEarlierCommand { get; }
 
     public AsyncRelayCommand MoveLaterCommand { get; }
+
+    public IEnumerator<GalleryItemCard> GetEnumerator() => Items.GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

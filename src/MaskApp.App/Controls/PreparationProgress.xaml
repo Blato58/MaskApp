@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView x:Class="MaskApp.App.Controls.PreparationProgress" xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings" x:Name="Root">
+    <VerticalStackLayout Spacing="8" SemanticProperties.Description="{Binding StatusText, Source={x:Reference Root}}">
+        <Grid ColumnDefinitions="*,Auto"><Label Text="{Binding StatusText, Source={x:Reference Root}}" FontAttributes="Bold" /><Label Grid.Column="1" Text="{Binding ProgressText, Source={x:Reference Root}}" Style="{StaticResource TinyLabelStyle}" /></Grid>
+        <ProgressBar Progress="{Binding Progress, Source={x:Reference Root}}" ProgressColor="{StaticResource DarkConnectionColor}" />
+        <Label Text="{loc:Translate PreparationNoPlay}" Style="{StaticResource TinyLabelStyle}" />
+    </VerticalStackLayout>
+</ContentView>

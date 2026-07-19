@@ -1,13 +1,16 @@
-using MaskApp.App.Features.Connect;
 using MaskApp.App.Features.Animations;
 using MaskApp.App.Features.AnimationPacks;
 using MaskApp.App.Features.BuiltIns;
 using MaskApp.App.Features.Faces;
-using MaskApp.App.Features.Gallery;
 using MaskApp.App.Features.Preflight;
-using MaskApp.App.Features.Scenes;
 using MaskApp.App.Features.Stage;
 using MaskApp.App.Features.Text;
+using MaskApp.App.Features.Device;
+using MaskApp.App.Features.Library;
+using MaskApp.App.Features.Live;
+using MaskApp.App.Features.Onboarding;
+using MaskApp.App.Features.Shows;
+using MaskApp.Core.Features.Experience;
 using Microsoft.Extensions.DependencyInjection;
 using MaskApp.App.Resources.Strings;
 
@@ -18,26 +21,29 @@ public partial class AppShell : Shell
     public AppShell(IServiceProvider services)
     {
         InitializeComponent();
-        Routing.RegisterRoute("text", typeof(TextPage));
-        Routing.RegisterRoute("builtins", typeof(BuiltInsPage));
-        Routing.RegisterRoute("built-in-detail", typeof(BuiltInDetailPage));
-        Routing.RegisterRoute("faces", typeof(FaceStudioPage));
-        Routing.RegisterRoute("animation-studio", typeof(AnimationStudioPage));
-        Routing.RegisterRoute("maskpack", typeof(MaskPackPage));
-        Routing.RegisterRoute("scene-studio", typeof(SceneStudioPage));
-        Routing.RegisterRoute("library-add", typeof(LibraryAddPage));
-        Routing.RegisterRoute("page-add-item", typeof(PageAddItemPage));
-        Routing.RegisterRoute("pages-manage", typeof(PagesPage));
-        Routing.RegisterRoute("preflight", typeof(FestivalPreflightPage));
-        Routing.RegisterRoute("stage", typeof(StageModePage));
+        Routing.RegisterRoute(AppRoutes.Onboarding, typeof(OnboardingPage));
+        Routing.RegisterRoute(AppRoutes.DeckEditor, typeof(DeckEditorPage));
+        Routing.RegisterRoute(AppRoutes.TextStudio, typeof(TextPage));
+        Routing.RegisterRoute(AppRoutes.FaceStudio, typeof(FaceStudioPage));
+        Routing.RegisterRoute(AppRoutes.AnimationStudio, typeof(AnimationStudioPage));
+        Routing.RegisterRoute(AppRoutes.StockCatalog, typeof(BuiltInsPage));
+        Routing.RegisterRoute(AppRoutes.ContentDetail, typeof(StockContentDetailPage));
+        Routing.RegisterRoute(AppRoutes.ShowBuilder, typeof(ShowBuilderPage));
+        Routing.RegisterRoute(AppRoutes.SceneEditor, typeof(SceneEditorPage));
+        Routing.RegisterRoute(AppRoutes.Preflight, typeof(FestivalPreflightPage));
+        Routing.RegisterRoute(AppRoutes.Stage, typeof(StageModePage));
+        Routing.RegisterRoute(AppRoutes.DevicePicker, typeof(DevicePickerPage));
+        Routing.RegisterRoute(AppRoutes.Diagnostics, typeof(DiagnosticsPage));
+        Routing.RegisterRoute(AppRoutes.MaskPackTransfer, typeof(MaskPackPage));
 
         Items.Add(new TabBar
         {
             Items =
             {
-                CreateShellContent<GalleryPage>(AppText.Library, "library", "icon_library.svg", services),
-                CreateShellContent<StageHubPage>(AppText.Stage, "stage-hub", "icon_pages.svg", services),
-                CreateShellContent<ConnectPage>(AppText.Device, "device", "icon_device.svg", services)
+                CreateShellContent<LivePage>(AppText.Live, AppRoutes.Live, "icon_pages.svg", services),
+                CreateShellContent<LibraryPage>(AppText.Library, AppRoutes.Library, "icon_library.svg", services),
+                CreateShellContent<ShowsPage>(AppText.Shows, AppRoutes.Shows, "icon_pages.svg", services),
+                CreateShellContent<DevicePage>(AppText.Device, AppRoutes.Device, "icon_device.svg", services)
             }
         });
     }

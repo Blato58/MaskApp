@@ -4,6 +4,7 @@ using MaskApp.Core.Features.Faces;
 using MaskApp.Core.Features.QuickActions;
 using MaskApp.Core.Features.Scenes;
 using MaskApp.Core.Features.TextPresets;
+using MaskApp.Core.Features.Experience;
 
 namespace MaskApp.Core.Features.Gallery;
 
@@ -77,7 +78,7 @@ public sealed class GalleryCatalogBuilder
             SortIndex = sortIndex,
             LastSentAt = preset.LastSentAt,
             LastSendStatus = preset.LastSendStatus,
-            ManageTarget = "text",
+            ManageTarget = AppRoutes.TextStudio,
             TextPreset = preset
         };
 
@@ -108,7 +109,7 @@ public sealed class GalleryCatalogBuilder
             PreviewSourceText = preview.Provenance,
             PreviewIsAnimated = preview.IsAnimated,
             PreviewFrameCount = preview.FrameCount,
-            ManageTarget = "builtins",
+            ManageTarget = AppRoutes.StockCatalog,
             BuiltInAssetRecord = record
         };
     }
@@ -156,7 +157,7 @@ public sealed class GalleryCatalogBuilder
                 : string.IsNullOrWhiteSpace(normalized.LastUploadStatus)
                     ? "DIY upload needs real-mask test"
                     : normalized.LastUploadStatus,
-            ManageTarget = "faces",
+            ManageTarget = AppRoutes.FaceStudio,
             FacePattern = normalized
         };
     }
@@ -230,7 +231,7 @@ public sealed class GalleryCatalogBuilder
             PreviewFrameCount = normalized.Frames.Count,
             CanSend = compilation.Succeeded,
             CanManage = true,
-            ManageTarget = "animation-studio",
+            ManageTarget = AppRoutes.AnimationStudio,
             FacePattern = normalized.Frames[0].Pattern,
             AnimationProject = normalized,
             PerformanceAnimation = animation
@@ -293,7 +294,7 @@ public sealed class GalleryCatalogBuilder
             PreviewFrameCount = validation.ExpandedStepCount,
             CanSend = validation.IsValid,
             CanManage = true,
-            ManageTarget = "scene-studio",
+            ManageTarget = AppRoutes.SceneEditor,
             FacePattern = preview?.FacePattern,
             Scene = scene
         };

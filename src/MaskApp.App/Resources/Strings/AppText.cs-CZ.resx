@@ -5,6 +5,8 @@
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
   <data name="Library" xml:space="preserve"><value>Knihovna</value></data>
+  <data name="Live" xml:space="preserve"><value>Živě</value></data>
+  <data name="Shows" xml:space="preserve"><value>Show</value></data>
   <data name="Stage" xml:space="preserve"><value>Scéna</value></data>
   <data name="Device" xml:space="preserve"><value>Zařízení</value></data>
   <data name="SearchLibrary" xml:space="preserve"><value>Hledat v knihovně</value></data>
@@ -27,4 +29,247 @@
   <data name="Blackout" xml:space="preserve"><value>ZATEMNIT</value></data>
   <data name="AnimationStudio" xml:space="preserve"><value>Studio animací</value></data>
   <data name="Save" xml:space="preserve"><value>Uložit</value></data>
+  <data name="Create" xml:space="preserve"><value>Vytvořit</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Zrušit</value></data>
+  <data name="Done" xml:space="preserve"><value>Hotovo</value></data>
+  <data name="EditDeck" xml:space="preserve"><value>Upravit deck</value></data>
+  <data name="AddFromLibrary" xml:space="preserve"><value>Přidat z knihovny</value></data>
+  <data name="RequireHoldForActions" xml:space="preserve"><value>Vyžadovat podržení pro akce</value></data>
+  <data name="DeleteDeck" xml:space="preserve"><value>Smazat deck</value></data>
+  <data name="Reconnect" xml:space="preserve"><value>Znovu připojit</value></data>
+  <data name="ChooseMask" xml:space="preserve"><value>Vybrat masku</value></data>
+  <data name="MaskConnected" xml:space="preserve"><value>Maska připojena</value></data>
+  <data name="Disconnected" xml:space="preserve"><value>Odpojeno</value></data>
+  <data name="Sending" xml:space="preserve"><value>Odesílání</value></data>
+  <data name="Written" xml:space="preserve"><value>Zapsáno</value></data>
+  <data name="Confirmed" xml:space="preserve"><value>Potvrzeno</value></data>
+  <data name="Failed" xml:space="preserve"><value>Selhalo</value></data>
+  <data name="Unknown" xml:space="preserve"><value>Neznámé</value></data>
+  <data name="TextStudio" xml:space="preserve"><value>Textové studio</value></data>
+  <data name="FaceStudio" xml:space="preserve"><value>Studio obličejů</value></data>
+  <data name="StockCatalog" xml:space="preserve"><value>Katalog masek</value></data>
+  <data name="ShowBuilder" xml:space="preserve"><value>Editor show</value></data>
+  <data name="SceneEditor" xml:space="preserve"><value>Editor scény</value></data>
+  <data name="ImportMaskPack" xml:space="preserve"><value>Importovat MaskPack</value></data>
+  <data name="ExportMaskPack" xml:space="preserve"><value>Exportovat MaskPack</value></data>
+  <data name="GetStarted" xml:space="preserve"><value>Začít</value></data>
+  <data name="ExploreWithoutMask" xml:space="preserve"><value>Prozkoumat bez masky</value></data>
+  <data name="ConnectNearby" xml:space="preserve"><value>Připojit blízkou masku</value></data>
+  <data name="AllowBluetooth" xml:space="preserve"><value>Povolit Bluetooth</value></data>
+  <data name="NotNow" xml:space="preserve"><value>Teď ne</value></data>
+  <data name="SkipForNow" xml:space="preserve"><value>Prozatím přeskočit</value></data>
+  <data name="ScanAgain" xml:space="preserve"><value>Hledat znovu</value></data>
+  <data name="NoMaskFound" xml:space="preserve"><value>Žádná maska nenalezena</value></data>
+  <data name="Continue" xml:space="preserve"><value>Pokračovat</value></data>
+  <data name="NoMatchingContent" xml:space="preserve"><value>Žádný odpovídající obsah</value></data>
+  <data name="ClearFilters" xml:space="preserve"><value>Vymazat filtry</value></data>
+  <data name="BrowseStock" xml:space="preserve"><value>Procházet katalog</value></data>
+  <data name="Import" xml:space="preserve"><value>Import</value></data>
+  <data name="Export" xml:space="preserve"><value>Export</value></data>
+  <data name="NewShow" xml:space="preserve"><value>Nová show</value></data>
+  <data name="AddCue" xml:space="preserve"><value>Přidat cue</value></data>
+  <data name="AddStep" xml:space="preserve"><value>Přidat krok</value></data>
+  <data name="RunPreflight" xml:space="preserve"><value>Spustit kontrolu</value></data>
+  <data name="OpenDevice" xml:space="preserve"><value>Otevřít zařízení</value></data>
+  <data name="Previous" xml:space="preserve"><value>Předchozí</value></data>
+  <data name="Next" xml:space="preserve"><value>Další</value></data>
+  <data name="Retry" xml:space="preserve"><value>Zkusit znovu</value></data>
+  <data name="Refresh" xml:space="preserve"><value>Obnovit</value></data>
+  <data name="Appearance" xml:space="preserve"><value>Vzhled</value></data>
+  <data name="Language" xml:space="preserve"><value>Jazyk</value></data>
+  <data name="ReducedMotion" xml:space="preserve"><value>Omezení pohybu</value></data>
+  <data name="Haptics" xml:space="preserve"><value>Haptika</value></data>
+  <data name="DeviceSubtitle" xml:space="preserve"><value>Běžné připojení a ovládání masky</value></data>
+  <data name="Close" xml:space="preserve"><value>Zavřít</value></data>
+  <data name="Mask" xml:space="preserve"><value>Maska</value></data>
+  <data name="Battery" xml:space="preserve"><value>Baterie</value></data>
+  <data name="BatteryUnavailable" xml:space="preserve"><value>Tato maska stav nehlásí</value></data>
+  <data name="Disconnect" xml:space="preserve"><value>Odpojit</value></data>
+  <data name="Brightness" xml:space="preserve"><value>Jas</value></data>
+  <data name="AppliesConnectedMask" xml:space="preserve"><value>Platí pro připojenou masku</value></data>
+  <data name="Apply" xml:space="preserve"><value>Použít</value></data>
+  <data name="Restore" xml:space="preserve"><value>Obnovit</value></data>
+  <data name="FirmwareModeSpeed" xml:space="preserve"><value>Rychlost režimu firmwaru</value></data>
+  <data name="FirmwareModeSpeedDetail" xml:space="preserve"><value>Ovlivňuje skladový text a animace</value></data>
+  <data name="ApplySpeed" xml:space="preserve"><value>Použít rychlost</value></data>
+  <data name="ConnectionPreferences" xml:space="preserve"><value>Nastavení připojení</value></data>
+  <data name="AutoConnect" xml:space="preserve"><value>Automatické připojení</value></data>
+  <data name="ForegroundNoReplay" xml:space="preserve"><value>Jen v popředí; nikdy neopakuje akci</value></data>
+  <data name="RememberLastMask" xml:space="preserve"><value>Pamatovat poslední masku</value></data>
+  <data name="Experience" xml:space="preserve"><value>Prostředí</value></data>
+  <data name="ReduceMotionDetail" xml:space="preserve"><value>Zastaví automatické náhledy; ruční Přehrát zůstává dostupné.</value></data>
+  <data name="StageHaptics" xml:space="preserve"><value>Haptika režimu Stage</value></data>
+  <data name="ShowFirstRunAgain" xml:space="preserve"><value>Znovu zobrazit úvodního průvodce</value></data>
+  <data name="BluetoothPickerDetail" xml:space="preserve"><value>Bluetooth slouží jen k nalezení a ovládání blízké masky Shining Mask. Obsah zůstává v tomto zařízení.</value></data>
+  <data name="ScanForMasks" xml:space="preserve"><value>Vyhledat masky</value></data>
+  <data name="StopScanning" xml:space="preserve"><value>Zastavit hledání</value></data>
+  <data name="RecognizedNearbyMask" xml:space="preserve"><value>Rozpoznaná blízká maska</value></data>
+  <data name="RetryThisMask" xml:space="preserve"><value>Zkusit tuto masku znovu</value></data>
+  <data name="ContinueOffline" xml:space="preserve"><value>Pokračovat offline</value></data>
+  <data name="ConnectSelected" xml:space="preserve"><value>Připojit vybranou</value></data>
+  <data name="OpenSettings" xml:space="preserve"><value>Otevřít nastavení</value></data>
+  <data name="DiagnosticsPrivacyDetail" xml:space="preserve"><value>Jen pozorovaná fakta. Zpráva skryje identifikátory zařízení a neobsahuje obsah Knihovny.</value></data>
+  <data name="TransportObservations" xml:space="preserve"><value>Pozorování přenosu</value></data>
+  <data name="ShareRedactedReport" xml:space="preserve"><value>Sdílet anonymizovanou zprávu</value></data>
+  <data name="ResetPreparedLedger" xml:space="preserve"><value>Vymazat evidenci připravených slotů</value></data>
+  <data name="LibrarySubtitle" xml:space="preserve"><value>Vytvářejte, kontrolujte a organizujte místní obsah</value></data>
+  <data name="Arrange" xml:space="preserve"><value>Uspořádat</value></data>
+  <data name="ContentInheritsAppearance" xml:space="preserve"><value>Položky si ponechají název, ikonu a barvu.</value></data>
+  <data name="NoDeckActions" xml:space="preserve"><value>Zatím žádné akce. Přidejte opakovaně použitelný obsah z Knihovny.</value></data>
+  <data name="Prepare" xml:space="preserve"><value>Připravit</value></data>
+  <data name="Remove" xml:space="preserve"><value>Odebrat</value></data>
+  <data name="LiveHoldStageUnchanged" xml:space="preserve"><value>Jen pro Live. Chování podržení ve Stage se nemění.</value></data>
+  <data name="PrepareDeck" xml:space="preserve"><value>Připravit Deck</value></data>
+  <data name="DeckSettings" xml:space="preserve"><value>Nastavení Decku</value></data>
+  <data name="LiveSubtitle" xml:space="preserve"><value>Akce na jedno klepnutí z opakovaně použitelných Decků</value></data>
+  <data name="WelcomeTitle" xml:space="preserve"><value>Přizpůsobte si masku</value></data>
+  <data name="WelcomeDetail" xml:space="preserve"><value>Vytvářejte text, tváře, animace a Show. MaskApp funguje offline a obsah ukládá v tomto zařízení.</value></data>
+  <data name="ConnectReadyTitle" xml:space="preserve"><value>Připojte se, až budete připraveni</value></data>
+  <data name="BluetoothLocalDetail" xml:space="preserve"><value>Bluetooth umožní najít a ovládat blízkou masku. Obsah i historie zařízení zůstávají místní.</value></data>
+  <data name="AndroidLocationRationale" xml:space="preserve"><value>Android 11 a starší vyžaduje pro hledání přes Bluetooth také oprávnění k poloze. MaskApp polohu nepoužívá.</value></data>
+  <data name="ChooseMaskDetail" xml:space="preserve"><value>Rozpoznané masky jsou seřazené podle názvu a signálu. Identifikátory zařízení zůstávají skryté.</value></data>
+  <data name="ConnectSelectedMask" xml:space="preserve"><value>Připojit vybranou masku</value></data>
+  <data name="OfflineNoAccount" xml:space="preserve"><value>Není potřeba účet, cloudová synchronizace ani internet.</value></data>
+  <data name="SceneBoundsDetail" xml:space="preserve"><value>Až 32 typovaných a omezených kroků</value></data>
+  <data name="NewScene" xml:space="preserve"><value>Nová Scene</value></data>
+  <data name="OnFailure" xml:space="preserve"><value>Při chybě</value></data>
+  <data name="Rehearse" xml:space="preserve"><value>Vyzkoušet</value></data>
+  <data name="BrokenReferences" xml:space="preserve"><value>Poškozené odkazy</value></data>
+  <data name="BrokenReferencesDetail" xml:space="preserve"><value>Vyberte poškozený krok a kompatibilní položku Knihovny, potom zvolte Nahradit; nebo krok odeberte.</value></data>
+  <data name="ReplaceSelected" xml:space="preserve"><value>Nahradit vybraný</value></data>
+  <data name="RemoveSelected" xml:space="preserve"><value>Odebrat vybraný</value></data>
+  <data name="ShowBuilderDetail" xml:space="preserve"><value>Seřazené cues, aktivní Show a vstup do přípravy</value></data>
+  <data name="MakeActive" xml:space="preserve"><value>Nastavit jako aktivní</value></data>
+  <data name="ShowsSubtitle" xml:space="preserve"><value>Sestavte, připravte a spusťte seřazené vystoupení</value></data>
+  <data name="ActiveShow" xml:space="preserve"><value>Aktivní Show</value></data>
+  <data name="EditShow" xml:space="preserve"><value>Upravit Show</value></data>
+  <data name="PlayCue" xml:space="preserve"><value>Přehrát cue</value></data>
+  <data name="Current" xml:space="preserve"><value>Aktuální</value></data>
+  <data name="SendTest" xml:space="preserve"><value>Odeslat test</value></data>
+  <data name="TestMetadata" xml:space="preserve"><value>Metadata testu</value></data>
+  <data name="SaveMetadata" xml:space="preserve"><value>Uložit metadata</value></data>
+  <data name="NoNearbyMasks" xml:space="preserve"><value>Žádné masky poblíž</value></data>
+  <data name="NoNearbyMasksDetail" xml:space="preserve"><value>Spusťte hledání a nechte masku zapnutou a poblíž. Obsah můžete dál vytvářet offline.</value></data>
+  <data name="DeckEditorTitle" xml:space="preserve"><value>Editor Decku</value></data>
+  <data name="DeckName" xml:space="preserve"><value>Název Decku</value></data>
+  <data name="SaveName" xml:space="preserve"><value>Uložit název</value></data>
+  <data name="Earlier" xml:space="preserve"><value>Dříve</value></data>
+  <data name="Color" xml:space="preserve"><value>Barva</value></data>
+  <data name="Later" xml:space="preserve"><value>Později</value></data>
+  <data name="ChooseDeck" xml:space="preserve"><value>Vybrat Deck</value></data>
+  <data name="EmptyDeck" xml:space="preserve"><value>Tento Deck je prázdný</value></data>
+  <data name="EmptyDeckDetail" xml:space="preserve"><value>Upravte Deck a přidejte obsah z Knihovny.</value></data>
+  <data name="SceneName" xml:space="preserve"><value>Název Scene</value></data>
+  <data name="ShowName" xml:space="preserve"><value>Název Show</value></data>
+  <data name="SceneToAdd" xml:space="preserve"><value>Scene k přidání</value></data>
+  <data name="NoShowCues" xml:space="preserve"><value>V této Show nejsou žádné cues</value></data>
+  <data name="NoShowCuesDetail" xml:space="preserve"><value>Upravte Show a přidejte Scenes jako seřazené cues.</value></data>
+  <data name="StockContent" xml:space="preserve"><value>Skladový obsah</value></data>
+  <data name="PhysicalOutput" xml:space="preserve"><value>Výstup fyzické masky</value></data>
+  <data name="PhysicalOutputDetail" xml:space="preserve"><value>Jde o přesný náhled z původní aplikace. Vzhled LED se může na fyzické masce lišit.</value></data>
+  <data name="DisplayName" xml:space="preserve"><value>Zobrazovaný název</value></data>
+  <data name="TagsCommaSeparated" xml:space="preserve"><value>Štítky oddělené čárkou</value></data>
+  <data name="Notes" xml:space="preserve"><value>Poznámky</value></data>
+  <data name="ObservedStatus" xml:space="preserve"><value>Pozorovaný stav</value></data>
+  <data name="Actions" xml:space="preserve"><value>Akce</value></data>
+  <data name="MoveEarlier" xml:space="preserve"><value>Posunout dříve</value></data>
+  <data name="MoveLater" xml:space="preserve"><value>Posunout později</value></data>
+  <data name="PreparationNoPlay" xml:space="preserve"><value>Příprava nahraje obsah, ale nespustí ho.</value></data>
+  <data name="HoldToSendHint" xml:space="preserve"><value>Odeslat podržením; klepnutím otevřít přístupné potvrzení</value></data>
+  <data name="TapToSendHint" xml:space="preserve"><value>Klepnutím odeslat</value></data>
+  <data name="MaskIllustrationDescription" xml:space="preserve"><value>Svítící LED maska</value></data>
+  <data name="DeckHoldDescription" xml:space="preserve"><value>Vyžadovat podržení pro Live akce tohoto Decku</value></data>
+  <data name="CurrentLiveDeckDescription" xml:space="preserve"><value>Aktuální Live Deck</value></data>
+  <data name="BrightnessDescription" xml:space="preserve"><value>Jas masky v procentech</value></data>
+  <data name="PlaybackSpeedDescription" xml:space="preserve"><value>Rychlost režimu firmwaru</value></data>
+  <data name="SendNow" xml:space="preserve"><value>Odeslat nyní</value></data>
+  <data name="OpenDetails" xml:space="preserve"><value>Otevřít podrobnosti</value></data>
+  <data name="Send" xml:space="preserve"><value>Odeslat</value></data>
+  <data name="SendActionTitle" xml:space="preserve"><value>Odeslat akci?</value></data>
+  <data name="SendActionMessage" xml:space="preserve"><value>Odeslat nyní {0}?</value></data>
+  <data name="EnterStageModeTitle" xml:space="preserve"><value>Vstoupit do režimu Stage?</value></data>
+  <data name="EnterStageModeDetail" xml:space="preserve"><value>Stage zamkne běžnou navigaci a ponechá displej zapnutý. Stav Nepřipraveno vstup blokuje; pojmenovaná rizika zhoršeného stavu je nutné zkontrolovat. Pro opuštění podržte Konec dvě sekundy.</value></data>
+  <data name="KeepOneDeckTitle" xml:space="preserve"><value>Ponechte jeden Deck</value></data>
+  <data name="KeepOneDeckDetail" xml:space="preserve"><value>MaskApp musí ponechat alespoň jeden Live Deck.</value></data>
+  <data name="DeleteDeckTitle" xml:space="preserve"><value>Smazat Deck?</value></data>
+  <data name="DeleteDeckDetail" xml:space="preserve"><value>Odstraní se pouze rozvržení tohoto Decku. Zdrojový obsah a připravené sloty masky zůstanou dostupné.</value></data>
+  <data name="Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="ShareDiagnostics" xml:space="preserve"><value>Sdílet redigovanou diagnostiku MaskApp</value></data>
+  <data name="ExportFailed" xml:space="preserve"><value>Export se nezdařil</value></data>
+  <data name="ResetLedgerTitle" xml:space="preserve"><value>Resetovat evidenci připravených slotů?</value></data>
+  <data name="ResetLedgerDetail" xml:space="preserve"><value>Vymaže se evidence MaskApp pro aktivní masku. Fyzické sloty ani zdrojový obsah se nesmažou.</value></data>
+  <data name="ResetLedger" xml:space="preserve"><value>Resetovat evidenci</value></data>
+  <data name="StartHoldTitle" xml:space="preserve"><value>Spustit akci podržení?</value></data>
+  <data name="StartHoldMessage" xml:space="preserve"><value>Přehrávat {0}, dokud nezvolíte Stop?</value></data>
+  <data name="Start" xml:space="preserve"><value>Spustit</value></data>
+  <data name="HoldActionPlaying" xml:space="preserve"><value>Akce podržení se přehrává</value></data>
+  <data name="HoldActionPlayingDetail" xml:space="preserve"><value>Volbou Stop obnovíte předchozí stabilní stav masky.</value></data>
+  <data name="ExitStageTitle" xml:space="preserve"><value>Opustit Stage?</value></data>
+  <data name="ExitStageDetail" xml:space="preserve"><value>Navigace Stage se odemkne a režim trvale zapnutého displeje skončí.</value></data>
+  <data name="ConfirmExit" xml:space="preserve"><value>Potvrdit odchod</value></data>
+  <data name="NoReplayExitDetail" xml:space="preserve"><value>Žádná akce masky se znovu nepřehraje. Opustit Stage nyní?</value></data>
+  <data name="ExitStage" xml:space="preserve"><value>Opustit Stage</value></data>
+  <data name="Stay" xml:space="preserve"><value>Zůstat</value></data>
+  <data name="HoldToExit" xml:space="preserve"><value>Podržet pro odchod</value></data>
+  <data name="HoldToExitDescription" xml:space="preserve"><value>Podržte dvě sekundy a uvolněním odemkněte a opusťte Stage</value></data>
+  <data name="ExitEllipsis" xml:space="preserve"><value>Odejít…</value></data>
+  <data name="AccessibleExitDescription" xml:space="preserve"><value>Přístupná dvoukroková alternativa k dvousekundovému podržení</value></data>
+  <data name="PreviousCueDeck" xml:space="preserve"><value>Předchozí cue nebo Deck</value></data>
+  <data name="NextCueDeck" xml:space="preserve"><value>Další cue nebo Deck</value></data>
+  <data name="OutputExplicitOnly" xml:space="preserve"><value>Výstup proběhne pouze po výslovném stisknutí cue.</value></data>
+  <data name="NoStageCues" xml:space="preserve"><value>Žádná Stage cues</value></data>
+  <data name="NoStageCuesDetail" xml:space="preserve"><value>Odejděte podržením, sestavte Deck nebo Show, spusťte Preflight a vraťte se.</value></data>
+  <data name="HoldToPlay" xml:space="preserve"><value>PODRŽET PRO PŘEHRÁNÍ</value></data>
+  <data name="PlayEllipsis" xml:space="preserve"><value>Přehrát…</value></data>
+  <data name="AccessibleHoldAction" xml:space="preserve"><value>Přístupná akce podržení</value></data>
+  <data name="AccessibleHoldHint" xml:space="preserve"><value>Otevře potvrzení Start a Stop místo požadavku na trvalé držení</value></data>
+  <data name="SessionPreservedNoReplay" xml:space="preserve"><value>Relace je zachována. Opětovné připojení nikdy automaticky nepřehraje výstup.</value></data>
+  <data name="RecoverWithoutReplay" xml:space="preserve"><value>Obnovit bez přehrání</value></data>
+  <data name="RefreshReadiness" xml:space="preserve"><value>Obnovit připravenost</value></data>
+  <data name="HoldToExitStage" xml:space="preserve"><value>Podržet pro opuštění Stage</value></data>
+  <data name="StopDescription" xml:space="preserve"><value>Zastavit aktivní a zařazenou vizuální práci a pokud možno zachovat poslední stabilní vzhled</value></data>
+  <data name="BlackoutDescription" xml:space="preserve"><value>Nouzové zhasnutí. Zruší vizuální práci a nastaví jas masky na minimum protokolu</value></data>
+  <data name="Back" xml:space="preserve"><value>Zpět</value></data>
+  <data name="PreflightSubtitle" xml:space="preserve"><value>Ověřte, že je vybraná Show připravena pro tuto fyzickou masku.</value></data>
+  <data name="MaskUpper" xml:space="preserve"><value>MASKA</value></data>
+  <data name="ScopeUpper" xml:space="preserve"><value>ROZSAH</value></data>
+  <data name="ChooseLiveDeck" xml:space="preserve"><value>Vyberte Live Deck</value></data>
+  <data name="CheckLiveDeck" xml:space="preserve"><value>Zkontrolovat Live Deck</value></data>
+  <data name="CheckWholeShow" xml:space="preserve"><value>Zkontrolovat celou Show</value></data>
+  <data name="PrepareEligibleContent" xml:space="preserve"><value>Připravit způsobilý DIY obsah</value></data>
+  <data name="FlashSafetyUpper" xml:space="preserve"><value>BEZPEČNOST BLIKÁNÍ</value></data>
+  <data name="ReviewBlockedRevisions" xml:space="preserve"><value>Zkontrolovat a potvrdit blokované revize</value></data>
+  <data name="ReviewBlockedRevisionsDescription" xml:space="preserve"><value>Zkontrolujte varování pro fotosenzitivitu a výslovně potvrďte každou přesnou blokovanou revizi animace</value></data>
+  <data name="RevokeFlashOverrides" xml:space="preserve"><value>Odvolat výjimky rizika blikání</value></data>
+  <data name="RevokeFlashOverridesDescription" xml:space="preserve"><value>Odvolat potvrzení rizika blikání a znovu blokovat dané revize animace</value></data>
+  <data name="IssuesRecoveryUpper" xml:space="preserve"><value>PROBLÉMY A OBNOVA</value></data>
+  <data name="NoIssuesFound" xml:space="preserve"><value>Nebyly nalezeny žádné problémy.</value></data>
+  <data name="ActionReadinessUpper" xml:space="preserve"><value>PŘIPRAVENOST AKCÍ</value></data>
+  <data name="MaskPack" xml:space="preserve"><value>MaskPack</value></data>
+  <data name="MaskPackSubtitle" xml:space="preserve"><value>Přeneste offline balíček Show přes Soubory, AirDrop nebo nabídku sdílení.</value></data>
+  <data name="ImportValidationDetail" xml:space="preserve"><value>Archiv má omezenou velikost a před změnou místního obsahu se kontrolují otisky i významová platnost.</value></data>
+  <data name="ChooseMaskPack" xml:space="preserve"><value>Vybrat MaskPack ze Souborů</value></data>
+  <data name="ConflictPreview" xml:space="preserve"><value>Náhled konfliktů</value></data>
+  <data name="ConflictPreviewDetail" xml:space="preserve"><value>Vyberte výsledek pro každé existující ID. Sloučení zachová přesné shody a bezpečně přejmenuje odlišný obsah.</value></data>
+  <data name="ConflictAction" xml:space="preserve"><value>Akce konfliktu</value></data>
+  <data name="ConflictActionDescription" xml:space="preserve"><value>Akce konfliktu importu</value></data>
+  <data name="ConfirmReplacement" xml:space="preserve"><value>Potvrdit destruktivní nahrazení</value></data>
+  <data name="ConfirmReplacementDetail" xml:space="preserve"><value>Nahrazení přepíše vybraná místní ID. Vestavěné tváře nelze nahradit.</value></data>
+  <data name="ConfirmReplacementDescription" xml:space="preserve"><value>Potvrdit nahrazení existujícího obsahu</value></data>
+  <data name="ImportInspectedPackage" xml:space="preserve"><value>Importovat zkontrolovaný balíček</value></data>
+  <data name="ExportMaskPackDetail" xml:space="preserve"><value>Exportovat uživatelské tváře, animace a časování, textové presety, Decky, Scenes, Shows a bezpečné pořadí Knihovny.</value></data>
+  <data name="PackName" xml:space="preserve"><value>Název balíčku</value></data>
+  <data name="Author" xml:space="preserve"><value>Autor</value></data>
+  <data name="ExportShareMaskPack" xml:space="preserve"><value>Exportovat a sdílet MaskPack</value></data>
+  <data name="ChooseMaskPackArchive" xml:space="preserve"><value>Vyberte ZIP archiv MaskPack</value></data>
+  <data name="MaskPackInspectionFailed" xml:space="preserve"><value>Kontrola MaskPack se nezdařila</value></data>
+  <data name="MaskPackExportFailed" xml:space="preserve"><value>Export MaskPack se nezdařil</value></data>
+  <data name="ShareMaskPack" xml:space="preserve"><value>Sdílet MaskPack</value></data>
+  <data name="PhotosensitivityWarning" xml:space="preserve"><value>Varování pro fotosenzitivitu</value></data>
+  <data name="PhotosensitivityWarningDetail" xml:space="preserve"><value>Tyto přesné revize animací překračují konzervativní limit tří úplných záblesků za sekundu. Rychlé blikání může vyvolat záchvaty nebo jiné fotosenzitivní reakce. Potvrzení nezajistí bezpečnost obsahu a Blackout musí zůstat okamžitě dostupný. Zaznamenat výslovnou výjimku pro revize v tomto reportu Preflight?</value></data>
+  <data name="AcknowledgeExactRevisions" xml:space="preserve"><value>Potvrdit přesné revize</value></data>
+  <data name="RevokeFlashOverridesTitle" xml:space="preserve"><value>Odvolat výjimky rizika blikání?</value></data>
+  <data name="RevokeFlashOverridesDetail" xml:space="preserve"><value>Dotčené revize animací budou znovu blokovány, dokud nebudou upraveny tak, aby prošly bezpečnostní analýzou, nebo znovu výslovně potvrzeny.</value></data>
+  <data name="Revoke" xml:space="preserve"><value>Odvolat</value></data>
+  <data name="KeepOverrides" xml:space="preserve"><value>Ponechat výjimky</value></data>
 </root>

@@ -280,7 +280,13 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
         }
     }
 
-    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    public Task InitializeAsync(CancellationToken cancellationToken = default) =>
+        InitializeAsync("whole-show", null, cancellationToken);
+
+    public async Task InitializeAsync(
+        string scope,
+        string? sourceId,
+        CancellationToken cancellationToken = default)
     {
         var layout = (await galleryLayoutStore.LoadAsync(cancellationToken)).Normalize();
         sceneState = (await sceneShowStore.LoadAsync(cancellationToken)).Normalize();
@@ -293,8 +299,15 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
             Pages.Add(new PreflightPageOption(page.PageId, page.Title));
         }
 
+        SelectedPage = !string.IsNullOrWhiteSpace(sourceId)
+            ? Pages.FirstOrDefault(page => page.PageId == sourceId) ?? SelectedPage
+            : SelectedPage;
         SelectedPage ??= Pages.FirstOrDefault();
-        await AnalyzeAsync(selectedOnly: false, cancellationToken);
+        var normalizedScope = scope?.Trim().ToLowerInvariant();
+        await AnalyzeAsync(
+            selectedOnly: normalizedScope == "live-deck",
+            cancellationToken,
+            activeSetlist: normalizedScope == "active-show");
     }
 
     public async Task InitializeForStageAsync(CancellationToken cancellationToken = default)
@@ -367,7 +380,7 @@ public sealed class FestivalPreflightViewModel : INotifyPropertyChanged
                 ? $"Setlist · {sceneState.Setlists.First(setlist => setlist.Id == sceneState.ActiveSetlistId).DisplayName}"
                 : selectedOnly && SelectedPage is not null
                 ? SelectedPage.DisplayName
-                : $"Whole show · {layout.Pages.Count} Page(s)";
+                : $"Whole show · {layout.Pages.Count} Deck(s)";
             OnPropertyChanged(nameof(HasActiveSetlist));
             OnPropertyChanged(nameof(ActiveSetlistText));
             RunActiveSetlistCommand.RaiseCanExecuteChanged();

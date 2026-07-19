@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="MaskApp.App.Features.Shows.ShowsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:MaskApp.App.Controls"
+    xmlns:shows="clr-namespace:MaskApp.Core.Features.Shows;assembly=MaskApp.Core"
+    xmlns:scenes="clr-namespace:MaskApp.Core.Features.Scenes;assembly=MaskApp.Core"
+    xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
+    x:DataType="shows:ShowsViewModel"
+    Title="{x:Static loc:AppText.Shows}"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{AppThemeBinding Dark={StaticResource DarkCanvasColor}, Light={StaticResource LightCanvasColor}}">
+    <Grid Padding="16,16,16,12" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="12">
+        <Grid ColumnDefinitions="*,Auto">
+            <VerticalStackLayout Spacing="2">
+                <Label Text="{x:Static loc:AppText.Shows}" Style="{StaticResource PageTitleLabelStyle}" SemanticProperties.HeadingLevel="Level1" />
+                <Label Text="{loc:Translate ShowsSubtitle}" Style="{StaticResource MutedLabelStyle}" />
+            </VerticalStackLayout>
+            <controls:ConnectionPill Grid.Column="1" State="{Binding ConnectionState}" Text="{Binding ConnectionText}" Clicked="OnDeviceClicked" />
+        </Grid>
+
+        <Border Grid.Row="1" Padding="16" BackgroundColor="{AppThemeBinding Dark={StaticResource DarkRaisedColor}, Light={StaticResource LightRaisedColor}}">
+            <Border.StrokeShape><RoundRectangle CornerRadius="20" /></Border.StrokeShape>
+            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="6">
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="{loc:Translate ActiveShow}" Style="{StaticResource TinyLabelStyle}" />
+                    <Label Text="{Binding ActiveShowName}" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="{Binding PositionText}" Style="{StaticResource MutedLabelStyle}" />
+                </VerticalStackLayout>
+                <Button Grid.Column="1" Text="{loc:Translate EditShow}" Clicked="OnEditShowClicked" MinimumHeightRequest="48" />
+                <controls:ReadinessCardView Grid.Row="1" Grid.ColumnSpan="2" Title="{Binding Preflight.StatusText}" Detail="{Binding Preflight.Summary}" />
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="8">
+            <Button Text="{x:Static loc:AppText.Previous}" Command="{Binding Studio.PreviousCueCommand}" MinimumHeightRequest="48" />
+            <Button Grid.Column="1" Text="{loc:Translate PlayCue}" Command="{Binding Studio.TriggerCueCommand}" Style="{StaticResource PrimaryButtonStyle}" MinimumHeightRequest="48" />
+            <Button Grid.Column="2" Text="{x:Static loc:AppText.Next}" Command="{Binding Studio.NextCueCommand}" MinimumHeightRequest="48" />
+        </Grid>
+
+        <CollectionView Grid.Row="3" ItemsSource="{Binding Cues}" SelectionMode="None">
+            <CollectionView.EmptyView>
+                <controls:EmptyStateView Title="{loc:Translate NoShowCues}" Detail="{loc:Translate NoShowCuesDetail}" />
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="scenes:SetlistCueRow">
+                    <Grid Padding="0,12" ColumnDefinitions="48,*,Auto" ColumnSpacing="10" MinimumHeightRequest="72">
+                        <Label Text="{Binding DisplayIndex}" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                            <Label Text="{Binding Cue.Label}" FontAttributes="Bold" FontSize="16" />
+                            <Label Text="{Binding SceneName}" Style="{StaticResource MutedLabelStyle}" />
+                        </VerticalStackLayout>
+                        <Label Grid.Column="2" Text="{loc:Translate Current}" IsVisible="{Binding IsSelected}" Style="{StaticResource TinyLabelStyle}" VerticalOptions="Center" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Grid Grid.Row="4" ColumnDefinitions="*,*" ColumnSpacing="10">
+            <Button Text="{x:Static loc:AppText.RunPreflight}" Clicked="OnPreflightClicked" MinimumHeightRequest="56" />
+            <Button Grid.Column="1" Text="{x:Static loc:AppText.EnterStage}" Clicked="OnStageClicked" Style="{StaticResource PrimaryButtonStyle}" MinimumHeightRequest="56" />
+        </Grid>
+    </Grid>
+</ContentPage>

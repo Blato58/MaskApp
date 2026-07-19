@@ -437,6 +437,41 @@ public sealed class SceneStudioViewModel : INotifyPropertyChanged
         return true;
     }
 
+    public bool ReplaceSelectedStepContent()
+    {
+        if (CurrentScene.Steps.Count == 0 || SelectedContentItem is null)
+        {
+            StatusText = "Choose a replacement Library item first.";
+            return false;
+        }
+
+        var selected = CurrentScene.Steps[SelectedStepIndex];
+        if (selected.Kind is not (SceneStepKind.Face or SceneStepKind.Text or SceneStepKind.Animation))
+        {
+            StatusText = "Only Face, Text, or Animation steps have replaceable Library references.";
+            return false;
+        }
+
+        var replacementKind = SelectedContentItem.Type switch
+        {
+            GalleryItemType.TextPreset => SceneStepKind.Text,
+            GalleryItemType.BuiltInAnimation or GalleryItemType.AppBuiltInAnimation or GalleryItemType.CustomAnimation => SceneStepKind.Animation,
+            GalleryItemType.BuiltInStaticImage or GalleryItemType.CustomStaticFace => SceneStepKind.Face,
+            _ => selected.Kind
+        };
+        if (replacementKind != selected.Kind)
+        {
+            StatusText = $"Choose a {selected.Kind} item to replace this missing reference.";
+            return false;
+        }
+
+        var steps = CurrentScene.Steps.ToArray();
+        steps[SelectedStepIndex] = selected with { GalleryItemId = SelectedContentItem.Id };
+        UpdateScene(CurrentScene with { Steps = steps });
+        StatusText = $"Replaced the missing reference with {SelectedContentItem.Title}.";
+        return true;
+    }
+
     public bool MoveSelectedStep(int delta) => MoveStep(SelectedStepIndex, SelectedStepIndex + delta);
 
     public bool MoveStep(int fromIndex, int toIndex)

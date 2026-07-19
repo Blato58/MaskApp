@@ -5,11 +5,12 @@ using Microsoft.Maui.Media;
 
 namespace MaskApp.App.Features.Faces;
 
-public partial class FaceStudioPage : ContentPage
+public partial class FaceStudioPage : ContentPage, IQueryAttributable
 {
     private readonly FaceStudioViewModel viewModel;
     private readonly IFaceImageDecoder imageDecoder;
     private readonly FaceGridDrawable drawable;
+    private string faceId = string.Empty;
 
     public FaceStudioPage(FaceStudioViewModel viewModel, IFaceImageDecoder imageDecoder)
     {
@@ -22,10 +23,22 @@ public partial class FaceStudioPage : ContentPage
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
     }
 
+    public void ApplyQueryAttributes(IDictionary<string, object> query)
+    {
+        if (query.TryGetValue("faceId", out var value))
+        {
+            faceId = Uri.UnescapeDataString(value?.ToString() ?? string.Empty);
+        }
+    }
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();
         await viewModel.InitializeAsync();
+        if (!string.IsNullOrWhiteSpace(faceId))
+        {
+            viewModel.SelectPattern(faceId);
+        }
         FaceCanvas.Invalidate();
     }
 

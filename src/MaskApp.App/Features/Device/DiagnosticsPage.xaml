@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="MaskApp.App.Features.Device.DiagnosticsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:connect="clr-namespace:MaskApp.Core.Features.Connect;assembly=MaskApp.Core"
+    xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
+    x:DataType="connect:ConnectViewModel"
+    Title="{x:Static loc:AppText.Diagnostics}"
+    BackgroundColor="{AppThemeBinding Dark={StaticResource DarkCanvasColor}, Light={StaticResource LightCanvasColor}}">
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="14">
+            <Label Text="{x:Static loc:AppText.Diagnostics}" Style="{StaticResource PageTitleLabelStyle}" SemanticProperties.HeadingLevel="Level1" />
+            <Label Text="{loc:Translate DiagnosticsPrivacyDetail}" Style="{StaticResource MutedLabelStyle}" />
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="{x:Static loc:AppText.Connection}" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="{Binding ConnectionHeadline}" FontAttributes="Bold" />
+                    <Label Text="{Binding ConnectionDetailText}" Style="{StaticResource MutedLabelStyle}" />
+                    <Label Text="{Binding FirmwareText, StringFormat='Firmware: {0}'}" />
+                    <Label Text="{Binding TransportText, StringFormat='Transport: {0}'}" />
+                    <Label Text="{loc:Translate BatteryUnavailable}" />
+                </VerticalStackLayout>
+            </Border>
+            <Border Style="{StaticResource PanelBorderStyle}">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="{loc:Translate TransportObservations}" Style="{StaticResource SectionTitleLabelStyle}" />
+                    <Label Text="{Binding AcknowledgementText, StringFormat='Acknowledgements: {0}'}" />
+                    <Label Text="{Binding SchedulerQueueText}" />
+                    <Label Text="{Binding SchedulerLastDurationText}" />
+                    <Label Text="{Binding SchedulerErrorText}" TextColor="{AppThemeBinding Dark={StaticResource DarkDangerColor}, Light={StaticResource LightDangerColor}}" />
+                    <Label Text="{Binding PreparedSlotText}" />
+                    <Label Text="{Binding PreparedSlotDetailText}" Style="{StaticResource MutedLabelStyle}" />
+                </VerticalStackLayout>
+            </Border>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Button Text="{x:Static loc:AppText.Refresh}" Clicked="OnRefreshClicked" />
+                <Button Grid.Column="1" Text="{loc:Translate ShareRedactedReport}" Clicked="OnExportClicked" />
+            </Grid>
+            <Button Text="{loc:Translate ResetPreparedLedger}" Clicked="OnResetClicked" Style="{StaticResource DangerButtonStyle}" IsEnabled="{Binding CanResetPreparedSlots}" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

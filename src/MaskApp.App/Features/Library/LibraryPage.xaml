@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="MaskApp.App.Features.Library.LibraryPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:MaskApp.App.Controls"
+    xmlns:gallery="clr-namespace:MaskApp.Core.Features.Gallery;assembly=MaskApp.Core"
+    xmlns:loc="clr-namespace:MaskApp.App.Resources.Strings"
+    x:DataType="gallery:GalleryViewModel"
+    Title="{x:Static loc:AppText.Library}"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{AppThemeBinding Dark={StaticResource DarkCanvasColor}, Light={StaticResource LightCanvasColor}}">
+    <VisualStateManager.VisualStateGroups>
+        <VisualStateGroup x:Name="WindowWidthStates">
+            <VisualState x:Name="Compact" />
+            <VisualState x:Name="Medium">
+                <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="600" /></VisualState.StateTriggers>
+                <VisualState.Setters><Setter TargetName="PageGrid" Property="Padding" Value="24" /></VisualState.Setters>
+            </VisualState>
+            <VisualState x:Name="Expanded">
+                <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="900" /></VisualState.StateTriggers>
+                <VisualState.Setters><Setter TargetName="PageGrid" Property="Padding" Value="32" /></VisualState.Setters>
+            </VisualState>
+        </VisualStateGroup>
+    </VisualStateManager.VisualStateGroups>
+    <Grid x:Name="PageGrid" Padding="16,16,16,12" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="10">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <VerticalStackLayout Spacing="2">
+                <Label Text="{x:Static loc:AppText.Library}" Style="{StaticResource PageTitleLabelStyle}" SemanticProperties.HeadingLevel="Level1" />
+                <Label Text="{loc:Translate LibrarySubtitle}" Style="{StaticResource MutedLabelStyle}" />
+            </VerticalStackLayout>
+            <Button Grid.Column="1" Text="{x:Static loc:AppText.Create}" Clicked="OnCreateClicked" Style="{StaticResource PrimaryButtonStyle}" MinimumHeightRequest="48" />
+        </Grid>
+
+        <SearchBar
+            Grid.Row="1"
+            Placeholder="{x:Static loc:AppText.SearchLibrary}"
+            Text="{Binding SearchText, Mode=TwoWay}"
+            SearchButtonPressed="OnSearchDone"
+            MinimumHeightRequest="48"
+            SemanticProperties.Description="{x:Static loc:AppText.SearchLibrary}" />
+
+        <ScrollView Grid.Row="2" Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+            <HorizontalStackLayout Spacing="8">
+                <Button Text="{x:Static loc:AppText.All}" Command="{Binding ShowAllTypesCommand}" MinimumHeightRequest="48" />
+                <Button Text="{x:Static loc:AppText.Faces}" Command="{Binding ShowFacesCommand}" MinimumHeightRequest="48" />
+                <Button Text="{x:Static loc:AppText.Text}" Command="{Binding ShowTextCommand}" MinimumHeightRequest="48" />
+                <Button Text="{x:Static loc:AppText.Animations}" Command="{Binding ShowAnimationsCommand}" MinimumHeightRequest="48" />
+                <Button Text="{x:Static loc:AppText.Scenes}" Command="{Binding ShowScenesCommand}" MinimumHeightRequest="48" />
+                <Button Text="{x:Static loc:AppText.StockCatalog}" Clicked="OnStockClicked" MinimumHeightRequest="48" />
+            </HorizontalStackLayout>
+        </ScrollView>
+
+        <Grid Grid.Row="3">
+            <ActivityIndicator IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}" HorizontalOptions="Center" VerticalOptions="Center" />
+            <CollectionView
+                x:Name="LibraryView"
+                ItemsSource="{Binding Groups}"
+                IsGrouped="True"
+                IsVisible="{Binding IsContentVisible}"
+                SelectionMode="None">
+                <CollectionView.GroupHeaderTemplate>
+                    <DataTemplate x:DataType="gallery:GalleryGroupCard">
+                        <Grid Padding="0,18,0,6" ColumnDefinitions="*,Auto">
+                            <Label Text="{Binding Title}" Style="{StaticResource SectionTitleLabelStyle}" SemanticProperties.HeadingLevel="Level2" />
+                            <Label Grid.Column="1" Text="{Binding Count, StringFormat='{0} items'}" Style="{StaticResource TinyLabelStyle}" VerticalOptions="Center" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.GroupHeaderTemplate>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="gallery:GalleryItemCard">
+                        <controls:LibraryRow Item="{Binding .}" ActionsRequested="OnActionsRequested" />
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+            <controls:EmptyStateView
+                IsVisible="{Binding IsEmptyStateVisible}"
+                Title="{Binding EmptyStateTitle}"
+                Detail="{Binding EmptyStateMessage}" />
+        </Grid>
+
+        <Grid Grid.Row="4" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <Label Text="{Binding VisibleItemCountText}" Style="{StaticResource TinyLabelStyle}" VerticalOptions="Center" />
+            <Grid Grid.Column="1">
+                <Button Text="{loc:Translate Arrange}" Command="{Binding SetArrangeModeCommand}" IsVisible="{Binding IsBrowseMode}" MinimumHeightRequest="48" />
+                <Button Text="{x:Static loc:AppText.Done}" Command="{Binding SetBrowseModeCommand}" IsVisible="{Binding IsArrangeMode}" MinimumHeightRequest="48" />
+            </Grid>
+        </Grid>
+    </Grid>
+</ContentPage>

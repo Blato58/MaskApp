@@ -2,6 +2,9 @@ using Microsoft.Extensions.DependencyInjection;
 using MaskApp.Core.Features.Animations;
 using MaskApp.Core.Features.Connect;
 using MaskApp.Core.Features.AnimationPacks;
+using MaskApp.Core.Features.Experience;
+using MaskApp.App.Resources.Strings;
+using System.Globalization;
 #if IOS
 using UIKit;
 #endif
@@ -22,6 +25,7 @@ public partial class App : Application
     {
         try
         {
+            ApplySavedExperienceSettings();
             var window = new Window(services.GetRequiredService<AppShell>());
             window.Created += (_, _) => _ = StartStartupServicesAsync();
             window.Activated += (_, _) => _ = StartForegroundAutoConnectAsync();
@@ -35,6 +39,26 @@ public partial class App : Application
         }
     }
 
+    private void ApplySavedExperienceSettings()
+    {
+        var settings = services.GetRequiredService<IAppExperienceSettingsStore>()
+            .LoadAsync()
+            .GetAwaiter()
+            .GetResult();
+        UserAppTheme = settings.Appearance switch
+        {
+            AppAppearance.Dark => AppTheme.Dark,
+            AppAppearance.Light => AppTheme.Light,
+            _ => AppTheme.Unspecified
+        };
+        AppText.Culture = settings.Language switch
+        {
+            AppLanguage.English => CultureInfo.GetCultureInfo("en"),
+            AppLanguage.Czech => CultureInfo.GetCultureInfo("cs-CZ"),
+            _ => null
+        };
+    }
+
     private async Task StartStartupServicesAsync()
     {
         try
@@ -46,6 +70,13 @@ public partial class App : Application
         {
         }
 
+        var settings = await services.GetRequiredService<IAppExperienceSettingsStore>().LoadAsync();
+        if (!settings.OnboardingCompleted)
+        {
+            await Shell.Current.GoToAsync(AppRoutes.Onboarding);
+            return;
+        }
+
         await StartForegroundAutoConnectAsync();
     }
 
@@ -53,6 +84,12 @@ public partial class App : Application
     {
         try
         {
+            var settings = await services.GetRequiredService<IAppExperienceSettingsStore>().LoadAsync();
+            if (!settings.OnboardingCompleted)
+            {
+                return;
+            }
+
             await services.GetRequiredService<BleAutoConnectCoordinator>().StartForegroundAutoConnectAsync();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)

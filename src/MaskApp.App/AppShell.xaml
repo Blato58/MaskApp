@@ -4,11 +4,11 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     FlyoutBehavior="Disabled"
-    Shell.BackgroundColor="{StaticResource PageBackgroundColor}"
-    Shell.ForegroundColor="{StaticResource PrimaryTextColor}"
-    Shell.TabBarBackgroundColor="{StaticResource SurfaceColor}"
-    Shell.TabBarForegroundColor="{StaticResource AccentColor}"
-    Shell.TabBarTitleColor="{StaticResource AccentColor}"
-    Shell.TabBarUnselectedColor="{StaticResource SecondaryTextColor}"
-    Shell.TitleColor="{StaticResource PrimaryTextColor}">
+    Shell.BackgroundColor="{AppThemeBinding Dark={StaticResource DarkCanvasColor}, Light={StaticResource LightCanvasColor}}"
+    Shell.ForegroundColor="{AppThemeBinding Dark={StaticResource DarkPrimaryTextColor}, Light={StaticResource LightPrimaryTextColor}}"
+    Shell.TabBarBackgroundColor="{AppThemeBinding Dark={StaticResource DarkSurfaceColor}, Light={StaticResource LightSurfaceColor}}"
+    Shell.TabBarForegroundColor="{AppThemeBinding Dark={StaticResource DarkAccentColor}, Light={StaticResource LightAccentColor}}"
+    Shell.TabBarTitleColor="{AppThemeBinding Dark={StaticResource DarkAccentColor}, Light={StaticResource LightAccentColor}}"
+    Shell.TabBarUnselectedColor="{AppThemeBinding Dark={StaticResource DarkSecondaryTextColor}, Light={StaticResource LightSecondaryTextColor}}"
+    Shell.TitleColor="{AppThemeBinding Dark={StaticResource DarkPrimaryTextColor}, Light={StaticResource LightPrimaryTextColor}}">
 </Shell>

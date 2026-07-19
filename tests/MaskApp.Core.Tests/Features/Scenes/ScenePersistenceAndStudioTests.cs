@@ -184,7 +184,7 @@ public sealed class ScenePersistenceAndStudioTests
         var prepared = new SceneReadinessEvaluator().Evaluate(scene, byId, preparedState);
 
         Assert.Equal("scene:scene-face", sceneItem.Id);
-        Assert.Equal("scene-studio", sceneItem.ManageTarget);
+        Assert.Equal("scene-editor", sceneItem.ManageTarget);
         Assert.True(sceneItem.CanSend);
         Assert.False(notPrepared.IsReady);
         Assert.True(prepared.IsReady);
